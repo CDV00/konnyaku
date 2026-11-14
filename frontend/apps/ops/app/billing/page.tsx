@@ -1,7 +1,12 @@
 import { getFormatter, getLocale, getTranslations } from "next-intl/server";
+import { Package as PackageIcon, Receipt } from "lucide-react";
 import { requireMe } from "@konnyaku/session";
-import { ActionForm } from "../action-form";
-import { getJson, localized, type ClassRow, type Package, type Student } from "../lib";
+import { Input } from "@konnyaku/ui/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@konnyaku/ui/components/ui/table";
+import { EmptyState, PageHeader, Panel, StatusBadge } from "@konnyaku/ui/kk/blocks";
+import { Field, NativeSelect } from "@konnyaku/ui/kk/field";
+import { ActionForm, FormSheet } from "../action-form";
+import { getJson, localized, statusTone, type ClassRow, type Package, type Student } from "../lib";
 
 type Order = { id: string; studentId: string; packageId: string; classId: string | null; amount: number; amountReceived: number; currency: string; status: string };
 
@@ -20,124 +25,135 @@ export default async function BillingPage() {
   ]);
   const money = (amount: number, currency: string) => format.number(amount, { style: "currency", currency });
   const studentName = new Map(students.map((s) => [s.id, s.fullName]));
-  const packageName = new Map(packages.map((p) => [p.id, `${p.code} · ${localized(p.name, locale)}`]));
+  const packageName = new Map(packages.map((p) => [p.id, localized(p.name, locale)]));
   const className = new Map(classes.map((c) => [c.id, c.code]));
 
   return (
-    <main>
-      <h1>{t("billing.title")}</h1>
+    <div className="space-y-6">
+      <PageHeader
+        title={t("billing.title")}
+        description={t("billing.description")}
+        actions={
+          <>
+            <FormSheet triggerLabel={t("billing.createPackage")} title={t("billing.createPackage")} variant="outline">
+              <ActionForm api="billing/packages" submitLabel={t("save")}>
+                <Field label={t("fields.code")}><Input name="code" required /></Field>
+                <Field label={t("fields.nameVi")}><Input name="name.vi" required /></Field>
+                <Field label={t("fields.nameEn")}><Input name="name.en" /></Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label={t("billing.paidCredits")}><Input name="paidCredits" type="number" min={1} required /></Field>
+                  <Field label={t("billing.bonusCredits")}><Input name="bonusCredits" type="number" min={0} defaultValue={0} /></Field>
+                </div>
+                <div className="grid grid-cols-[1fr_6rem] gap-3">
+                  <Field label={t("billing.price")}><Input name="price" type="number" min={0} step={1000} required /></Field>
+                  <Field label={t("fields.currency")}><Input name="currency" required defaultValue="VND" maxLength={3} /></Field>
+                </div>
+              </ActionForm>
+            </FormSheet>
+            <FormSheet triggerLabel={t("billing.createOrder")} title={t("billing.createOrder")} description={t("billing.orderHint")}>
+              <ActionForm api="billing/orders" submitLabel={t("save")}>
+                <Field label={t("billing.student")}>
+                  <NativeSelect name="studentId" required>
+                    {students.map((s) => <option key={s.id} value={s.id}>{s.fullName}</option>)}
+                  </NativeSelect>
+                </Field>
+                <Field label={t("billing.package")}>
+                  <NativeSelect name="packageId" required>
+                    {packages.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {t("billing.packageOption", { name: `${p.code} · ${packageName.get(p.id)}`, price: money(p.price, p.currency) })}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </Field>
+                <Field label={t("billing.class")}>
+                  <NativeSelect name="classId">
+                    <option value="">{t("billing.noClass")}</option>
+                    {classes.filter((c) => c.status === "Open").map((c) => <option key={c.id} value={c.id}>{c.code}</option>)}
+                  </NativeSelect>
+                </Field>
+              </ActionForm>
+            </FormSheet>
+          </>
+        }
+      />
 
-      <h2>{t("billing.orders")}</h2>
-      <details className="panel">
-        <summary>{t("billing.createOrder")}</summary>
-        <ActionForm api="billing/orders" submitLabel={t("save")}>
-          <label>
-            {t("billing.student")}
-            <select name="studentId" required>
-              {students.map((s) => <option key={s.id} value={s.id}>{s.fullName}</option>)}
-            </select>
-          </label>
-          <label>
-            {t("billing.package")}
-            <select name="packageId" required>
-              {packages.map((p) => <option key={p.id} value={p.id}>{t("billing.packageOption", { name: packageName.get(p.id) ?? p.code, price: money(p.price, p.currency) })}</option>)}
-            </select>
-          </label>
-          <label>
-            {t("billing.class")}
-            <select name="classId">
-              <option value="">{t("billing.noClass")}</option>
-              {classes.filter((c) => c.status === "Open").map((c) => <option key={c.id} value={c.id}>{c.code}</option>)}
-            </select>
-          </label>
-        </ActionForm>
-      </details>
-      {orders.length === 0 ? (
-        <p className="muted">{t("billing.noOrders")}</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>{t("billing.student")}</th>
-              <th>{t("billing.package")}</th>
-              <th>{t("billing.class")}</th>
-              <th className="num">{t("billing.amount")}</th>
-              <th className="num">{t("billing.received")}</th>
-              <th>{t("fields.status")}</th>
-              <th>{t("billing.payment")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((o) => (
-              <tr key={o.id}>
-                <td>{studentName.get(o.studentId) ?? o.studentId}</td>
-                <td>{packageName.get(o.packageId)}</td>
-                <td>{o.classId ? className.get(o.classId) : null}</td>
-                <td className="num">{money(o.amount, o.currency)}</td>
-                <td className="num">{money(o.amountReceived, o.currency)}</td>
-                <td>{t(`orderStatus.${o.status}`)}</td>
-                <td>
-                  {o.status === "PendingPayment" && (
-                    <ActionForm api={`billing/orders/${o.id}/payments`} submitLabel={t("billing.recordPayment")}>
-                      <input
-                        name="amount"
-                        type="number"
-                        min={1}
-                        required
-                        defaultValue={o.amount - o.amountReceived}
-                        className="compact"
-                        aria-label={t("billing.amount")}
-                      />
-                      <select name="method" aria-label={t("billing.method")}>
-                        {paymentMethods.map((m) => <option key={m} value={m}>{t(`billing.methods.${m}`)}</option>)}
-                      </select>
-                      <input name="reference" placeholder={t("billing.reference")} className="compact" />
-                    </ActionForm>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <Panel title={t("billing.orders")} bodyClassName="p-0">
+        {orders.length === 0 ? (
+          <div className="p-5"><EmptyState icon={Receipt} title={t("billing.noOrders")} /></div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-5">{t("billing.student")}</TableHead>
+                <TableHead>{t("billing.package")}</TableHead>
+                <TableHead className="text-right">{t("billing.amount")}</TableHead>
+                <TableHead className="text-right">{t("billing.received")}</TableHead>
+                <TableHead>{t("fields.status")}</TableHead>
+                <TableHead className="pr-5 text-right" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {orders.map((o) => (
+                <TableRow key={o.id}>
+                  <TableCell className="pl-5">
+                    <p className="font-medium">{studentName.get(o.studentId) ?? o.studentId}</p>
+                    {o.classId && <p className="text-xs text-muted-foreground">{t("billing.forClass", { code: className.get(o.classId) ?? "" })}</p>}
+                  </TableCell>
+                  <TableCell>{packageName.get(o.packageId)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{money(o.amount, o.currency)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{money(o.amountReceived, o.currency)}</TableCell>
+                  <TableCell><StatusBadge tone={statusTone[o.status]}>{t(`orderStatus.${o.status}`)}</StatusBadge></TableCell>
+                  <TableCell className="pr-5 text-right">
+                    {o.status === "PendingPayment" && (
+                      <FormSheet
+                        triggerLabel={t("billing.recordPayment")}
+                        title={t("billing.recordPayment")}
+                        description={t("billing.paymentFor", { name: studentName.get(o.studentId) ?? "", amount: money(o.amount - o.amountReceived, o.currency) })}
+                        size="sm"
+                        icon={false}
+                      >
+                        <ActionForm api={`billing/orders/${o.id}/payments`} submitLabel={t("billing.recordPayment")}>
+                          <Field label={t("billing.amount")}>
+                            <Input name="amount" type="number" min={1} required defaultValue={o.amount - o.amountReceived} />
+                          </Field>
+                          <Field label={t("billing.method")}>
+                            <NativeSelect name="method">
+                              {paymentMethods.map((m) => <option key={m} value={m}>{t(`billing.methods.${m}`)}</option>)}
+                            </NativeSelect>
+                          </Field>
+                          <Field label={t("billing.reference")}><Input name="reference" /></Field>
+                        </ActionForm>
+                      </FormSheet>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </Panel>
 
-      <h2>{t("billing.packages")}</h2>
-      {packages.length === 0 ? (
-        <p className="muted">{t("billing.noPackages")}</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>{t("fields.code")}</th>
-              <th>{t("fields.name")}</th>
-              <th className="num">{t("billing.credits")}</th>
-              <th className="num">{t("billing.price")}</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="space-y-3">
+        <h2 className="font-semibold tracking-tight">{t("billing.packages")}</h2>
+        {packages.length === 0 ? (
+          <EmptyState icon={PackageIcon} title={t("billing.noPackages")} />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {packages.map((p) => (
-              <tr key={p.id}>
-                <td>{p.code}</td>
-                <td>{localized(p.name, locale)}</td>
-                <td className="num">{t("billing.creditsValue", { paid: p.paidCredits, bonus: p.bonusCredits })}</td>
-                <td className="num">{money(p.price, p.currency)}</td>
-              </tr>
+              <article key={p.id} className="rounded-xl border bg-card p-5 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="rounded bg-muted px-2 py-0.5 font-mono text-xs">{p.code}</span>
+                  {p.bonusCredits > 0 && <StatusBadge tone="highlight">{t("billing.bonusTag", { bonus: p.bonusCredits })}</StatusBadge>}
+                </div>
+                <h3 className="mt-3 font-semibold">{localized(p.name, locale)}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{t("billing.creditsValue", { paid: p.paidCredits, bonus: p.bonusCredits })}</p>
+                <p className="mt-4 text-2xl font-semibold tracking-tight tabular-nums">{money(p.price, p.currency)}</p>
+              </article>
             ))}
-          </tbody>
-        </table>
-      )}
-      <details className="panel">
-        <summary>{t("billing.createPackage")}</summary>
-        <ActionForm api="billing/packages" submitLabel={t("save")}>
-          <label>{t("fields.code")}<input name="code" required className="compact" /></label>
-          <label>{t("fields.nameVi")}<input name="name.vi" required /></label>
-          <label>{t("fields.nameEn")}<input name="name.en" /></label>
-          <label>{t("billing.paidCredits")}<input name="paidCredits" type="number" min={1} required className="compact" /></label>
-          <label>{t("billing.bonusCredits")}<input name="bonusCredits" type="number" min={0} defaultValue={0} className="compact" /></label>
-          <label>{t("billing.price")}<input name="price" type="number" min={0} step={1000} required /></label>
-          <label>{t("fields.currency")}<input name="currency" required defaultValue="VND" size={3} /></label>
-        </ActionForm>
-      </details>
-    </main>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

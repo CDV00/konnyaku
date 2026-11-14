@@ -5,13 +5,48 @@
     "programs": "Programs open for enrolment",
     "noPrograms": "This center has not published any program yet.",
     "levels": "{count, plural, one {# level} other {# levels}}",
-    "login": "Sign in"
+    "login": "Sign in",
+    "heroEyebrow": "{count, plural, =0 {Now enrolling} one {# language enrolling} other {# languages enrolling}}",
+    "heroTitle": "Speak a new language <hl>with more confidence</hl> every lesson at {center}",
+    "heroBody": "Small classes, attentive teachers, online or on campus — and every lesson you miss has a replay.",
+    "explore": "Browse courses",
+    "programsBody": "Pick a language and a goal; an advisor will place you at the right level.",
+    "consultThis": "Ask about this course",
+    "howTitle": "Get started in 3 steps",
+    "step": "Step {number}",
+    "steps": {
+      "consult": {
+        "title": "Leave your details",
+        "body": "One-minute form — an advisor calls you back during office hours."
+      },
+      "placement": {
+        "title": "Placement & class",
+        "body": "We check your level and find a schedule that fits."
+      },
+      "learn": {
+        "title": "Learn & replay",
+        "body": "Join in one tap, track your remaining lessons, watch replays."
+      }
+    },
+    "ctaTitle": "Ready for your first lesson?",
+    "ctaBody": "Free advice, no commitment."
   },
   "learn": {
-    "title": "Student & parent portal"
+    "title": "Student & parent portal",
+    "zone": "Learner",
+    "nav": {
+      "home": "Overview"
+    },
+    "subtitle": "Your schedule, remaining lessons and replays.",
+    "nextLesson": "Next lesson"
   },
   "teach": {
-    "title": "Teacher app"
+    "title": "Teacher app",
+    "zone": "Teacher",
+    "nav": {
+      "home": "Overview"
+    },
+    "subtitle": "Your teaching schedule, attendance and this month's hours."
   },
   "ops": {
     "title": "Center operations",
@@ -34,7 +69,8 @@
       "programs": "Programs",
       "staff": "Staff",
       "branches": "Branches",
-      "payroll": "Payroll"
+      "payroll": "Payroll",
+      "home": "Overview"
     },
     "hint": {
       "leads": "Follow up and move leads along",
@@ -45,7 +81,21 @@
       "staff": "Staff accounts, roles, teacher rates",
       "branches": "Branches and time zones",
       "payroll": "Create and lock pay periods"
-    }
+    },
+    "zone": "Operations",
+    "subtitle": "How the center is doing today, with shortcuts to everyday tasks.",
+    "stats": {
+      "leads": "Open leads",
+      "leadsHint": "to call back",
+      "students": "Students",
+      "studentsHint": "records on file",
+      "classes": "Active classes",
+      "classesHint": "enrolling or running",
+      "unpaid": "Unpaid orders",
+      "unpaidHint": "awaiting payment"
+    },
+    "leadsDescription": "Sign-ups from the public site — call back and update their status.",
+    "colActions": "Actions"
   },
   "login": {
     "title": "Sign in",
@@ -63,7 +113,9 @@
       "identity_account_locked": "Too many failed attempts. Try again in 15 minutes.",
       "identity_tenant_unknown": "This address does not belong to a known center.",
       "unknown": "Something went wrong. Please try again."
-    }
+    },
+    "subtitle": "{center}",
+    "forgot": "Forgot your password? Ask your center to reset it."
   },
   "session": {
     "greeting": "Hello, {name}",
@@ -105,7 +157,15 @@
       "crm_birth_year_invalid": "The year of birth is not valid.",
       "crm_language_required": "Please choose a language.",
       "unknown": "The request could not be sent. Please try again."
-    }
+    },
+    "perks": {
+      "callback": "An advisor calls you back within 15 minutes (office hours)",
+      "trial": "Free placement test and trial lesson",
+      "flexible": "Learn online or at a campus near you"
+    },
+    "languagePlaceholder": "Choose a language",
+    "sending": "Sending…",
+    "sentTitle": "Thank you!"
   },
   "schedule": {
     "teaching": "Upcoming teaching",
@@ -118,14 +178,18 @@
       "Hybrid": "Hybrid"
     },
     "join": "Join",
-    "attendance": "Attendance"
+    "attendance": "Attendance",
+    "cancelled": "Cancelled",
+    "more": "+{count, number} more lessons this term"
   },
   "credits": {
     "title": "Lessons",
     "remaining": "{total, number} lessons left",
     "bonus": "(including {bonus, number} bonus)",
     "owed": "{owed, number} lessons owed — please renew your package.",
-    "none": "No package yet."
+    "none": "No package yet.",
+    "unit": "lessons",
+    "bonusLabel": "Bonus lessons"
   },
   "meeting": {
     "title": "Simulated classroom",
@@ -152,12 +216,16 @@
     "errors": {
       "learning_already_confirmed": "This lesson was already confirmed.",
       "unknown": "Could not confirm. Please try again."
-    }
+    },
+    "summary": "{present, number}/{total, number} students present",
+    "presentMinutes": "{minutes, number} min in the room",
+    "intro": "Statuses are suggested from the meeting log — adjust if needed, then confirm."
   },
   "replay": {
     "title": "Lesson replays",
     "empty": "No recordings yet.",
-    "lesson": "Lesson {number} · {date}"
+    "lesson": "Lesson {number} · {date}",
+    "emptyHint": "Recordings of past lessons will show up here."
   },
   "timesheet": {
     "title": "This month's teaching",
@@ -170,7 +238,16 @@
       "Approved": "Approved",
       "Locked": "Locked"
     },
-    "noRate": "no rate set"
+    "noRate": "no rate set",
+    "sessionsLabel": "Lessons taught",
+    "thisMonth": "this month",
+    "minutesLabel": "Paid minutes",
+    "minutesUnit": "minutes",
+    "amountLabel": "Estimated pay",
+    "estimate": "final once the pay period is locked",
+    "lateLabel": "Late starts",
+    "lateHint": "from the meeting log",
+    "minutesValue": "{minutes, number} min"
   },
   "payroll": {
     "title": "Payroll periods",
@@ -194,7 +271,11 @@
       "hr_period_range_invalid": "Invalid date range.",
       "hr_period_locked": "This period is already locked.",
       "unknown": "Could not complete the action. Please try again."
-    }
+    },
+    "description": "Opening a period approves draft hours up to its end; locking freezes the amounts.",
+    "createHint": "Every draft up to the end date (including late ones from earlier periods) joins this period.",
+    "range": "{from} → {to}",
+    "total": "Total {amount}"
   },
   "admin": {
     "save": "Save",
@@ -259,7 +340,10 @@
       "title": "Branches",
       "empty": "No branches yet.",
       "virtual": "Online branch",
-      "create": "Add branch"
+      "create": "Add branch",
+      "description": "Each branch has its own time zone — schedules show in branch time.",
+      "timeZoneHint": "IANA name, e.g. Asia/Ho_Chi_Minh",
+      "physical": "On-site branch"
     },
     "staff": {
       "title": "Staff",
@@ -272,13 +356,16 @@
       "hourlyRate": "Hourly rate",
       "effectiveFrom": "Effective from",
       "create": "Add staff member",
-      "initialPassword": "Initial password (leave empty for an existing account)"
+      "initialPassword": "Initial password (leave empty for an existing account)",
+      "description": "Accounts, roles and teacher rates.",
+      "setRateFor": "Rate for {name}",
+      "rateHint": "Applies to lessons from the effective date; approved or locked hours never change."
     },
     "programs": {
       "title": "Programs",
       "empty": "No programs yet.",
       "heading": "{code} · {name} ({language}, {framework})",
-      "publicTag": " · on the public site",
+      "publicTag": "Public",
       "noLevels": "No levels yet.",
       "target": "Target level",
       "sessionCount": "Lessons",
@@ -289,7 +376,9 @@
       "framework": "Framework",
       "frameworkOption": "{name} ({language})",
       "shared": "shared",
-      "public": "Show on the public site"
+      "public": "Show on the public site",
+      "description": "Programs per language and framework, split into levels.",
+      "meta": "{language} · {framework}"
     },
     "classes": {
       "title": "Classes",
@@ -316,7 +405,12 @@
       "when": "When",
       "roster": "Roster",
       "emptyRoster": "No students yet.",
-      "enrollHint": "Students join the class when an order for the class is paid (Billing page)."
+      "enrollHint": "Students join the class when an order for the class is paid (Billing page).",
+      "description": "Open classes, schedule them and track seats.",
+      "createHint": "After opening the class, schedule it from its page.",
+      "open": "View class {code}",
+      "sessionsTotal": "Total lessons",
+      "sessionsDone": "Lessons held"
     },
     "students": {
       "title": "Students",
@@ -327,7 +421,9 @@
       "guardian": "Guardian",
       "noBranch": "None",
       "account": "Has account",
-      "createAccount": "Issue a sign-in account"
+      "createAccount": "Issue a sign-in account",
+      "description": "Student records; issue an account so they can use the learner portal.",
+      "createHint": "With an account, the username and temporary password show only once — pass them on."
     },
     "billing": {
       "title": "Billing",
@@ -357,7 +453,12 @@
       "createPackage": "Add package",
       "paidCredits": "Lessons",
       "bonusCredits": "Bonus lessons",
-      "packageOption": "{name} — {price}"
+      "packageOption": "{name} — {price}",
+      "description": "Packages, orders and payments.",
+      "orderHint": "Orders for a class enroll the student once fully paid.",
+      "forClass": "Class {code}",
+      "paymentFor": "{name} · {amount} due",
+      "bonusTag": "+{bonus} bonus"
     },
     "errors": {
       "unknown": "Could not do that ({code}).",
@@ -388,7 +489,10 @@
       "billing_package_amounts_invalid": "Invalid lessons or price.",
       "billing_order_not_payable": "The order is no longer awaiting payment.",
       "billing_payment_amount_invalid": "Invalid amount.",
-      "billing_class_unknown": "Unknown class."
+      "billing_class_unknown": "Unknown class.",
+      "hr_period_overlaps": "This period overlaps an existing one.",
+      "hr_period_range_invalid": "Invalid date range.",
+      "hr_period_locked": "This period is locked."
     },
     "classStatus": {
       "Planned": "Planned",
@@ -412,6 +516,31 @@
       "InProgress": "In progress",
       "Completed": "Held",
       "Cancelled": "Cancelled"
-    }
+    },
+    "copy": "Copy"
+  },
+  "shell": {
+    "theme": "Toggle light/dark theme",
+    "menu": "Open menu",
+    "logout": "Sign out",
+    "close": "Close"
+  },
+  "siteNav": {
+    "brand": "Center",
+    "programs": "Courses",
+    "register": "Get advice",
+    "login": "Sign in",
+    "switchLocale": "Switch language",
+    "footer": "© {name} · Powered by Konnyaku"
+  },
+  "roles": {
+    "TenantAdmin": "Admin",
+    "BranchManager": "Branch manager",
+    "Coordinator": "Coordinator",
+    "Consultant": "Consultant",
+    "Accountant": "Accountant",
+    "Teacher": "Teacher",
+    "Student": "Student",
+    "Parent": "Parent"
   }
 }

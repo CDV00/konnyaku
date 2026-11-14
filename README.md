@@ -41,6 +41,7 @@ python infra/scripts/seed_demo.py
 - API: `http://localhost:5080`, tài liệu API tại `/scalar`. Thao tác cấp nền tảng (tạo tenant) cần header `X-Platform-Key` (dev: `dev-platform-key`).
 - Test backend: `cd backend && dotnet test --solution Konnyaku.slnx` (test tích hợp tự bật PostgreSQL bằng Testcontainers, cần Docker).
 - Thêm module mới: thêm dòng role/schema trong `infra/docker/postgres/init/01-modules.sql` rồi tạo lại volume dev (`docker compose ... down -v`).
+- Giao diện: package `frontend/packages/ui` (`@konnyaku/ui`) — Tailwind v4 (giữ 4.1.x vì Node 20.18 chưa hỗ trợ `require(esm)`), token màu sáng/tối trong `src/styles/globals.css`, component [animate-ui](https://animate-ui.com) + shadcn/ui chép vào `src/components` (code vendored, sửa tối thiểu), component riêng của Konnyaku trong `src/kk` (khung trang, thẻ thống kê, field, logo). Thêm component: `cd frontend/packages/ui && npx shadcn@latest add @animate-ui/<tên>` (registry khai báo trong `components.json`); sau đó kiểm tra import `cn` trỏ về `@konnyaku/ui/lib/utils`.
 
 ## Trạng thái triển khai
 
