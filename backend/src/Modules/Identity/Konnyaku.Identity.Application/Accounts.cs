@@ -329,3 +329,27 @@ public sealed class IdentityQueries(IIdentityDbContext db, ITenantContext tenant
             .Select(m => m.UserId)
             .ToListAsync(cancellationToken);
 }
+
+public sealed record StaffMemberView(Guid UserId, string DisplayName, string? Email, IReadOnlyList<string> Roles);
+
+public sealed class StaffQueries(IIdentityDbContext db)
+{
+    /// <summary>Active staff members of the current tenant (memberships are tenant-filtered; users are platform-wide).</summary>
+    public async Task<IReadOnlyList<StaffMemberView>> ListAsync(CancellationToken cancellationToken)
+    {
+        var members = await db.Memberships.AsNoTracking()
+            .Where(m => m.Status == MembershipStatus.Active)
+            .Select(m => new { m.UserId, Roles = m.Roles.Select(r => r.Role).ToList() })
+            .ToListAsync(cancellationToken);
+        var staff = members
+            .Select(m => (m.UserId, Roles: m.Roles.Where(Roles.Staff.Contains).Distinct().Order().ToList()))
+            .Where(m => m.Roles.Count > 0)
+            .ToDictionary(m => m.UserId, m => m.Roles);
+        var ids = staff.Keys.ToList();
+        var users = await db.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).ToListAsync(cancellationToken);
+        return users
+            .Select(u => new StaffMemberView(u.Id, u.DisplayName, u.Email, staff[u.Id]))
+            .OrderBy(s => s.DisplayName, StringComparer.CurrentCulture)
+            .ToList();
+    }
+}

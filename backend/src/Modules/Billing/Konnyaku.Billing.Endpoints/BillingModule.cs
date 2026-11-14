@@ -45,6 +45,7 @@ public sealed class BillingModule : IModule
 
         finance.MapPost("/packages", async (CreatePackageCommand command, OrderHandlers handlers, CancellationToken ct) =>
             ApiResults.From(await handlers.CreatePackageAsync(command, ct), p => Results.Created($"packages/{p.Id}", p)));
+        sales.MapGet("/packages", async (BillingQueries queries, CancellationToken ct) => Results.Ok(await queries.ListPackagesAsync(ct)));
         sales.MapPost("/orders", async (CreateOrderCommand command, OrderHandlers handlers, CancellationToken ct) =>
             ApiResults.From(await handlers.CreateOrderAsync(command, ct), o => Results.Created($"orders/{o.Id}", o)));
         sales.MapGet("/orders", async (Guid? studentId, BillingQueries queries, CancellationToken ct) =>

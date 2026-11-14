@@ -150,6 +150,13 @@ public sealed class PayrollHandlers(IHrDbContext db, IIdentityApi identity, Time
         return new RateView(teacherId, created.Value.HourlyRate, created.Value.Currency, created.Value.EffectiveFrom);
     }
 
+    /// <summary>Every rate, newest first per teacher (the first row of a teacher is the latest one).</summary>
+    public async Task<IReadOnlyList<RateView>> ListRatesAsync(CancellationToken ct) =>
+        await db.PayRates.AsNoTracking()
+            .OrderBy(r => r.TeacherId).ThenByDescending(r => r.EffectiveFrom).ThenByDescending(r => r.CreatedAt)
+            .Select(r => new RateView(r.TeacherId, r.HourlyRate, r.Currency, r.EffectiveFrom))
+            .ToListAsync(ct);
+
     public async Task<IReadOnlyList<TimesheetView>> ListAsync(Guid? teacherId, DateOnly from, DateOnly to, CancellationToken ct)
     {
         var query = db.Timesheets.AsNoTracking().Where(t => t.LocalDate >= from && t.LocalDate <= to);

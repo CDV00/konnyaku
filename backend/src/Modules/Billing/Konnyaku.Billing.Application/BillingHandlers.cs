@@ -227,6 +227,9 @@ public sealed class BillingQueries(IBillingDbContext db, ICrmApi crm) : IBilling
         return students.Count == 0 ? [] : await ListCreditAccountsAsync(students.Select(s => s.Id).ToList(), ct);
     }
 
+    public async Task<IReadOnlyList<PackageView>> ListPackagesAsync(CancellationToken ct) =>
+        (await db.Packages.AsNoTracking().Where(p => p.IsActive).OrderBy(p => p.Code).ToListAsync(ct)).Select(p => p.ToView()).ToList();
+
     public async Task<IReadOnlyList<OrderView>> ListOrdersAsync(Guid? studentId, CancellationToken ct)
     {
         var query = db.Orders.AsNoTracking();

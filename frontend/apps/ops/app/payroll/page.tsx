@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { apiFetch, requireMe } from "@konnyaku/session";
 import { CreatePeriodForm, LockPeriodButton } from "./payroll-actions";
@@ -9,12 +8,11 @@ type Period = { id: string; from: string; to: string; status: "Open" | "Locked";
 export default async function PayrollPage() {
   const { token } = await requireMe("staff");
   const t = await getTranslations("payroll");
-  const ops = await getTranslations("ops");
   const format = await getFormatter();
   const response = await apiFetch("/api/hr/payroll-periods", { token });
   const periods = response.ok ? ((await response.json()) as Period[]) : [];
   return (
-    <main style={{ fontFamily: "system-ui", padding: 24 }}>
+    <main>
       <h1>{t("title")}</h1>
       <CreatePeriodForm />
       {periods.length === 0 && <p>{t("empty")}</p>}
@@ -46,7 +44,6 @@ export default async function PayrollPage() {
           {p.status === "Open" && <LockPeriodButton periodId={p.id} />}
         </section>
       ))}
-      <p><Link href="/">{ops("back")}</Link></p>
     </main>
   );
 }
