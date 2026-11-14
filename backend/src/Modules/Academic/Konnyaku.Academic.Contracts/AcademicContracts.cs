@@ -23,6 +23,9 @@ public interface IAcademicApi
     Task<IReadOnlyList<Guid>> ListClassIdsOfStudentsAsync(IReadOnlyCollection<Guid> studentIds, CancellationToken cancellationToken);
 }
 
-public sealed record EnrollmentActivatedV1(Guid EnrollmentId, Guid ClassId, Guid StudentId, string Type) : IIntegrationEvent;
+public sealed record EnrollmentActivatedV1(Guid EnrollmentId, Guid ClassId, Guid StudentId, string Type, Guid? OrderId) : IIntegrationEvent;
+
+/// <summary>A paid order could not be turned into an enrollment (class full or closed): Billing flags it for refund.</summary>
+public sealed record EnrollmentRejectedV1(Guid OrderId, Guid ClassId, Guid StudentId, string Reason) : IIntegrationEvent;
 
 public sealed record EnrollmentDroppedV1(Guid EnrollmentId, Guid ClassId, Guid StudentId) : IIntegrationEvent;

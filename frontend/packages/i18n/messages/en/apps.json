@@ -96,5 +96,12 @@
       "Offline": "On site",
       "Hybrid": "Hybrid"
     }
+  },
+  "credits": {
+    "title": "Lessons",
+    "remaining": "{total, number} lessons left",
+    "bonus": "(including {bonus, number} bonus)",
+    "owed": "{owed, number} lessons owed — please renew your package.",
+    "none": "No package yet."
   }
 }

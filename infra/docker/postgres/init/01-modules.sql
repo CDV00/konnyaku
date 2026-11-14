@@ -18,7 +18,8 @@ BEGIN
         ('organization', 'org'),
         ('crm', 'crm'),
         ('academic', 'academic'),
-        ('scheduling', 'scheduling')
+        ('scheduling', 'scheduling'),
+        ('billing', 'billing')
     ) AS v(module, schema_name)
     LOOP
         role_name := 'kk_' || m.module;

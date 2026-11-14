@@ -4,31 +4,71 @@
     {
       "name": "api",
       "runtimeExecutable": "dotnet",
-      "runtimeArgs": ["run", "--project", "backend/src/Hosts/Konnyaku.Api", "--launch-profile", "http"],
+      "runtimeArgs": [
+        "run",
+        "--project",
+        "backend/src/Hosts/Konnyaku.Api",
+        "--launch-profile",
+        "http"
+      ],
       "port": 5080
+    },
+    {
+      "name": "worker",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": [
+        "run",
+        "--project",
+        "backend/src/Hosts/Konnyaku.Worker"
+      ],
+      "port": 5090
     },
     {
       "name": "site",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["-y", "pnpm@10.34.9", "--dir", "frontend/apps/site", "dev"],
+      "runtimeArgs": [
+        "-y",
+        "pnpm@10.34.9",
+        "--dir",
+        "frontend/apps/site",
+        "dev"
+      ],
       "port": 3000
     },
     {
       "name": "learn",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["-y", "pnpm@10.34.9", "--dir", "frontend/apps/learn", "dev"],
+      "runtimeArgs": [
+        "-y",
+        "pnpm@10.34.9",
+        "--dir",
+        "frontend/apps/learn",
+        "dev"
+      ],
       "port": 3001
     },
     {
       "name": "teach",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["-y", "pnpm@10.34.9", "--dir", "frontend/apps/teach", "dev"],
+      "runtimeArgs": [
+        "-y",
+        "pnpm@10.34.9",
+        "--dir",
+        "frontend/apps/teach",
+        "dev"
+      ],
       "port": 3002
     },
     {
       "name": "ops",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["-y", "pnpm@10.34.9", "--dir", "frontend/apps/ops", "dev"],
+      "runtimeArgs": [
+        "-y",
+        "pnpm@10.34.9",
+        "--dir",
+        "frontend/apps/ops",
+        "dev"
+      ],
       "port": 3003
     }
   ]

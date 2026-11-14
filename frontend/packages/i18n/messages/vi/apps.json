@@ -96,5 +96,12 @@
       "Offline": "Tại cơ sở",
       "Hybrid": "Kết hợp"
     }
+  },
+  "credits": {
+    "title": "Số buổi học",
+    "remaining": "Còn {total, number} buổi",
+    "bonus": "(trong đó {bonus, number} buổi tặng)",
+    "owed": "Đang nợ {owed, number} buổi — vui lòng gia hạn gói học.",
+    "none": "Chưa có gói học nào."
   }
 }

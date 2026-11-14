@@ -207,6 +207,10 @@ namespace Konnyaku.Academic.Infrastructure.Migrations
                         .HasColumnType("date")
                         .HasColumnName("frozen_to");
 
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_id");
+
                     b.Property<DateOnly>("StartsOn")
                         .HasColumnType("date")
                         .HasColumnName("starts_on");

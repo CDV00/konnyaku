@@ -214,8 +214,9 @@ public sealed class Enrollment : Entity, ITenantOwned
     {
     }
 
-    public Enrollment(Guid classId, Guid studentId, EnrollmentType type, DateOnly startsOn, DateTimeOffset now)
+    public Enrollment(Guid classId, Guid studentId, EnrollmentType type, DateOnly startsOn, DateTimeOffset now, Guid? orderId = null)
     {
+        OrderId = orderId;
         ClassId = classId;
         StudentId = studentId;
         Type = type;
@@ -227,6 +228,10 @@ public sealed class Enrollment : Entity, ITenantOwned
     public Guid TenantId { get; private set; }
     public Guid ClassId { get; private set; }
     public Guid StudentId { get; private set; }
+
+    /// <summary>The paid order (package) this enrollment consumes lessons from, if any.</summary>
+    public Guid? OrderId { get; private set; }
+
     public EnrollmentType Type { get; private set; }
     public EnrollmentStatus Status { get; private set; }
     public DateOnly StartsOn { get; private set; }

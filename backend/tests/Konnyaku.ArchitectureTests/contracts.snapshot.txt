@@ -15,11 +15,17 @@ Konnyaku.Academic.Contracts.EnrollmentActivatedV1
   Guid ClassId
   Guid EnrollmentId
   Guid StudentId
+  Nullable`1 OrderId
   String Type
 Konnyaku.Academic.Contracts.EnrollmentDroppedV1
   Guid ClassId
   Guid EnrollmentId
   Guid StudentId
+Konnyaku.Academic.Contracts.EnrollmentRejectedV1
+  Guid ClassId
+  Guid OrderId
+  Guid StudentId
+  String Reason
 Konnyaku.Academic.Contracts.IAcademicApi
   Task`1 GetClassAsync(Guid, CancellationToken)
   Task`1 GetLessonsAsync(Guid, CancellationToken)
@@ -33,6 +39,36 @@ Konnyaku.Academic.Contracts.RosterEntryDto
   Guid EnrollmentId
   Guid StudentId
   String Status
+Konnyaku.Billing.Contracts.ConsumeResult
+  Boolean Consumed
+  Nullable`1 RemainingCredits
+Konnyaku.Billing.Contracts.CreditAccountDto
+  Decimal BonusCredits
+  Decimal PaidCredits
+  Decimal Total
+  Guid OrderId
+  Guid StudentId
+  Nullable`1 EnrollmentId
+  String Currency
+Konnyaku.Billing.Contracts.CreditBalanceChangedV1
+  Decimal BonusCredits
+  Decimal PaidCredits
+  Guid OrderId
+  Guid StudentId
+  Nullable`1 EnrollmentId
+Konnyaku.Billing.Contracts.CreditLowV1
+  Decimal RemainingCredits
+  Guid OrderId
+  Guid StudentId
+  Nullable`1 EnrollmentId
+Konnyaku.Billing.Contracts.IBillingApi
+  Task`1 ListCreditAccountsAsync(IReadOnlyCollection`1, CancellationToken)
+Konnyaku.Billing.Contracts.OrderPaidV1
+  Decimal BonusCredits
+  Decimal PaidCredits
+  Guid OrderId
+  Guid StudentId
+  Nullable`1 ClassId
 Konnyaku.Catalog.Contracts.FrameworkDto
   IReadOnlyDictionary`2 Name
   IReadOnlyList`1 Levels
