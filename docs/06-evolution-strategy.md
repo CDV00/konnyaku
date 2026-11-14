@@ -12,38 +12,84 @@ flowchart LR
   S1["Giai đoạn 1<br/>Tách process<br/>Worker theo queue,<br/>AI worker riêng"]
   S2["Giai đoạn 2<br/>Tách service chọn lọc<br/>Workspace, Notification, AI<br/>DB riêng, broker"]
   S3["Giai đoạn 3<br/>Microservices theo team<br/>chỉ khi có ≥ 3 team độc lập"]
-  S0 -->|V1| S1 -->|V2| S2 -->|V3+ nếu cần| S3
+  S0 -->|sau V1| S1 -->|trong V2| S2 -->|V3+ nếu cần| S3
 ```
 
 | Giai đoạn | Khi nào | Thay đổi | Code nghiệp vụ bị sửa |
 |---|---|---|---|
 | 0 → 1 | Job nặng làm chậm API | Thêm host process đăng ký một tập module/queue | Không |
-| 1 → 2 | Module có tiêu chí tách (mục 6.6) | DB riêng + transport HTTP/broker cho Contracts/Event | Không (chỉ đổi adapter) |
+| 1 → 2 | Module đạt tiêu chí tách ([6.6](#66-khi-nào-tách-một-module--tiêu-chí-định-lượng)) | DB riêng + transport HTTP/broker cho Contracts/Event | Không (chỉ đổi adapter) |
 | 2 → 3 | Nhiều team, nhịp release khác nhau | Repo/pipeline riêng | Không |
 
-## 6.2 Bản đồ module (Bounded Context) và hướng phụ thuộc
+## 6.2 Bản đồ module (Bounded Context) — nguồn chuẩn duy nhất
+
+Bảng dưới là **danh sách module chuẩn** của Konnyaku; các chương khác chỉ tham chiếu tới đây.
+
+| Module | Schema | Sở hữu (tóm tắt) | Contracts đồng bộ |
+|---|---|---|---|
+| `Platform` | `platform` | Tenant, domain, Tenant Placement Registry, gói dịch vụ, feature flag, setting kế thừa | `IPlatformApi` (setting, feature flag) |
+| `Organization` | `org` | Cơ sở, nhóm cơ sở, phòng, lịch nghỉ của tenant/cơ sở, thời gian di chuyển | `IOrganizationApi` |
+| `Catalog` | `catalog` | Dữ liệu chuẩn nền tảng: ngôn ngữ, khung năng lực, level, kỹ năng, quốc gia, lễ quốc gia | `ICatalogApi` |
+| `Identity` | `identity` | User toàn nền tảng, credential, membership, role, phân quyền theo phạm vi | `IIdentityApi` |
+| `Crm` | `crm` | Lead, hồ sơ học viên, phụ huynh, placement test, consent | `ICrmApi` |
+| `Academic` | `academic` | Chương trình, giáo trình, lớp, ghi danh, sĩ số & chỗ học bù | `IAcademicApi` (roster, enrollment) |
+| `Scheduling` | `scheduling` | Pattern, buổi học, đặt chỗ GV/phòng (`resource_booking`) | `ISchedulingApi` |
+| `Workspace` | `workspace` | **Meeting Engine**: kết nối Google Workspace của tenant, host pool & lease, meeting space, recording, participant log | — (chỉ phát event) |
+| `Learning` | `learning` | Điểm danh, feedback, homework, skill score, chính sách quyền xem recording | `ILearningApi` |
+| `Billing` | `billing` | Bảng giá, gói học, đơn hàng, hóa đơn, thanh toán, **credit ledger & số dư buổi** | `IBillingApi` (số dư) |
+| `Hr` | `hr` | Hồ sơ GV, năng lực, availability, đơn giá, timesheet, kỳ lương | `IHrApi` (năng lực, availability) |
+| `Notification` | `notify` | Template theo kênh + locale, gửi & theo dõi | — (chỉ nghe event) |
+| `Reporting` | `reporting` | Read model báo cáo, đọc replica | — |
+| `Ai` *(V3)* | `ai` | Pipeline tóm tắt, chấm điểm | — (chỉ qua event) |
+
+Thuật ngữ: module **`Workspace`** (Meeting Engine) ≠ *Google Workspace* (sản phẩm của Google) ≠ app **`teach`** (giao diện cho giáo viên).
 
 ```mermaid
 flowchart TD
-  Identity
-  Crm --> Identity
+  subgraph Foundation[Nền tảng - mọi module được đọc]
+    Platform
+    Organization --> Platform
+    Catalog
+    Identity
+  end
+  Crm
   Academic --> Crm
   Scheduling --> Academic
   Scheduling --> Hr
   Billing --> Academic
   Learning --> Scheduling
   Learning --> Academic
-  Hr --> Identity
   Workspace --> Scheduling
+  Workspace --> Academic
   Notification
-  Reporting -.đọc read model.-> Academic & Billing & Learning & Hr
+  Reporting -.->|đọc read model| Academic
 ```
 
 Luật phụ thuộc:
-1. **Đồ thị phụ thuộc đồng bộ (gọi Contracts) phải không có chu trình.** Chiều ngược lại đi bằng **event**. Ví dụ `Billing` không gọi `Learning`; `Learning` phát `AttendanceConfirmed` → `Billing` nghe và ghi bút toán `Consume`.
-2. `Notification` **không phụ thuộc ai** — chỉ nghe event. Đây là ứng viên tách đầu tiên dễ nhất.
-3. `Workspace` (Google Engine) chỉ phụ thuộc `Scheduling.Contracts` để đọc session, mọi kết quả trả về bằng event (`MeetingProvisioned`, `RecordingPublished`, `ParticipantsCollected`).
-4. `Reporting` là ngoại lệ có kiểm soát: chỉ đọc, qua view/read replica, không bao giờ ghi.
+1. **Đồ thị gọi đồng bộ (Contracts) không có chu trình** và chỉ dùng để **đọc** dữ liệu cần ngay. Mọi thay đổi trạng thái sang module khác đi bằng **event**. Ví dụ `Billing` không gọi `Learning`; `Learning` phát `AttendanceConfirmedV1` → `Billing` ghi bút toán `Consume`.
+2. `Notification` **không phụ thuộc ai** — chỉ nghe event. Đây là ứng viên tách dễ nhất.
+3. `Workspace` chỉ **đọc** `ISchedulingApi` (buổi học) và `IAcademicApi` (roster); mọi kết quả trả về bằng event (bảng 6.2.1). Quyết định *ai được xem recording* thuộc `Learning`, `Workspace` chỉ thực thi cấp quyền.
+4. `Reporting` là ngoại lệ có kiểm soát: chỉ đọc, qua view/read replica, không bao giờ ghi (đọc nhiều schema, không chỉ Academic như sơ đồ rút gọn).
+5. Các module nền tảng (`Platform`, `Organization`, `Catalog`, `Identity`) thay đổi chậm → module khác đọc qua Contracts có cache, hoặc giữ **bản sao cục bộ cập nhật bằng event** (`BranchCreatedV1`, `SettingChangedV1`) để khi tách service không phải gọi mạng cho mỗi request.
+
+### 6.2.1 Danh mục integration event chính
+
+| Event | Phát bởi | Nghe bởi |
+|---|---|---|
+| `SessionScheduledV1` / `SessionRescheduledV1` / `SessionCancelledV1` | Scheduling | Workspace, Learning, Hr, Notification, Academic (chỗ học bù) |
+| `MeetingProvisionedV1` | Workspace | Scheduling (trạng thái `Provisioned`), Notification |
+| `ParticipantsCollectedV1` | Workspace | Learning (điểm danh), Hr (giờ có mặt của GV) |
+| `RecordingAvailableV1` | Workspace | Learning (áp chính sách quyền xem) |
+| `RecordingAccessGrantedV1` | Learning | Workspace (cấp quyền Drive/HLS) |
+| `RecordingPublishedV1` | Workspace | Learning (gắn vào bài học), Notification |
+| `AttendanceConfirmedV1` | Learning | Billing (`Consume`), Hr (timesheet), Ai |
+| `OrderPaidV1` | Billing | Academic |
+| `EnrollmentActivatedV1` / `EnrollmentRejectedV1` | Academic | Billing, Notification, Crm |
+| `CreditBalanceChangedV1` / `CreditLowV1` | Billing | Academic (hiển thị), Notification, Crm (churn) |
+| `LeadCreatedV1` | Crm | Notification |
+| `BranchCreatedV1`, `SettingChangedV1` | Organization, Platform | Mọi module giữ bản sao cục bộ |
+
+Mọi event có envelope chung: `event_id`, `tenant_id`, `occurred_at`, `correlation_id`, `actor_id`, `schema_version`.
 
 ## 6.3 Mười đường cắt bắt buộc
 
@@ -60,6 +106,21 @@ Luật phụ thuộc:
 | 9 | **Cấu hình & secret theo module** | Section `Modules:Workspace:*`, không đọc config module khác | Service mới mang theo đúng phần cấu hình của nó |
 | 10 | **Correlation & identity lan truyền** | `correlationId`, `tenantId`, `userId` trong header/event metadata; mỗi module tự authorize | Trace và phân quyền vẫn đúng khi qua mạng |
 
+### 6.3.1 Đa tenant: trục tách thứ hai, độc lập với trục module
+
+Konnyaku có **hai cách tách** không phụ thuộc nhau:
+
+| Trục | Tách cái gì | Cơ chế | Khi nào |
+|---|---|---|---|
+| **Theo module** (dọc) | Một bounded context thành service riêng | Đường cắt 1–10 ở trên | Module đạt tiêu chí 6.6 |
+| **Theo tenant** (ngang) | Dữ liệu một tenant sang DB riêng (Silo), hoặc một nhóm tenant sang cụm hạ tầng riêng (cell) | Tenant Placement Registry (`platform.tenant_placement`) ánh xạ `tenant_id → database/cell`; UUIDv7 toàn cục nên không trùng khóa | Khách enterprise, yêu cầu cô lập/vị trí dữ liệu, hoặc một tenant quá lớn |
+
+Để hai trục không phá nhau, thêm 4 quy tắc vào 10 đường cắt:
+1. **Tenant context là một phần của mọi hợp đồng**: mọi Contracts method nhận tenant từ `ITenantContext` (không truyền tay), mọi event envelope có `tenant_id`; adapter HTTP tự gắn header `X-Tenant-Id` từ context và service nhận tự thiết lập lại context + RLS.
+2. **Connection string được phân giải theo `(module, tenant)`**, không theo module đơn thuần: `IConnectionResolver.Resolve("academic", tenantId)`. Hôm nay mọi cặp trỏ về cùng DB; sau này module tách ra hay tenant chuyển Silo đều chỉ đổi registry.
+3. **Job và event nghiệp vụ không bao giờ xử lý nhiều tenant trong một transaction** — job "toàn hệ thống" thực chất là fan-out thành từng job theo tenant. Ngoại lệ duy nhất: job của nền tảng (metering, migration) chạy bằng DB role riêng có `BYPASSRLS`, có audit ([7.4.2](07-multi-tenant-multi-language.md#742-hai-lớp-bảo-vệ)).
+4. **Không có dữ liệu nghiệp vụ dùng chung giữa tenant**. Dữ liệu toàn nền tảng gồm: `Catalog` (chỉ đọc, sao chép được sang mọi DB/cell), `Identity` (user, credential) và `Platform` (tenant, gói, registry). Hai module sau **luôn ở DB trung tâm** kể cả khi tenant chuyển Silo — `IConnectionResolver` bỏ qua tenant với chúng. Khung năng lực do tenant tự thêm lưu ở bảng có `tenant_id`, không ghi vào `catalog`.
+
 ## 6.4 Mẫu code cho các đường cắt
 
 ### 6.4.1 Module tự đăng ký
@@ -68,16 +129,18 @@ public interface IModule
 {
     string Name { get; }
     void AddServices(IServiceCollection services, IConfiguration config);
-    void MapEndpoints(IEndpointRouteBuilder app);   // dưới prefix /api/{name}
+    void MapEndpoints(IEndpointRouteBuilder app);   // dưới prefix /api/{name}; mỗi nhóm endpoint khai báo audience được phép (learn | staff)
     void ConfigureJobs(IJobRegistry jobs) { }
     void ConfigureConsumers(IConsumerRegistry consumers) { }
 }
 
 // Konnyaku.Api/Program.cs — host chỉ là danh sách module
 builder.AddModules(
+    new PlatformModule(), new OrganizationModule(), new CatalogModule(),
     new IdentityModule(), new CrmModule(), new AcademicModule(),
     new SchedulingModule(), new BillingModule(), new LearningModule(),
-    new HrModule(), new WorkspaceModule(), new NotificationModule());
+    new HrModule(), new WorkspaceModule(), new NotificationModule(),
+    new ReportingModule());
 
 // Sau khi tách: Konnyaku.Workspace.Host/Program.cs
 builder.AddModules(new WorkspaceModule());
@@ -95,7 +158,10 @@ public sealed class AcademicDbContext(DbContextOptions<AcademicDbContext> o) : D
 }
 // Connection string riêng: "Modules:Academic:Db" → hôm nay trỏ cùng DB, user "konnyaku_academic"
 // chỉ được GRANT trên schema academic. Truy vấn lén sang schema khác sẽ lỗi permission ngay ở dev.
-// Migrations riêng theo module: dotnet ef migrations add X --context AcademicDbContext
+// Migrations riêng theo module; bảng lịch sử migration nằm trong schema của module
+// (role của module không có quyền trên schema public):
+//   options.UseNpgsql(cs, x => x.MigrationsHistoryTable("__EFMigrationsHistory", "academic"));
+//   dotnet ef migrations add X --context AcademicDbContext
 ```
 
 ### 6.4.3 Contracts đồng bộ — đổi transport không đổi caller
@@ -113,10 +179,10 @@ internal sealed class InProcessAcademicApi(AcademicDbContext db) : IAcademicApi 
 // Giai đoạn 2: Konnyaku.Academic.Contracts.Http (gói client)
 internal sealed class HttpAcademicApi(HttpClient http) : IAcademicApi { ... }
 
-// Module consumer (Scheduling) chỉ biết IAcademicApi — đăng ký implementation theo cấu hình:
+// Module consumer (Scheduling, Workspace) chỉ biết IAcademicApi — đăng ký implementation theo cấu hình:
 // Modules:Academic:Transport = "InProcess" | "Http"
 ```
-Quy tắc: **chỉ gọi đồng bộ để đọc dữ liệu cần ngay** (vd roster khi tạo meeting). Mọi thay đổi trạng thái sang module khác đi bằng event.
+Quy tắc: **chỉ gọi đồng bộ để đọc dữ liệu cần ngay** (vd `Workspace` đọc roster khi tạo meeting). Mọi thay đổi trạng thái sang module khác đi bằng event.
 
 ### 6.4.4 Event qua Outbox
 ```csharp
@@ -149,7 +215,7 @@ sequenceDiagram
   B-->>B: Order=PendingPayment
   B->>B: PaymentReceived (webhook)
   B--)A: OrderPaidV1
-  A->>A: Enrollment=Active (hoặc Rejected nếu lớp đầy)
+  A->>A: Enrollment=Active (hoặc Rejected nếu lớp đã đủ sĩ số)
   A--)B: EnrollmentActivatedV1 / EnrollmentRejectedV1
   B->>B: ghi Purchase credits / mở RefundRequest
   A--)N: EnrollmentActivatedV1 → gửi chào mừng
@@ -186,7 +252,7 @@ Chỉ tách khi thỏa **ít nhất 2** tiêu chí:
 |---|---|---|---|
 | 1 | **AI Pipeline** | Python/GPU, chi phí riêng | Thấp — chỉ nghe event, ghi kết quả qua event |
 | 2 | **Notification** | Không phụ thuộc ai, tải theo đợt | Thấp |
-| 3 | **Workspace (Google Engine)** | Cô lập rate-limit & lỗi Google, scale theo giờ cao điểm | Trung bình — cần `IScheduling` qua HTTP |
+| 3 | **Workspace (Meeting Engine)** | Cô lập rate-limit & lỗi Google, scale theo giờ cao điểm | Trung bình — cần `ISchedulingApi`/`IAcademicApi` qua HTTP |
 | 4 | Reporting | Đọc nặng, nên chạy trên read replica / data warehouse | Trung bình |
 | Giữ lâu nhất | Academic + Scheduling + Billing + Learning | Liên kết nghiệp vụ chặt, tách sớm = "distributed monolith" | Cao |
 
@@ -214,7 +280,7 @@ Mỗi bước **đảo ngược được** bằng cấu hình — không có "bi
 | Chuỗi gọi đồng bộ A→B→C | Khi tách thành chuỗi lỗi mạng, latency cộng dồn | Event + dữ liệu sao chép cục bộ |
 | Generic repository dùng chung mọi module | Che giấu ranh giới, khuyến khích query chéo | Repository/handler trong từng module |
 | Tách microservice theo tầng (UserService, EmailService) thay vì theo nghiệp vụ | Distributed monolith | Tách theo bounded context |
-| Tách sớm "cho đẹp" | Chi phí vận hành tăng, không có lợi ích đo được | Chỉ tách khi đạt tiêu chí 6.6 |
+| Tách sớm "cho đẹp" | Chi phí vận hành tăng, không có lợi ích đo được | Chỉ tách khi đạt tiêu chí [6.6](#66-khi-nào-tách-một-module--tiêu-chí-định-lượng) |
 
 ## 6.9 Chi phí của kỷ luật này (và chỗ được nới)
 
