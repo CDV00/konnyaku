@@ -30,6 +30,7 @@ python infra/scripts/seed_demo.py
 - Mở `http://demo.localhost:3000/login` (trình duyệt tự trỏ `*.localhost` về máy mình; tenant xác định theo host).
   - Tab **Giáo viên · Nhân viên**: `admin@demo.example.com` / `Admin-Pass-123` → `/ops`.
   - Tab **Học viên · Phụ huynh**: `hv000001` / mật khẩu tạm script in ra → bắt buộc đổi mật khẩu → `/learn`.
+- Trang công khai: `http://demo.localhost:3000/vi` (danh mục khóa học), form đăng ký `http://demo.localhost:3000/vi/dang-ky`; lead hiện ở `/ops/leads`.
 - API: `http://localhost:5080`, tài liệu API tại `/scalar`. Thao tác cấp nền tảng (tạo tenant) cần header `X-Platform-Key` (dev: `dev-platform-key`).
 - Test backend: `cd backend && dotnet test --solution Konnyaku.slnx` (test tích hợp tự bật PostgreSQL bằng Testcontainers, cần Docker).
 - Thêm module mới: thêm dòng role/schema trong `infra/docker/postgres/init/01-modules.sql` rồi tạo lại volume dev (`docker compose ... down -v`).
@@ -40,6 +41,7 @@ python infra/scripts/seed_demo.py
 |---|---|---|
 | 0 | Khung dự án: module, multi-tenant RLS, outbox, 4 app web, i18n, CI | ✅ |
 | 1 | Platform (tenant, host), Catalog (ngôn ngữ, khung năng lực), Identity (2 realm, tài khoản trung tâm cấp, khóa sau 5 lần sai) | ✅ — còn để sau: đăng nhập Google (cần OAuth client), xác thực tập trung `auth.konnyaku.app` (hiện đăng nhập theo từng host), 2FA cho nhân viên, kiểm tra quyền theo phạm vi cơ sở |
+| 2 | Crm (form đăng ký công khai → lead, chống trùng & spam, gán tư vấn viên, hồ sơ học viên), Academic (chương trình theo ngôn ngữ + khung năng lực, cấp độ & bài học, lớp theo cơ sở, ghi danh giữ chỗ nguyên tử, bảo lưu/nghỉ học) | ✅ — còn để sau: captcha (hiện honeypot + giới hạn tần suất), đặt lịch test/học thử, giao diện tạo chương trình/lớp trong `ops` (hiện qua API) |
 
 ## Tài liệu phân tích
 

@@ -4,5 +4,7 @@
     <ProjectReference Include="..\..\Modules\Platform\Konnyaku.Platform.Endpoints\Konnyaku.Platform.Endpoints.csproj" />
     <ProjectReference Include="..\..\Modules\Catalog\Konnyaku.Catalog.Endpoints\Konnyaku.Catalog.Endpoints.csproj" />
     <ProjectReference Include="..\..\Modules\Identity\Konnyaku.Identity.Endpoints\Konnyaku.Identity.Endpoints.csproj" />
+    <ProjectReference Include="..\..\Modules\Crm\Konnyaku.Crm.Endpoints\Konnyaku.Crm.Endpoints.csproj" />
+    <ProjectReference Include="..\..\Modules\Academic\Konnyaku.Academic.Endpoints\Konnyaku.Academic.Endpoints.csproj" />
   </ItemGroup>
 </Project>

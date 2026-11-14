@@ -1,3 +1,37 @@
+Konnyaku.Academic.Contracts.ClassDto
+  DateOnly StartsOn
+  Guid BranchId
+  Guid CourseLevelId
+  Guid Id
+  Int32 Capacity
+  Int32 EnrolledCount
+  Int32 SessionMinutes
+  String Code
+  String DeliveryMode
+  String LanguageCode
+  String Status
+  String TimeZone
+Konnyaku.Academic.Contracts.EnrollmentActivatedV1
+  Guid ClassId
+  Guid EnrollmentId
+  Guid StudentId
+  String Type
+Konnyaku.Academic.Contracts.EnrollmentDroppedV1
+  Guid ClassId
+  Guid EnrollmentId
+  Guid StudentId
+Konnyaku.Academic.Contracts.IAcademicApi
+  Task`1 GetClassAsync(Guid, CancellationToken)
+  Task`1 GetLessonsAsync(Guid, CancellationToken)
+  Task`1 GetRosterAsync(Guid, CancellationToken)
+Konnyaku.Academic.Contracts.LessonDto
+  Guid Id
+  IReadOnlyDictionary`2 Title
+  Int32 Ordinal
+Konnyaku.Academic.Contracts.RosterEntryDto
+  Guid EnrollmentId
+  Guid StudentId
+  String Status
 Konnyaku.Catalog.Contracts.FrameworkDto
   IReadOnlyDictionary`2 Name
   IReadOnlyList`1 Levels
@@ -18,8 +52,28 @@ Konnyaku.Catalog.Contracts.LevelDto
 Konnyaku.Catalog.Contracts.SkillDto
   IReadOnlyDictionary`2 Name
   String Code
+Konnyaku.Crm.Contracts.ICrmApi
+  Task`1 GetStudentAsync(Guid, CancellationToken)
+Konnyaku.Crm.Contracts.LeadCreatedV1
+  Guid LeadId
+  Nullable`1 AssignedConsultantId
+  Nullable`1 FollowUpDueAt
+  String LanguageCode
+  String Locale
+Konnyaku.Crm.Contracts.StudentDto
+  Guid Id
+  Nullable`1 BirthYear
+  Nullable`1 HomeBranchId
+  Nullable`1 UserId
+  String CommunicationLocale
+  String FullName
+Konnyaku.Crm.Contracts.StudentRegisteredV1
+  Guid StudentId
+  Nullable`1 HomeBranchId
+  Nullable`1 LeadId
 Konnyaku.Identity.Contracts.IIdentityApi
   Task`1 GetMemberAsync(Guid, CancellationToken)
+  Task`1 ListUsersWithRoleAsync(String, CancellationToken)
 Konnyaku.Identity.Contracts.LearnerAccountCreatedV1
   Guid UserId
   String Role

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -48,3 +49,18 @@ export async function requireMe(realm: Realm): Promise<{ me: Me; token: string }
   const origin = (await headers()).get("x-site-origin") ?? "";
   redirect(`${origin}/login?realm=${realm}`);
 }
+
+export type TenantInfo = {
+  id: string;
+  slug: string;
+  name: string;
+  defaultLocale: string;
+  enabledLocales: string[];
+  timeZone: string;
+};
+
+/** Tenant of the current host (name, locales, time zone); once per request. */
+export const tenantInfo = cache(async (): Promise<TenantInfo | null> => {
+  const response = await apiFetch("/api/platform/tenant");
+  return response.ok ? ((await response.json()) as TenantInfo) : null;
+});

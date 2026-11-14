@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Konnyaku.Application\Konnyaku.Application.csproj" />
+    <ProjectReference Include="..\..\Identity\Konnyaku.Identity.Contracts\Konnyaku.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\Konnyaku.Crm.Domain\Konnyaku.Crm.Domain.csproj" />
+    <ProjectReference Include="..\Konnyaku.Crm.Contracts\Konnyaku.Crm.Contracts.csproj" />
+  </ItemGroup>
+</Project>

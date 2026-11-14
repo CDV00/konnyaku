@@ -1,4 +1,6 @@
+using Konnyaku.Academic.Endpoints;
 using Konnyaku.Catalog.Endpoints;
+using Konnyaku.Crm.Endpoints;
 using Konnyaku.Identity.Endpoints;
 using Konnyaku.Infrastructure.Modules;
 using Konnyaku.Organization.Endpoints;
@@ -15,5 +17,7 @@ public static class KonnyakuModules
         new CatalogModule(),
         new IdentityModule(),
         new OrganizationModule(),
+        new CrmModule(),
+        new AcademicModule(),
     ];
 }

@@ -12,12 +12,26 @@
     <Project Path="src/Hosts/Konnyaku.Worker/Konnyaku.Worker.csproj" />
   </Folder>
   <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Academic/">
+    <Project Path="src/Modules/Academic/Konnyaku.Academic.Application/Konnyaku.Academic.Application.csproj" />
+    <Project Path="src/Modules/Academic/Konnyaku.Academic.Contracts/Konnyaku.Academic.Contracts.csproj" />
+    <Project Path="src/Modules/Academic/Konnyaku.Academic.Domain/Konnyaku.Academic.Domain.csproj" />
+    <Project Path="src/Modules/Academic/Konnyaku.Academic.Endpoints/Konnyaku.Academic.Endpoints.csproj" />
+    <Project Path="src/Modules/Academic/Konnyaku.Academic.Infrastructure/Konnyaku.Academic.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Catalog/">
     <Project Path="src/Modules/Catalog/Konnyaku.Catalog.Application/Konnyaku.Catalog.Application.csproj" />
     <Project Path="src/Modules/Catalog/Konnyaku.Catalog.Contracts/Konnyaku.Catalog.Contracts.csproj" />
     <Project Path="src/Modules/Catalog/Konnyaku.Catalog.Domain/Konnyaku.Catalog.Domain.csproj" />
     <Project Path="src/Modules/Catalog/Konnyaku.Catalog.Endpoints/Konnyaku.Catalog.Endpoints.csproj" />
     <Project Path="src/Modules/Catalog/Konnyaku.Catalog.Infrastructure/Konnyaku.Catalog.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Crm/">
+    <Project Path="src/Modules/Crm/Konnyaku.Crm.Application/Konnyaku.Crm.Application.csproj" />
+    <Project Path="src/Modules/Crm/Konnyaku.Crm.Contracts/Konnyaku.Crm.Contracts.csproj" />
+    <Project Path="src/Modules/Crm/Konnyaku.Crm.Domain/Konnyaku.Crm.Domain.csproj" />
+    <Project Path="src/Modules/Crm/Konnyaku.Crm.Endpoints/Konnyaku.Crm.Endpoints.csproj" />
+    <Project Path="src/Modules/Crm/Konnyaku.Crm.Infrastructure/Konnyaku.Crm.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Modules/Identity/">
     <Project Path="src/Modules/Identity/Konnyaku.Identity.Application/Konnyaku.Identity.Application.csproj" />
