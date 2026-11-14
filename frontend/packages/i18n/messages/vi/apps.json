@@ -96,7 +96,8 @@
       "Offline": "Tại cơ sở",
       "Hybrid": "Kết hợp"
     },
-    "join": "Vào lớp"
+    "join": "Vào lớp",
+    "attendance": "Điểm danh"
   },
   "credits": {
     "title": "Số buổi học",
@@ -109,5 +110,32 @@
     "title": "Phòng học mô phỏng",
     "body": "Môi trường phát triển: đây là phòng học giả lập thay cho Google Meet. Mã phòng: {code}",
     "notReady": "Phòng học chưa sẵn sàng."
+  },
+  "attendance": {
+    "title": "Điểm danh buổi {number}",
+    "student": "Học viên",
+    "minutes": "Phút có mặt",
+    "status": "Trạng thái",
+    "confirm": "Xác nhận điểm danh",
+    "confirmed": "Đã xác nhận — buổi học đã được trừ theo điểm danh.",
+    "empty": "Chưa có dữ liệu từ phòng học. Bạn có thể xác nhận để điểm danh thủ công (mặc định vắng).",
+    "back": "Về lịch dạy",
+    "statuses": {
+      "Present": "Có mặt",
+      "Late": "Đi muộn",
+      "LeftEarly": "Về sớm",
+      "Absent": "Vắng",
+      "ExcusedAbsent": "Vắng có phép",
+      "Makeup": "Học bù"
+    },
+    "errors": {
+      "learning_already_confirmed": "Buổi này đã được xác nhận.",
+      "unknown": "Không xác nhận được, vui lòng thử lại."
+    }
+  },
+  "replay": {
+    "title": "Xem lại buổi học",
+    "empty": "Chưa có video nào.",
+    "lesson": "Buổi {number} · {date}"
   }
 }

@@ -34,6 +34,7 @@ python infra/scripts/seed_demo.py
 - Mở `http://demo.localhost:3000/login` (trình duyệt tự trỏ `*.localhost` về máy mình; tenant xác định theo host).
   - Tab **Giáo viên · Nhân viên**: `admin@demo.example.com` / `Admin-Pass-123` → `/ops`; `teacher@demo.example.com` / `Teacher-Pass-123` → `/teach` (lịch dạy lớp JP-N5-01).
   - Tab **Học viên · Phụ huynh**: `hv000001` / mật khẩu tạm script in ra → bắt buộc đổi mật khẩu → `/learn`.
+- Giáo viên mở **Điểm danh** của buổi trong `/teach` → xác nhận → số buổi của học viên giảm ở `/learn`.
 - Học viên bấm **Vào lớp** → `/learn/join/{buổi}` → phòng học mô phỏng (provider Fake). Mô phỏng kết thúc buổi học: `POST /api/workspace/dev/sessions/{id}/simulate` (vai trò TenantAdmin/Coordinator).
 - Trang công khai: `http://demo.localhost:3000/vi` (danh mục khóa học), form đăng ký `http://demo.localhost:3000/vi/dang-ky`; lead hiện ở `/ops/leads`.
 - API: `http://localhost:5080`, tài liệu API tại `/scalar`. Thao tác cấp nền tảng (tạo tenant) cần header `X-Platform-Key` (dev: `dev-platform-key`).
@@ -50,6 +51,7 @@ python infra/scripts/seed_demo.py
 | 3 | Scheduling: sinh buổi học theo lịch tuần trong múi giờ của lớp (giữ đúng giờ địa phương qua DST), bỏ ngày lễ (Organization: ngày lễ theo trung tâm/cơ sở, phòng học), mỗi buổi gắn một bài học; chống trùng lịch giáo viên/phòng bằng exclusion constraint PostgreSQL (đúng cả khi đồng thời); đổi giờ, đổi giáo viên, hủy buổi; lịch dạy (`teach`) và lịch học (`learn`) | ✅ — còn để sau: availability giáo viên, thời gian di chuyển giữa cơ sở, giao diện xếp lịch trong `ops` |
 | 4 | Billing: gói học (buổi trả phí + buổi tặng), đơn hàng, thanh toán nhiều lần, sổ cái buổi học append-only (DB chặn sửa/xóa), số dư theo đơn; đơn đã trả cho lớp → Worker tự ghi danh (saga Billing ↔ Academic, lớp đầy → đơn chờ hoàn tiền); trừ buổi idempotent theo điểm danh, trả phí trước rồi buổi tặng, cho phép nợ buổi; doanh thu ghi nhận theo cơ sở của lớp; portal hiển thị số buổi còn lại | ✅ — còn để sau: cổng thanh toán online, hóa đơn điện tử, hoàn tiền thực tế, chuyển gói giữa lớp |
 | 5 | Meeting Engine (`Workspace`) với provider **Fake** cho dev/CI: kết nối theo tenant, pool host account, cấp host best-fit với exclusion constraint (không bao giờ một host cho 2 buổi chồng giờ, kể cả song song), tạo phòng khi buổi được xếp, đổi giờ/hủy buổi trả host, link "Vào lớp" kiểm tra quyền (học viên có chỗ trong lớp / giáo viên của buổi), endpoint mô phỏng kết thúc buổi học (người tham gia + recording) | ✅ — còn để sau: provider Google thật (cần Workspace test domain), cấp phòng theo cửa sổ T-7 ngày, job đối soát, màn hình pool trong `ops` |
+| 6 | Learning: điểm danh nháp tự động từ dữ liệu người tham gia (có mặt ≥ 70%, muộn > 10 phút, < 30% là vắng; học viên bảo lưu = vắng có phép), giáo viên xác nhận (hoặc điểm danh tay cho lớp offline) → Billing trừ buổi (vắng có phép không trừ); chính sách xem lại video (mặc định mọi học viên trong lớp + giáo viên) → Workspace cấp quyền → học viên thấy trong mục xem lại; trang điểm danh trong `teach` | ✅ — còn để sau: timesheet & lương giáo viên (module Hr), học bù, chính sách điểm danh theo tenant, cảnh báo nghỉ học |
 
 ## Tài liệu phân tích
 

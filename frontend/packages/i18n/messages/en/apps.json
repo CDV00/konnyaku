@@ -96,7 +96,8 @@
       "Offline": "On site",
       "Hybrid": "Hybrid"
     },
-    "join": "Join"
+    "join": "Join",
+    "attendance": "Attendance"
   },
   "credits": {
     "title": "Lessons",
@@ -109,5 +110,32 @@
     "title": "Simulated classroom",
     "body": "Development environment: a simulated room standing in for Google Meet. Room code: {code}",
     "notReady": "The classroom is not ready yet."
+  },
+  "attendance": {
+    "title": "Attendance — lesson {number}",
+    "student": "Student",
+    "minutes": "Minutes present",
+    "status": "Status",
+    "confirm": "Confirm attendance",
+    "confirmed": "Confirmed — lessons were spent according to attendance.",
+    "empty": "No data from the classroom yet. Confirming marks everyone by hand (absent by default).",
+    "back": "Back to schedule",
+    "statuses": {
+      "Present": "Present",
+      "Late": "Late",
+      "LeftEarly": "Left early",
+      "Absent": "Absent",
+      "ExcusedAbsent": "Excused",
+      "Makeup": "Make-up"
+    },
+    "errors": {
+      "learning_already_confirmed": "This lesson was already confirmed.",
+      "unknown": "Could not confirm. Please try again."
+    }
+  },
+  "replay": {
+    "title": "Lesson replays",
+    "empty": "No recordings yet.",
+    "lesson": "Lesson {number} · {date}"
   }
 }

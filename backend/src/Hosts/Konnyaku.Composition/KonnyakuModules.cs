@@ -4,6 +4,7 @@ using Konnyaku.Catalog.Endpoints;
 using Konnyaku.Crm.Endpoints;
 using Konnyaku.Identity.Endpoints;
 using Konnyaku.Infrastructure.Modules;
+using Konnyaku.Learning.Endpoints;
 using Konnyaku.Organization.Endpoints;
 using Konnyaku.Platform.Endpoints;
 using Konnyaku.Scheduling.Endpoints;
@@ -25,5 +26,6 @@ public static class KonnyakuModules
         new SchedulingModule(),
         new BillingModule(),
         new WorkspaceModule(),
+        new LearningModule(),
     ];
 }

@@ -47,6 +47,13 @@
     <Project Path="src/Modules/Identity/Konnyaku.Identity.Endpoints/Konnyaku.Identity.Endpoints.csproj" />
     <Project Path="src/Modules/Identity/Konnyaku.Identity.Infrastructure/Konnyaku.Identity.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Learning/">
+    <Project Path="src/Modules/Learning/Konnyaku.Learning.Application/Konnyaku.Learning.Application.csproj" />
+    <Project Path="src/Modules/Learning/Konnyaku.Learning.Contracts/Konnyaku.Learning.Contracts.csproj" />
+    <Project Path="src/Modules/Learning/Konnyaku.Learning.Domain/Konnyaku.Learning.Domain.csproj" />
+    <Project Path="src/Modules/Learning/Konnyaku.Learning.Endpoints/Konnyaku.Learning.Endpoints.csproj" />
+    <Project Path="src/Modules/Learning/Konnyaku.Learning.Infrastructure/Konnyaku.Learning.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Organization/">
     <Project Path="src/Modules/Organization/Konnyaku.Organization.Application/Konnyaku.Organization.Application.csproj" />
     <Project Path="src/Modules/Organization/Konnyaku.Organization.Contracts/Konnyaku.Organization.Contracts.csproj" />

@@ -123,6 +123,19 @@ Konnyaku.Identity.Contracts.MeDto
   String DisplayName
   String Email
   String PreferredLocale
+Konnyaku.Learning.Contracts.AttendanceConfirmedV1
+  Boolean Billable
+  DateOnly LocalDate
+  Guid AttendanceId
+  Guid BranchId
+  Guid EnrollmentId
+  Guid SessionId
+  Guid StudentId
+  String Status
+Konnyaku.Learning.Contracts.RecordingAccessGrantedV1
+  Guid RecordingId
+  Guid SessionId
+  IReadOnlyList`1 ViewerUserIds
 Konnyaku.Organization.Contracts.BranchCreatedV1
   Boolean IsVirtual
   Guid BranchId
