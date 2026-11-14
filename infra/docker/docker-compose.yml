@@ -1,0 +1,45 @@
+name: konnyaku
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: konnyaku
+      POSTGRES_PASSWORD: konnyaku_dev
+      POSTGRES_DB: konnyaku
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U konnyaku -d konnyaku"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    ports:
+      - "6380:6379"
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: konnyaku
+      MINIO_ROOT_PASSWORD: konnyaku_dev
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+
+volumes:
+  postgres-data:
+  minio-data:

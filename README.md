@@ -3,6 +3,31 @@
 Nền tảng SaaS Education ERP & LMS cho trung tâm ngoại ngữ — nhiều trung tâm, mỗi trung tâm nhiều cơ sở, dạy nhiều ngôn ngữ (Anh, Nhật, Trung, Hàn, Pháp, Đức…), giao diện đa ngôn ngữ do người dùng chọn. Học online qua Google Meet, mở rộng Hybrid/cơ sở vật lý.
 Stack: .NET 10 (ASP.NET Core) · Next.js App Router · PostgreSQL.
 
+## Chạy local
+
+Yêu cầu: .NET SDK 10, Node 20+, Docker. pnpm dùng qua `npx pnpm@10.34.9` nếu corepack trên máy lỗi.
+
+```bash
+docker compose -f infra/docker/docker-compose.yml up -d
+```
+
+```bash
+cd backend && dotnet run --project src/Hosts/Konnyaku.Migrator
+```
+
+```bash
+cd backend && dotnet run --project src/Hosts/Konnyaku.Api
+```
+
+```bash
+cd frontend && npx pnpm@10.34.9 install && npx pnpm@10.34.9 dev
+```
+
+- API: `http://localhost:5xxx` (xem log), tài liệu API tại `/scalar`. Ở Development, tenant lấy từ header `X-Tenant-Id` (tạm thời đến Phase 1).
+- Web: `http://localhost:3000/vi` (site), `/learn`, `/teach`, `/ops` (Multi-Zones qua site).
+- Test backend: `cd backend && dotnet test --solution Konnyaku.slnx` (test tích hợp tự bật PostgreSQL bằng Testcontainers).
+- Cấu trúc code: [docs/05-scaffolding.md](docs/05-scaffolding.md). Mỗi module mới cần thêm khối role/schema trong `infra/docker/postgres/init/01-modules.sql`.
+
 ## Tài liệu phân tích
 
 | Chương | Nội dung |

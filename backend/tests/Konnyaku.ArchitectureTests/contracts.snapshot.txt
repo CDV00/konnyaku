@@ -1,0 +1,13 @@
+Konnyaku.Organization.Contracts.BranchCreatedV1
+  Boolean IsVirtual
+  Guid BranchId
+  String Code
+  String TimeZone
+Konnyaku.Organization.Contracts.BranchDto
+  Boolean IsVirtual
+  Guid Id
+  IReadOnlyDictionary`2 Name
+  String Code
+  String TimeZone
+Konnyaku.Organization.Contracts.IOrganizationApi
+  Task`1 GetBranchAsync(Guid, CancellationToken)
