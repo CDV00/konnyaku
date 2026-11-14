@@ -34,6 +34,7 @@ public sealed class IdentityModule : IModule
         services.AddScoped<CreateLearnerAccountHandler>();
         services.AddScoped<BootstrapTenantAdminHandler>();
         services.AddScoped<AddStaffMemberHandler>();
+        services.AddScoped<StaffQueries>();
     }
 
     public void AddWorkerServices(IServiceCollection services) => services.AddOutboxProcessor<IdentityDbContext>();
@@ -62,6 +63,9 @@ public sealed class IdentityModule : IModule
 
         group.MapPost("/staff", async (AddStaffMemberCommand command, AddStaffMemberHandler handler, CancellationToken ct) =>
                 ApiResults.From(await handler.HandleAsync(command, ct), id => Results.Ok(new { userId = id })))
+            .RequireAuthorization(Policies.TenantAdmin);
+
+        group.MapGet("/staff", async (StaffQueries queries, CancellationToken ct) => Results.Ok(await queries.ListAsync(ct)))
             .RequireAuthorization(Policies.TenantAdmin);
 
         // Platform operation: runs in its own scope with the target tenant as context.

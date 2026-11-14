@@ -25,7 +25,27 @@
     "colStatus": "Trạng thái",
     "colDue": "Hạn gọi lại",
     "back": "Về trang chính",
-    "payroll": "Kỳ lương"
+    "payroll": "Kỳ lương",
+    "nav": {
+      "leads": "Lead",
+      "students": "Học viên",
+      "billing": "Thu phí",
+      "classes": "Lớp học",
+      "programs": "Chương trình",
+      "staff": "Nhân sự",
+      "branches": "Cơ sở",
+      "payroll": "Kỳ lương"
+    },
+    "hint": {
+      "leads": "Gọi lại, chuyển trạng thái khách đăng ký",
+      "students": "Hồ sơ học viên và cấp tài khoản đăng nhập",
+      "billing": "Gói học, đơn hàng, ghi nhận thanh toán",
+      "classes": "Mở lớp, xếp lịch, danh sách lớp",
+      "programs": "Chương trình và cấp độ",
+      "staff": "Tài khoản nhân sự, vai trò, đơn giá giáo viên",
+      "branches": "Cơ sở và múi giờ",
+      "payroll": "Tạo và chốt kỳ lương"
+    }
   },
   "login": {
     "title": "Đăng nhập",
@@ -174,6 +194,224 @@
       "hr_period_range_invalid": "Khoảng ngày không hợp lệ.",
       "hr_period_locked": "Kỳ này đã chốt.",
       "unknown": "Không thực hiện được, vui lòng thử lại."
+    }
+  },
+  "admin": {
+    "save": "Lưu",
+    "yes": "Có",
+    "no": "Không",
+    "fields": {
+      "code": "Mã",
+      "name": "Tên",
+      "nameVi": "Tên (tiếng Việt)",
+      "nameEn": "Tên (tiếng Anh)",
+      "timeZone": "Múi giờ",
+      "email": "Email",
+      "phone": "Điện thoại",
+      "displayName": "Họ tên",
+      "status": "Trạng thái",
+      "currency": "Tiền tệ"
+    },
+    "roles": {
+      "TenantAdmin": "Quản trị",
+      "BranchManager": "Quản lý cơ sở",
+      "Coordinator": "Điều phối",
+      "Consultant": "Tư vấn",
+      "Accountant": "Kế toán",
+      "Teacher": "Giáo viên"
+    },
+    "modes": {
+      "Online": "Online",
+      "Offline": "Tại lớp",
+      "Hybrid": "Kết hợp"
+    },
+    "days": {
+      "1": "T2",
+      "2": "T3",
+      "3": "T4",
+      "4": "T5",
+      "5": "T6",
+      "6": "T7",
+      "7": "CN"
+    },
+    "leadStatus": {
+      "New": "Mới",
+      "Contacted": "Đã liên hệ",
+      "Converted": "Đã nhập học",
+      "Lost": "Không theo"
+    },
+    "leadActions": {
+      "Contacted": "Đã gọi",
+      "Converted": "Nhập học",
+      "Lost": "Bỏ"
+    },
+    "orderStatus": {
+      "PendingPayment": "Chờ thanh toán",
+      "Paid": "Đã thanh toán",
+      "Cancelled": "Đã huỷ",
+      "RefundRequired": "Cần hoàn tiền"
+    },
+    "result": {
+      "username": "Tên đăng nhập:",
+      "temporaryPassword": "Mật khẩu tạm (chỉ hiện một lần):"
+    },
+    "branches": {
+      "title": "Cơ sở",
+      "empty": "Chưa có cơ sở nào.",
+      "virtual": "Cơ sở online",
+      "create": "Thêm cơ sở"
+    },
+    "staff": {
+      "title": "Nhân sự",
+      "empty": "Chưa có nhân sự nào.",
+      "roles": "Vai trò",
+      "rate": "Đơn giá dạy",
+      "rateFrom": "{rate}/giờ từ {from}",
+      "noRate": "Chưa có đơn giá",
+      "setRate": "Đặt đơn giá",
+      "hourlyRate": "Đơn giá mỗi giờ",
+      "effectiveFrom": "Áp dụng từ",
+      "create": "Thêm nhân sự",
+      "initialPassword": "Mật khẩu ban đầu (để trống nếu đã có tài khoản)"
+    },
+    "programs": {
+      "title": "Chương trình học",
+      "empty": "Chưa có chương trình nào.",
+      "heading": "{code} · {name} ({language}, {framework})",
+      "publicTag": " · hiện trên trang công khai",
+      "noLevels": "Chưa có cấp độ.",
+      "target": "Trình độ đầu ra",
+      "sessionCount": "Số buổi",
+      "sessionMinutes": "Phút/buổi",
+      "addLevel": "Thêm cấp độ",
+      "create": "Thêm chương trình",
+      "language": "Ngôn ngữ",
+      "framework": "Khung trình độ",
+      "frameworkOption": "{name} ({language})",
+      "shared": "dùng chung",
+      "public": "Hiện trên trang công khai"
+    },
+    "classes": {
+      "title": "Lớp học",
+      "empty": "Chưa có lớp nào.",
+      "level": "Cấp độ",
+      "branch": "Cơ sở",
+      "mode": "Hình thức",
+      "seats": "Sĩ số",
+      "seatsValue": "{enrolled}/{capacity}",
+      "startsOn": "Khai giảng",
+      "create": "Mở lớp",
+      "capacity": "Sĩ số tối đa",
+      "back": "← Danh sách lớp",
+      "detail": "Lớp {code}",
+      "summary": "{mode} · {enrolled}/{capacity} học viên · khai giảng {startsOn} · {minutes} phút/buổi",
+      "schedule": "Lịch học",
+      "notScheduled": "Lớp chưa có lịch. Chọn ngày trong tuần và giờ học để sinh các buổi.",
+      "scheduleSubmit": "Xếp lịch",
+      "days": "Ngày học",
+      "startTime": "Giờ bắt đầu",
+      "teacher": "Giáo viên",
+      "noTeacher": "Chưa phân công",
+      "sequence": "Buổi",
+      "when": "Thời gian",
+      "roster": "Danh sách lớp",
+      "emptyRoster": "Chưa có học viên.",
+      "enrollHint": "Học viên vào lớp khi đơn hàng gắn với lớp được thanh toán (trang Thu phí)."
+    },
+    "students": {
+      "title": "Học viên",
+      "empty": "Chưa có học viên nào.",
+      "create": "Thêm học viên",
+      "fullName": "Họ tên",
+      "birthYear": "Năm sinh",
+      "guardian": "Phụ huynh",
+      "noBranch": "Không chọn",
+      "account": "Có tài khoản",
+      "createAccount": "Cấp tài khoản đăng nhập"
+    },
+    "billing": {
+      "title": "Thu phí",
+      "orders": "Đơn hàng",
+      "createOrder": "Tạo đơn hàng",
+      "student": "Học viên",
+      "package": "Gói học",
+      "class": "Lớp",
+      "noClass": "Chưa xếp lớp",
+      "noOrders": "Chưa có đơn hàng nào.",
+      "amount": "Số tiền",
+      "received": "Đã thu",
+      "payment": "Thanh toán",
+      "recordPayment": "Ghi nhận",
+      "method": "Hình thức",
+      "methods": {
+        "cash": "Tiền mặt",
+        "bank_transfer": "Chuyển khoản",
+        "card": "Thẻ"
+      },
+      "reference": "Mã giao dịch",
+      "packages": "Gói học",
+      "noPackages": "Chưa có gói học nào.",
+      "credits": "Số buổi",
+      "creditsValue": "{paid} + {bonus} tặng",
+      "price": "Giá",
+      "createPackage": "Thêm gói học",
+      "paidCredits": "Số buổi",
+      "bonusCredits": "Buổi tặng",
+      "packageOption": "{name} — {price}"
+    },
+    "errors": {
+      "unknown": "Không thực hiện được ({code}).",
+      "forbidden": "Bạn không có quyền thực hiện thao tác này.",
+      "unauthorized": "Phiên đăng nhập đã hết, vui lòng đăng nhập lại.",
+      "organization_branch_code_taken": "Mã cơ sở đã được dùng.",
+      "organization_branch_code_invalid": "Mã cơ sở không hợp lệ.",
+      "organization_time_zone_invalid": "Múi giờ không hợp lệ (ví dụ Asia/Ho_Chi_Minh).",
+      "identity_staff_invalid": "Thông tin nhân sự không hợp lệ.",
+      "identity_password_too_short": "Mật khẩu quá ngắn.",
+      "identity_role_invalid": "Vai trò không hợp lệ.",
+      "hr_rate_invalid": "Đơn giá không hợp lệ.",
+      "hr_teacher_unknown": "Người này không phải giáo viên.",
+      "academic_code_taken": "Mã đã được dùng.",
+      "academic_code_invalid": "Mã không hợp lệ.",
+      "academic_framework_not_for_language": "Khung trình độ không dùng cho ngôn ngữ này.",
+      "academic_level_not_in_framework": "Trình độ không thuộc khung của chương trình.",
+      "academic_sessions_invalid": "Số buổi hoặc thời lượng không hợp lệ.",
+      "academic_capacity_invalid": "Sĩ số không hợp lệ.",
+      "scheduling_already_scheduled": "Lớp đã có lịch.",
+      "scheduling_days_invalid": "Chọn ít nhất một ngày học.",
+      "scheduling_resource_conflict": "Giáo viên hoặc phòng bị trùng lịch.",
+      "scheduling_teacher_invalid": "Giáo viên không hợp lệ.",
+      "crm_student_name_required": "Cần nhập họ tên.",
+      "crm_birth_year_invalid": "Năm sinh không hợp lệ.",
+      "crm_lead_closed": "Lead đã đóng.",
+      "billing_package_code_taken": "Mã gói đã được dùng.",
+      "billing_package_amounts_invalid": "Số buổi hoặc giá không hợp lệ.",
+      "billing_order_not_payable": "Đơn hàng không còn chờ thanh toán.",
+      "billing_payment_amount_invalid": "Số tiền không hợp lệ.",
+      "billing_class_unknown": "Lớp không tồn tại."
+    },
+    "classStatus": {
+      "Planned": "Dự kiến",
+      "Open": "Đang tuyển",
+      "Running": "Đang học",
+      "Completed": "Đã kết thúc",
+      "Cancelled": "Đã huỷ"
+    },
+    "enrollmentStatus": {
+      "Pending": "Chờ duyệt",
+      "Active": "Đang học",
+      "Frozen": "Bảo lưu",
+      "Completed": "Hoàn thành",
+      "Rejected": "Từ chối",
+      "Transferred": "Chuyển lớp",
+      "Dropped": "Nghỉ học"
+    },
+    "sessionStatus": {
+      "Scheduled": "Đã xếp",
+      "Provisioned": "Đã tạo phòng",
+      "InProgress": "Đang học",
+      "Completed": "Đã học",
+      "Cancelled": "Đã huỷ"
     }
   }
 }

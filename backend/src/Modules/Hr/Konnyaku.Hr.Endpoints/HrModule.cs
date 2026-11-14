@@ -40,6 +40,7 @@ public sealed class HrModule : IModule
 
         payroll.MapPut("/teachers/{teacherId:guid}/rate", async (Guid teacherId, SetRateCommand command, PayrollHandlers handlers, CancellationToken ct) =>
             ApiResults.From(await handlers.SetRateAsync(teacherId, command, ct), Results.Ok));
+        payroll.MapGet("/rates", async (PayrollHandlers handlers, CancellationToken ct) => Results.Ok(await handlers.ListRatesAsync(ct)));
         payroll.MapGet("/timesheets", async (DateOnly from, DateOnly to, Guid? teacherId, PayrollHandlers handlers, CancellationToken ct) =>
             Results.Ok(await handlers.ListAsync(teacherId, from, to, ct)));
         payroll.MapGet("/payroll-periods", async (PayrollHandlers handlers, CancellationToken ct) =>

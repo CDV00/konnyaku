@@ -25,7 +25,27 @@
     "colStatus": "Status",
     "colDue": "Call back by",
     "back": "Back to home",
-    "payroll": "Payroll"
+    "payroll": "Payroll",
+    "nav": {
+      "leads": "Leads",
+      "students": "Students",
+      "billing": "Billing",
+      "classes": "Classes",
+      "programs": "Programs",
+      "staff": "Staff",
+      "branches": "Branches",
+      "payroll": "Payroll"
+    },
+    "hint": {
+      "leads": "Follow up and move leads along",
+      "students": "Student records and sign-in accounts",
+      "billing": "Packages, orders, payments",
+      "classes": "Open classes, schedule them, see rosters",
+      "programs": "Programs and levels",
+      "staff": "Staff accounts, roles, teacher rates",
+      "branches": "Branches and time zones",
+      "payroll": "Create and lock pay periods"
+    }
   },
   "login": {
     "title": "Sign in",
@@ -174,6 +194,224 @@
       "hr_period_range_invalid": "Invalid date range.",
       "hr_period_locked": "This period is already locked.",
       "unknown": "Could not complete the action. Please try again."
+    }
+  },
+  "admin": {
+    "save": "Save",
+    "yes": "Yes",
+    "no": "No",
+    "fields": {
+      "code": "Code",
+      "name": "Name",
+      "nameVi": "Name (Vietnamese)",
+      "nameEn": "Name (English)",
+      "timeZone": "Time zone",
+      "email": "Email",
+      "phone": "Phone",
+      "displayName": "Full name",
+      "status": "Status",
+      "currency": "Currency"
+    },
+    "roles": {
+      "TenantAdmin": "Admin",
+      "BranchManager": "Branch manager",
+      "Coordinator": "Coordinator",
+      "Consultant": "Consultant",
+      "Accountant": "Accountant",
+      "Teacher": "Teacher"
+    },
+    "modes": {
+      "Online": "Online",
+      "Offline": "In person",
+      "Hybrid": "Hybrid"
+    },
+    "days": {
+      "1": "Mon",
+      "2": "Tue",
+      "3": "Wed",
+      "4": "Thu",
+      "5": "Fri",
+      "6": "Sat",
+      "7": "Sun"
+    },
+    "leadStatus": {
+      "New": "New",
+      "Contacted": "Contacted",
+      "Converted": "Enrolled",
+      "Lost": "Lost"
+    },
+    "leadActions": {
+      "Contacted": "Called",
+      "Converted": "Enrolled",
+      "Lost": "Drop"
+    },
+    "orderStatus": {
+      "PendingPayment": "Awaiting payment",
+      "Paid": "Paid",
+      "Cancelled": "Cancelled",
+      "RefundRequired": "Refund due"
+    },
+    "result": {
+      "username": "Username:",
+      "temporaryPassword": "Temporary password (shown once):"
+    },
+    "branches": {
+      "title": "Branches",
+      "empty": "No branches yet.",
+      "virtual": "Online branch",
+      "create": "Add branch"
+    },
+    "staff": {
+      "title": "Staff",
+      "empty": "No staff yet.",
+      "roles": "Roles",
+      "rate": "Teaching rate",
+      "rateFrom": "{rate}/hour from {from}",
+      "noRate": "No rate yet",
+      "setRate": "Set rate",
+      "hourlyRate": "Hourly rate",
+      "effectiveFrom": "Effective from",
+      "create": "Add staff member",
+      "initialPassword": "Initial password (leave empty for an existing account)"
+    },
+    "programs": {
+      "title": "Programs",
+      "empty": "No programs yet.",
+      "heading": "{code} · {name} ({language}, {framework})",
+      "publicTag": " · on the public site",
+      "noLevels": "No levels yet.",
+      "target": "Target level",
+      "sessionCount": "Lessons",
+      "sessionMinutes": "Minutes/lesson",
+      "addLevel": "Add level",
+      "create": "Add program",
+      "language": "Language",
+      "framework": "Framework",
+      "frameworkOption": "{name} ({language})",
+      "shared": "shared",
+      "public": "Show on the public site"
+    },
+    "classes": {
+      "title": "Classes",
+      "empty": "No classes yet.",
+      "level": "Level",
+      "branch": "Branch",
+      "mode": "Mode",
+      "seats": "Seats",
+      "seatsValue": "{enrolled}/{capacity}",
+      "startsOn": "Starts on",
+      "create": "Open a class",
+      "capacity": "Capacity",
+      "back": "← All classes",
+      "detail": "Class {code}",
+      "summary": "{mode} · {enrolled}/{capacity} students · starts {startsOn} · {minutes} min/lesson",
+      "schedule": "Schedule",
+      "notScheduled": "No schedule yet. Pick weekdays and a start time to generate the lessons.",
+      "scheduleSubmit": "Schedule",
+      "days": "Weekdays",
+      "startTime": "Start time",
+      "teacher": "Teacher",
+      "noTeacher": "Unassigned",
+      "sequence": "Lesson",
+      "when": "When",
+      "roster": "Roster",
+      "emptyRoster": "No students yet.",
+      "enrollHint": "Students join the class when an order for the class is paid (Billing page)."
+    },
+    "students": {
+      "title": "Students",
+      "empty": "No students yet.",
+      "create": "Add student",
+      "fullName": "Full name",
+      "birthYear": "Birth year",
+      "guardian": "Guardian",
+      "noBranch": "None",
+      "account": "Has account",
+      "createAccount": "Issue a sign-in account"
+    },
+    "billing": {
+      "title": "Billing",
+      "orders": "Orders",
+      "createOrder": "New order",
+      "student": "Student",
+      "package": "Package",
+      "class": "Class",
+      "noClass": "No class yet",
+      "noOrders": "No orders yet.",
+      "amount": "Amount",
+      "received": "Received",
+      "payment": "Payment",
+      "recordPayment": "Record",
+      "method": "Method",
+      "methods": {
+        "cash": "Cash",
+        "bank_transfer": "Bank transfer",
+        "card": "Card"
+      },
+      "reference": "Reference",
+      "packages": "Packages",
+      "noPackages": "No packages yet.",
+      "credits": "Lessons",
+      "creditsValue": "{paid} + {bonus} bonus",
+      "price": "Price",
+      "createPackage": "Add package",
+      "paidCredits": "Lessons",
+      "bonusCredits": "Bonus lessons",
+      "packageOption": "{name} — {price}"
+    },
+    "errors": {
+      "unknown": "Could not do that ({code}).",
+      "forbidden": "You are not allowed to do this.",
+      "unauthorized": "Your session has expired, please sign in again.",
+      "organization_branch_code_taken": "That branch code is taken.",
+      "organization_branch_code_invalid": "Invalid branch code.",
+      "organization_time_zone_invalid": "Invalid time zone (for example Asia/Ho_Chi_Minh).",
+      "identity_staff_invalid": "Invalid staff details.",
+      "identity_password_too_short": "The password is too short.",
+      "identity_role_invalid": "Invalid role.",
+      "hr_rate_invalid": "Invalid rate.",
+      "hr_teacher_unknown": "This person is not a teacher.",
+      "academic_code_taken": "That code is taken.",
+      "academic_code_invalid": "Invalid code.",
+      "academic_framework_not_for_language": "That framework is not used for this language.",
+      "academic_level_not_in_framework": "That level is not in the program's framework.",
+      "academic_sessions_invalid": "Invalid lesson count or length.",
+      "academic_capacity_invalid": "Invalid capacity.",
+      "scheduling_already_scheduled": "The class is already scheduled.",
+      "scheduling_days_invalid": "Pick at least one weekday.",
+      "scheduling_resource_conflict": "The teacher or room is already booked.",
+      "scheduling_teacher_invalid": "Invalid teacher.",
+      "crm_student_name_required": "A name is required.",
+      "crm_birth_year_invalid": "Invalid birth year.",
+      "crm_lead_closed": "This lead is closed.",
+      "billing_package_code_taken": "That package code is taken.",
+      "billing_package_amounts_invalid": "Invalid lessons or price.",
+      "billing_order_not_payable": "The order is no longer awaiting payment.",
+      "billing_payment_amount_invalid": "Invalid amount.",
+      "billing_class_unknown": "Unknown class."
+    },
+    "classStatus": {
+      "Planned": "Planned",
+      "Open": "Enrolling",
+      "Running": "Running",
+      "Completed": "Completed",
+      "Cancelled": "Cancelled"
+    },
+    "enrollmentStatus": {
+      "Pending": "Pending",
+      "Active": "Active",
+      "Frozen": "Frozen",
+      "Completed": "Completed",
+      "Rejected": "Rejected",
+      "Transferred": "Transferred",
+      "Dropped": "Dropped"
+    },
+    "sessionStatus": {
+      "Scheduled": "Scheduled",
+      "Provisioned": "Room ready",
+      "InProgress": "In progress",
+      "Completed": "Held",
+      "Cancelled": "Cancelled"
     }
   }
 }
