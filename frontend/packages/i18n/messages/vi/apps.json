@@ -11,5 +11,41 @@
   },
   "ops": {
     "title": "Vận hành trung tâm"
+  },
+  "login": {
+    "title": "Đăng nhập",
+    "learnTab": "Học viên · Phụ huynh",
+    "staffTab": "Giáo viên · Nhân viên",
+    "email": "Email",
+    "username": "Tên đăng nhập",
+    "password": "Mật khẩu",
+    "submit": "Đăng nhập",
+    "submitting": "Đang đăng nhập…",
+    "learnHint": "Dùng tài khoản trung tâm cấp cho bạn.",
+    "staffHint": "Dùng email công việc của bạn.",
+    "errors": {
+      "identity_invalid_credentials": "Thông tin đăng nhập không đúng.",
+      "identity_account_locked": "Tài khoản tạm khóa do nhập sai nhiều lần. Thử lại sau 15 phút.",
+      "identity_tenant_unknown": "Không xác định được trung tâm của địa chỉ này.",
+      "unknown": "Có lỗi xảy ra, vui lòng thử lại."
+    }
+  },
+  "session": {
+    "greeting": "Xin chào, {name}",
+    "roles": "Vai trò: {roles}",
+    "logout": "Đăng xuất"
+  },
+  "password": {
+    "title": "Đổi mật khẩu",
+    "current": "Mật khẩu hiện tại",
+    "next": "Mật khẩu mới (ít nhất 8 ký tự)",
+    "submit": "Lưu mật khẩu",
+    "required": "Bạn cần đổi mật khẩu tạm trước khi tiếp tục.",
+    "errors": {
+      "identity_password_too_short": "Mật khẩu mới phải có ít nhất 8 ký tự.",
+      "identity_invalid_credentials": "Mật khẩu hiện tại không đúng.",
+      "identity_account_locked": "Tài khoản tạm khóa. Thử lại sau 15 phút.",
+      "unknown": "Có lỗi xảy ra, vui lòng thử lại."
+    }
   }
 }

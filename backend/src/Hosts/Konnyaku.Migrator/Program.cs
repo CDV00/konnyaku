@@ -1,5 +1,5 @@
 ﻿using Konnyaku.Infrastructure.Modules;
-using Konnyaku.Organization.Endpoints;
+using Konnyaku.Composition;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,7 +7,7 @@ using Microsoft.Extensions.Hosting;
 
 // Applies every module's migrations with the schema-owner connection (ConnectionStrings:Owner).
 // Module roles used by Api/Worker only have DML rights on their own schema.
-IModule[] modules = [new OrganizationModule()];
+var modules = KonnyakuModules.All;
 
 var builder = Host.CreateApplicationBuilder(args);
 var owner = builder.Configuration.GetConnectionString("Owner")

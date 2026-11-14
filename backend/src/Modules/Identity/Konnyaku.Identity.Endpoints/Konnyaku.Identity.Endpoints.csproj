@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Konnyaku.Identity.Infrastructure\Konnyaku.Identity.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

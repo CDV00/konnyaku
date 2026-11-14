@@ -1,0 +1,86 @@
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using Konnyaku.Composition;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+
+namespace Konnyaku.IntegrationTests;
+
+/// <summary>The real API host (auth, tenant resolution, all modules) against the test database.</summary>
+public sealed class KonnyakuApiFactory(PostgresFixture db) : WebApplicationFactory<Program>
+{
+    public const string PlatformKey = "test-platform-key";
+    public const string BaseDomain = "test.local";
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Testing");
+        foreach (var module in KonnyakuModules.All)
+        {
+            builder.UseSetting($"ConnectionStrings:{module.Name}", db.ModuleConnectionString(module.Name));
+        }
+
+        builder.UseSetting("Auth:SigningKey", "test-signing-key-0123456789abcdef-0123456789");
+        builder.UseSetting("Platform:AdminKey", PlatformKey);
+        builder.UseSetting("Platform:BaseDomain", BaseDomain);
+    }
+
+    /// <summary>Client acting on a tenant's host, as the web apps' server side does.</summary>
+    public HttpClient ClientFor(string slug, string? accessToken = null)
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Add("X-Tenant-Host", $"{slug}.{BaseDomain}");
+        if (accessToken is not null)
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        }
+
+        return client;
+    }
+
+    public HttpClient PlatformClient()
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Add("X-Platform-Key", PlatformKey);
+        return client;
+    }
+
+    public async Task<TenantDto> CreateTenantWithAdminAsync(string slugPrefix, string adminEmail, string adminPassword)
+    {
+        var slug = $"{slugPrefix}-{Guid.NewGuid():N}"[..20];
+        var platform = PlatformClient();
+        var created = await platform.PostAsJsonAsync("/api/platform/tenants", new
+        {
+            slug,
+            name = $"Center {slug}",
+            defaultLocale = "vi",
+            enabledLocales = new[] { "vi", "en" },
+            timeZone = "Asia/Ho_Chi_Minh",
+        });
+        created.EnsureSuccessStatusCode();
+        var tenant = (await created.Content.ReadFromJsonAsync<TenantDto>())!;
+
+        var admin = await platform.PostAsJsonAsync("/api/identity/bootstrap/tenant-admin", new
+        {
+            tenantId = tenant.Id,
+            email = adminEmail,
+            displayName = "Admin Test",
+            password = adminPassword,
+        });
+        admin.EnsureSuccessStatusCode();
+        return tenant;
+    }
+
+    public async Task<SignInDto> StaffLoginAsync(string slug, string email, string password)
+    {
+        var response = await ClientFor(slug).PostAsJsonAsync("/api/identity/staff/login", new { email, password });
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<SignInDto>())!;
+    }
+}
+
+public sealed record TenantDto(Guid Id, string Slug, string Name, string DefaultLocale, string[] EnabledLocales, string TimeZone, string[] Hosts);
+
+public sealed record SignInDto(string AccessToken, string Audience, DateTimeOffset ExpiresAt, string DisplayName, string[] Roles, bool MustChangePassword);
+
+public sealed record ErrorDto(string Code);

@@ -1,3 +1,4 @@
+using Konnyaku.Infrastructure.Auth;
 using Konnyaku.Infrastructure.Http;
 using Konnyaku.Infrastructure.Messaging;
 using Konnyaku.Infrastructure.Modules;
@@ -30,9 +31,11 @@ public sealed class OrganizationModule : IModule
     public void MapEndpoints(RouteGroupBuilder group)
     {
         group.MapGet("/branches", async (ListBranchesHandler handler, CancellationToken ct) =>
-            Results.Ok(await handler.HandleAsync(ct)));
+            Results.Ok(await handler.HandleAsync(ct)))
+            .RequireAuthorization(Policies.Staff);
 
         group.MapPost("/branches", async (CreateBranchCommand command, CreateBranchHandler handler, CancellationToken ct) =>
-            ApiResults.From(await handler.HandleAsync(command, ct), branch => Results.Created($"branches/{branch.Id}", branch)));
+            ApiResults.From(await handler.HandleAsync(command, ct), branch => Results.Created($"branches/{branch.Id}", branch)))
+            .RequireAuthorization(Policies.TenantAdmin);
     }
 }

@@ -5,6 +5,6 @@
     <PackageReference Include="Serilog.AspNetCore" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Modules\Organization\Konnyaku.Organization.Endpoints\Konnyaku.Organization.Endpoints.csproj" />
+    <ProjectReference Include="..\Konnyaku.Composition\Konnyaku.Composition.csproj" />
   </ItemGroup>
 </Project>

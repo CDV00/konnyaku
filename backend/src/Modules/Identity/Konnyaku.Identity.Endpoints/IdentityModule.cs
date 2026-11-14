@@ -1,0 +1,78 @@
+using System.Security.Claims;
+using Konnyaku.Identity.Application;
+using Konnyaku.Identity.Contracts;
+using Konnyaku.Identity.Domain;
+using Konnyaku.Identity.Infrastructure;
+using Konnyaku.Infrastructure.Auth;
+using Konnyaku.Infrastructure.Http;
+using Konnyaku.Infrastructure.Messaging;
+using Konnyaku.Infrastructure.Modules;
+using Konnyaku.Infrastructure.Tenancy;
+using Konnyaku.SharedKernel;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Konnyaku.Identity.Endpoints;
+
+public sealed record SignInResponse(string AccessToken, string Audience, DateTimeOffset ExpiresAt, string DisplayName, IReadOnlyList<string> Roles, bool MustChangePassword);
+
+public sealed class IdentityModule : IModule
+{
+    public string Name => "identity";
+
+    public IReadOnlyList<Type> DbContextTypes => [typeof(IdentityDbContext)];
+
+    public void AddServices(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddIdentityInfrastructure(configuration, Name);
+        services.AddScoped<StaffLoginHandler>();
+        services.AddScoped<LearnerLoginHandler>();
+        services.AddScoped<ChangeLearnerPasswordHandler>();
+        services.AddScoped<CreateLearnerAccountHandler>();
+        services.AddScoped<BootstrapTenantAdminHandler>();
+    }
+
+    public void AddWorkerServices(IServiceCollection services) => services.AddOutboxProcessor<IdentityDbContext>();
+
+    public void MapEndpoints(RouteGroupBuilder group)
+    {
+        group.MapPost("/staff/login", async (StaffLoginCommand command, StaffLoginHandler handler, ITokenIssuer tokens, CancellationToken ct) =>
+            ApiResults.From(await handler.HandleAsync(command, ct), s => Results.Ok(Issue(tokens, s, Audiences.Staff))));
+
+        group.MapPost("/learn/login", async (LearnerLoginCommand command, LearnerLoginHandler handler, ITokenIssuer tokens, CancellationToken ct) =>
+            ApiResults.From(await handler.HandleAsync(command, ct), s => Results.Ok(Issue(tokens, s, Audiences.Learn))));
+
+        group.MapPost("/learn/change-password", async (ChangePasswordCommand command, ClaimsPrincipal user, ChangeLearnerPasswordHandler handler, CancellationToken ct) =>
+                ApiResults.From(await handler.HandleAsync(user.UserId()!.Value, command, ct), _ => Results.NoContent()))
+            .RequireAuthorization(Policies.Learn);
+
+        group.MapGet("/me", async (ClaimsPrincipal user, IIdentityApi identity, CancellationToken ct) =>
+                await identity.GetMemberAsync(user.UserId()!.Value, ct) is { } me ? Results.Ok(me) : Results.Unauthorized())
+            .RequireAuthorization();
+
+        group.MapPost("/learners", async (CreateLearnerAccountCommand command, CreateLearnerAccountHandler handler, CancellationToken ct) =>
+                ApiResults.From(await handler.HandleAsync(command, ct), a => Results.Created($"learners/{a.UserId}", a)))
+            .RequireAuthorization(p => p.RequireAuthenticatedUser()
+                .RequireClaim(KonnyakuClaims.Audience, Audiences.Staff)
+                .RequireRole(Roles.TenantAdmin, Roles.Consultant));
+
+        // Platform operation: runs in its own scope with the target tenant as context.
+        group.MapPost("/bootstrap/tenant-admin", async (BootstrapTenantAdminCommand command, IServiceScopeFactory scopes, CancellationToken ct) =>
+            {
+                await using var scope = scopes.CreateAsyncScope();
+                scope.ServiceProvider.GetRequiredService<TenantContext>().Set(command.TenantId);
+                var result = await scope.ServiceProvider.GetRequiredService<BootstrapTenantAdminHandler>().HandleAsync(command, ct);
+                return ApiResults.From(result, id => Results.Ok(new { userId = id }));
+            })
+            .RequirePlatformKey();
+    }
+
+    private static SignInResponse Issue(ITokenIssuer tokens, SignedIn signedIn, string audience)
+    {
+        var token = tokens.Issue(signedIn.UserId, signedIn.TenantId, audience, signedIn.DisplayName, signedIn.Roles);
+        return new SignInResponse(token.AccessToken, audience, token.ExpiresAt, signedIn.DisplayName, signedIn.Roles, signedIn.MustChangePassword);
+    }
+}
