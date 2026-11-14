@@ -14,7 +14,7 @@ export default async function HomePage() {
       <h1>{t("title")}</h1>
       <p>{session("greeting", { name: me.displayName })}</p>
       <p>{session("roles", { roles: me.roles.join(", ") })}</p>
-      <SessionList sessions={sessions} title={schedule("teaching")} />
+      <SessionList canJoin sessions={sessions} title={schedule("teaching")} />
       <form method="post" action="/api/session/staff/logout">
         <button type="submit">{session("logout")}</button>
       </form>

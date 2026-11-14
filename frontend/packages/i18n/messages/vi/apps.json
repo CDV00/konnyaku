@@ -95,7 +95,8 @@
       "Online": "Trực tuyến",
       "Offline": "Tại cơ sở",
       "Hybrid": "Kết hợp"
-    }
+    },
+    "join": "Vào lớp"
   },
   "credits": {
     "title": "Số buổi học",
@@ -103,5 +104,10 @@
     "bonus": "(trong đó {bonus, number} buổi tặng)",
     "owed": "Đang nợ {owed, number} buổi — vui lòng gia hạn gói học.",
     "none": "Chưa có gói học nào."
+  },
+  "meeting": {
+    "title": "Phòng học mô phỏng",
+    "body": "Môi trường phát triển: đây là phòng học giả lập thay cho Google Meet. Mã phòng: {code}",
+    "notReady": "Phòng học chưa sẵn sàng."
   }
 }

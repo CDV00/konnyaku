@@ -27,6 +27,7 @@ public sealed class SchedulingModule : IModule
         services.AddScoped<ResourceValidator>();
         services.AddScoped<ScheduleClassHandler>();
         services.AddScoped<SessionChangeHandler>();
+        services.AddScoped<Konnyaku.Application.Messaging.IIntegrationEventHandler<Konnyaku.Workspace.Contracts.MeetingProvisionedV1>, MeetingProvisionedConsumer>();
     }
 
     public void AddWorkerServices(IServiceCollection services) => services.AddOutboxProcessor<SchedulingDbContext>();

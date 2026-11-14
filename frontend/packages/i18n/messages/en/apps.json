@@ -95,7 +95,8 @@
       "Online": "Online",
       "Offline": "On site",
       "Hybrid": "Hybrid"
-    }
+    },
+    "join": "Join"
   },
   "credits": {
     "title": "Lessons",
@@ -103,5 +104,10 @@
     "bonus": "(including {bonus, number} bonus)",
     "owed": "{owed, number} lessons owed — please renew your package.",
     "none": "No package yet."
+  },
+  "meeting": {
+    "title": "Simulated classroom",
+    "body": "Development environment: a simulated room standing in for Google Meet. Room code: {code}",
+    "notReady": "The classroom is not ready yet."
   }
 }

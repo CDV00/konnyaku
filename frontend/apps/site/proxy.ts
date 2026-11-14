@@ -19,10 +19,12 @@ export default function proxy(request: NextRequest) {
     const url = new URL(request.nextUrl.pathname + request.nextUrl.search, target);
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-tenant-host", (request.headers.get("host") ?? "").split(":")[0] ?? "");
-    requestHeaders.set("x-site-origin", request.nextUrl.origin);
+    // The browser-facing origin (tenant host + port), not the normalized dev origin.
+    requestHeaders.set("x-site-origin", `${request.nextUrl.protocol}//${request.headers.get("host") ?? request.nextUrl.host}`);
     return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
   }
-  if (request.nextUrl.pathname.startsWith("/login") || request.nextUrl.pathname.startsWith("/api")) {
+  const ownPaths = ["/login", "/api", "/dev-meeting"];
+  if (ownPaths.some((p) => request.nextUrl.pathname.startsWith(p))) {
     return NextResponse.next();
   }
   return intl(request);

@@ -118,6 +118,14 @@ public sealed class Session : Entity, ITenantOwned
         return this;
     }
 
+    public void MarkProvisioned()
+    {
+        if (Status == SessionStatus.Scheduled)
+        {
+            Status = SessionStatus.Provisioned;
+        }
+    }
+
     public Result<Session> Cancel(string reason)
     {
         if (!IsChangeable)

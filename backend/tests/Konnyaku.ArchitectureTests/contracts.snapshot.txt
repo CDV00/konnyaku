@@ -195,3 +195,23 @@ Konnyaku.Scheduling.Contracts.SessionScheduledV1
   Guid SessionId
   Nullable`1 TeacherId
   String DeliveryMode
+Konnyaku.Workspace.Contracts.MeetingProvisionedV1
+  Guid SessionId
+  String MeetingUri
+Konnyaku.Workspace.Contracts.ParticipantDto
+  DateTimeOffset JoinedAt
+  DateTimeOffset LeftAt
+  Nullable`1 UserId
+  String DisplayName
+Konnyaku.Workspace.Contracts.ParticipantsCollectedV1
+  DateTimeOffset EndedAt
+  DateTimeOffset StartedAt
+  Guid SessionId
+  IReadOnlyList`1 Participants
+Konnyaku.Workspace.Contracts.RecordingAvailableV1
+  Guid RecordingId
+  Guid SessionId
+Konnyaku.Workspace.Contracts.RecordingPublishedV1
+  Guid RecordingId
+  Guid SessionId
+  Int32 ViewerCount
