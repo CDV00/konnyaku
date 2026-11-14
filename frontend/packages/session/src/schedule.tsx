@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
 
 export type SessionView = {
@@ -11,7 +12,8 @@ export type SessionView = {
 };
 
 /** Upcoming sessions, formatted in the center's time zone (set in each app's i18n request config). */
-export async function SessionList({ sessions, title }: { sessions: SessionView[]; title: string }) {
+/** <paramref name="canJoin"/>: show a join link (resolved under the app basePath: /learn/join or /teach/join). */
+export async function SessionList({ sessions, title, canJoin = false }: { sessions: SessionView[]; title: string; canJoin?: boolean }) {
   const t = await getTranslations("schedule");
   const format = await getFormatter();
   return (
@@ -28,6 +30,12 @@ export async function SessionList({ sessions, title }: { sessions: SessionView[]
               {t("lesson", { number: s.sequenceNo })}
               {" · "}
               {t(`mode.${s.deliveryMode}`)}
+              {canJoin && s.status === "Provisioned" && (
+                <>
+                  {" · "}
+                  <Link href={`/join/${s.id}`} prefetch={false}>{t("join")}</Link>
+                </>
+              )}
             </li>
           ))}
         </ul>

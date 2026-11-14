@@ -4,6 +4,7 @@
 - learner: hv000001 with a temporary password (printed), linked to a student who bought a 24+2 lesson package for class JP-N5-01
   (the Worker must be running to turn the paid order into an enrollment)
 - an Online branch, a Japanese (JLPT) program with a 24-lesson N5 level, the class scheduled Tue/Thu 19:00
+- Meeting Engine on the Fake provider with one host: the Worker provisions a simulated room for each session
 
 Usage: python infra/scripts/seed_demo.py [learner.json]
 """
@@ -59,6 +60,10 @@ must(call("POST", "/api/identity/bootstrap/tenant-admin", {
 token = must(call("POST", "/api/identity/staff/login",
                   {"email": "admin@demo.example.com", "password": "Admin-Pass-123"}, HOST), "admin login")["accessToken"]
 ADMIN = {**HOST, "Authorization": f"Bearer {token}"}
+
+# Meeting Engine with the Fake provider (no Google needed) and a pool of one host account.
+must(call("PUT", "/api/workspace/connection", {"provider": "Fake"}, ADMIN), "workspace connection")
+must(call("POST", "/api/workspace/hosts", {"email": "host01@demo.example.com"}, ADMIN), "host")
 
 teacher = must(call("POST", "/api/identity/staff", {
     "email": "teacher@demo.example.com", "displayName": "Giáo viên Demo", "initialPassword": "Teacher-Pass-123",

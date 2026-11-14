@@ -31,7 +31,7 @@ export default async function HomePage() {
           </p>
         )}
       </section>
-      <SessionList sessions={sessions} title={schedule("learning")} />
+      <SessionList canJoin sessions={sessions} title={schedule("learning")} />
       <form method="post" action="/api/session/learn/logout">
         <button type="submit">{session("logout")}</button>
       </form>
