@@ -8,6 +8,9 @@ public sealed record StudentDto(
 public interface ICrmApi
 {
     Task<StudentDto?> GetStudentAsync(Guid studentId, CancellationToken cancellationToken);
+
+    /// <summary>Student profiles linked to a signed-in learner account.</summary>
+    Task<IReadOnlyList<StudentDto>> ListStudentsOfUserAsync(Guid userId, CancellationToken cancellationToken);
 }
 
 public sealed record LeadCreatedV1(Guid LeadId, string LanguageCode, Guid? AssignedConsultantId, DateTimeOffset? FollowUpDueAt, string Locale) : IIntegrationEvent;

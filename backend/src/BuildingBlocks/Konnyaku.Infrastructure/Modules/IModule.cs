@@ -1,4 +1,6 @@
+using Konnyaku.Application.Persistence;
 using Konnyaku.Application.Tenancy;
+using Konnyaku.Infrastructure.Persistence;
 using Konnyaku.Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -51,6 +53,8 @@ public static class ModuleHostExtensions
         builder.Services.AddScoped<TenantContext>();
         builder.Services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<TenantContext>());
         builder.Services.AddSingleton(new ModuleCatalog(modules));
+        builder.Services.AddSingleton<IDbErrorClassifier, NpgsqlErrorClassifier>();
+        builder.Services.AddSingleton(TimeProvider.System);
 
         foreach (var module in modules)
         {

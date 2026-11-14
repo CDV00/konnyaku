@@ -142,6 +142,74 @@ namespace Konnyaku.Organization.Infrastructure.Migrations
 
                     b.ToTable("branch", "org");
                 });
+
+            modelBuilder.Entity("Konnyaku.Organization.Domain.Holiday", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("branch_id");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_holiday");
+
+                    b.HasIndex("TenantId", "Date")
+                        .HasDatabaseName("ix_holiday_tenant_id_date");
+
+                    b.ToTable("holiday", "org");
+                });
+
+            modelBuilder.Entity("Konnyaku.Organization.Domain.Room", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("branch_id");
+
+                    b.Property<int>("Capacity")
+                        .HasColumnType("integer")
+                        .HasColumnName("capacity");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("code");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_room");
+
+                    b.HasIndex("TenantId", "BranchId", "Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_room_tenant_id_branch_id_code");
+
+                    b.ToTable("room", "org");
+                });
 #pragma warning restore 612, 618
         }
     }

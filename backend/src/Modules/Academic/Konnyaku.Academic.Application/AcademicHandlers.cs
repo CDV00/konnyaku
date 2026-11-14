@@ -291,6 +291,14 @@ public sealed class AcademicQueries(IAcademicDbContext db) : IAcademicApi
         return lessons.Select(l => new LessonDto(l.Id, l.Ordinal, l.Title.Values)).ToList();
     }
 
+    public async Task<IReadOnlyList<Guid>> ListClassIdsOfStudentsAsync(IReadOnlyCollection<Guid> studentIds, CancellationToken cancellationToken)
+    {
+        var ids = studentIds.ToArray();
+        return await db.Enrollments.AsNoTracking()
+            .Where(e => ids.Contains(e.StudentId) && (e.Status == EnrollmentStatus.Active || e.Status == EnrollmentStatus.Frozen))
+            .Select(e => e.ClassId).Distinct().ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<RosterEntryDto>> GetRosterAsync(Guid classId, CancellationToken cancellationToken) =>
         await db.Enrollments.AsNoTracking()
             .Where(e => e.ClassId == classId && (e.Status == EnrollmentStatus.Active || e.Status == EnrollmentStatus.Frozen))
