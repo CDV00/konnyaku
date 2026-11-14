@@ -23,6 +23,7 @@ public sealed class KonnyakuApiFactory(PostgresFixture db) : WebApplicationFacto
         builder.UseSetting("Auth:SigningKey", "test-signing-key-0123456789abcdef-0123456789");
         builder.UseSetting("Platform:AdminKey", PlatformKey);
         builder.UseSetting("Platform:BaseDomain", BaseDomain);
+        builder.UseSetting("RateLimits:PublicFormsPerMinute", "1000");
     }
 
     /// <summary>Client acting on a tenant's host, as the web apps' server side does.</summary>

@@ -33,6 +33,7 @@ public sealed class IdentityModule : IModule
         services.AddScoped<ChangeLearnerPasswordHandler>();
         services.AddScoped<CreateLearnerAccountHandler>();
         services.AddScoped<BootstrapTenantAdminHandler>();
+        services.AddScoped<AddStaffMemberHandler>();
     }
 
     public void AddWorkerServices(IServiceCollection services) => services.AddOutboxProcessor<IdentityDbContext>();
@@ -58,6 +59,10 @@ public sealed class IdentityModule : IModule
             .RequireAuthorization(p => p.RequireAuthenticatedUser()
                 .RequireClaim(KonnyakuClaims.Audience, Audiences.Staff)
                 .RequireRole(Roles.TenantAdmin, Roles.Consultant));
+
+        group.MapPost("/staff", async (AddStaffMemberCommand command, AddStaffMemberHandler handler, CancellationToken ct) =>
+                ApiResults.From(await handler.HandleAsync(command, ct), id => Results.Ok(new { userId = id })))
+            .RequireAuthorization(Policies.TenantAdmin);
 
         // Platform operation: runs in its own scope with the target tenant as context.
         group.MapPost("/bootstrap/tenant-admin", async (BootstrapTenantAdminCommand command, IServiceScopeFactory scopes, CancellationToken ct) =>

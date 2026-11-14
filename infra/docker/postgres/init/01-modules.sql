@@ -15,7 +15,9 @@ BEGIN
         ('platform', 'platform'),
         ('catalog', 'catalog'),
         ('identity', 'identity'),
-        ('organization', 'org')
+        ('organization', 'org'),
+        ('crm', 'crm'),
+        ('academic', 'academic')
     ) AS v(module, schema_name)
     LOOP
         role_name := 'kk_' || m.module;

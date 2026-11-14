@@ -255,6 +255,54 @@ public sealed class BootstrapTenantAdminHandler(IIdentityDbContext db, IPassword
     }
 }
 
+public sealed record AddStaffMemberCommand(string Email, string DisplayName, string? InitialPassword, IReadOnlyList<string> Roles);
+
+/// <summary>Tenant admin adds an employee or teacher. An existing platform user (e.g. a freelance teacher) keeps their password.</summary>
+public sealed class AddStaffMemberHandler(IIdentityDbContext db, IPasswordHasher<User> hasher)
+{
+    public async Task<Result<Guid>> HandleAsync(AddStaffMemberCommand command, CancellationToken cancellationToken)
+    {
+        if (command.Roles is not { Count: > 0 } || command.Roles.Any(r => !Roles.Staff.Contains(r)))
+        {
+            return Error.Validation("identity.role_invalid");
+        }
+
+        if (string.IsNullOrWhiteSpace(command.Email) || string.IsNullOrWhiteSpace(command.DisplayName))
+        {
+            return Error.Validation("identity.staff_invalid");
+        }
+
+        var email = User.NormalizeEmail(command.Email);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
+        if (user is null)
+        {
+            if ((command.InitialPassword ?? string.Empty).Length < ChangeLearnerPasswordHandler.MinLength)
+            {
+                return Error.Validation("identity.password_too_short", new Dictionary<string, object?> { ["min"] = ChangeLearnerPasswordHandler.MinLength });
+            }
+
+            user = User.Create(email, command.DisplayName, "vi");
+            db.Users.Add(user);
+            db.PasswordCredentials.Add(new PasswordCredential(user.Id, hasher.HashPassword(user, command.InitialPassword!)));
+        }
+
+        var membership = await db.Memberships.Include(m => m.Roles).FirstOrDefaultAsync(m => m.UserId == user.Id, cancellationToken);
+        if (membership is null)
+        {
+            membership = new Membership(user.Id);
+            db.Memberships.Add(membership);
+        }
+
+        foreach (var role in command.Roles)
+        {
+            membership.Grant(role);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return user.Id;
+    }
+}
+
 public sealed class IdentityQueries(IIdentityDbContext db, ITenantContext tenant) : IIdentityApi
 {
     public async Task<MeDto?> GetMemberAsync(Guid userId, CancellationToken cancellationToken)
@@ -273,4 +321,11 @@ public sealed class IdentityQueries(IIdentityDbContext db, ITenantContext tenant
         var roles = await StaffLoginHandler.RolesInTenantAsync(db, userId, cancellationToken);
         return roles.Count == 0 ? null : new MeDto(user.Id, user.DisplayName, user.Email, user.PreferredLocale, tenantId, roles);
     }
+
+    public async Task<IReadOnlyList<Guid>> ListUsersWithRoleAsync(string role, CancellationToken cancellationToken) =>
+        await db.Memberships
+            .Where(m => m.Status == MembershipStatus.Active && m.Roles.Any(r => r.Role == role))
+            .OrderBy(m => m.CreatedAt)
+            .Select(m => m.UserId)
+            .ToListAsync(cancellationToken);
 }

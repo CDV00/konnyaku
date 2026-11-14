@@ -1,7 +1,11 @@
 {
   "site": {
     "title": "Center website",
-    "register": "Request a consultation"
+    "register": "Request a consultation",
+    "programs": "Programs open for enrolment",
+    "noPrograms": "This center has not published any program yet.",
+    "levels": "{count, plural, one {# level} other {# levels}}",
+    "login": "Sign in"
   },
   "learn": {
     "title": "Student & parent portal"
@@ -10,7 +14,17 @@
     "title": "Teacher app"
   },
   "ops": {
-    "title": "Center operations"
+    "title": "Center operations",
+    "leads": "Leads",
+    "openLeads": "Open leads",
+    "noLeads": "No leads yet.",
+    "colName": "Student",
+    "colLanguage": "Language",
+    "colContact": "Contact",
+    "colGoal": "Goal",
+    "colStatus": "Status",
+    "colDue": "Call back by",
+    "back": "Back to home"
   },
   "login": {
     "title": "Sign in",
@@ -46,6 +60,30 @@
       "identity_invalid_credentials": "The current password is incorrect.",
       "identity_account_locked": "Account locked. Try again in 15 minutes.",
       "unknown": "Something went wrong. Please try again."
+    }
+  },
+  "register": {
+    "title": "Request a consultation",
+    "intro": "Leave your details and a consultant will call you back within 15 minutes (business hours).",
+    "studentName": "Student's full name",
+    "birthYear": "Year of birth",
+    "guardianName": "Parent's full name (required under 18)",
+    "phone": "Phone number",
+    "email": "Email",
+    "language": "Language to learn",
+    "goal": "Goal",
+    "schedule": "Preferred schedule",
+    "consent": "I agree that the center processes these details to advise me on courses.",
+    "submit": "Send",
+    "sent": "Thank you — the center will contact you shortly.",
+    "errors": {
+      "crm_student_name_required": "Please enter the student's name.",
+      "crm_contact_required": "Please enter a phone number or an email.",
+      "crm_guardian_required": "Students under 18 need a parent's details.",
+      "crm_consent_required": "Please give your consent so the center can contact you.",
+      "crm_birth_year_invalid": "The year of birth is not valid.",
+      "crm_language_required": "Please choose a language.",
+      "unknown": "The request could not be sent. Please try again."
     }
   }
 }
