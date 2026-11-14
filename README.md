@@ -20,6 +20,10 @@ cd backend && dotnet run --project src/Hosts/Konnyaku.Api --launch-profile http
 ```
 
 ```bash
+cd backend && dotnet run --project src/Hosts/Konnyaku.Worker
+```
+
+```bash
 cd frontend && npx pnpm@10.34.9 install && npx pnpm@10.34.9 dev
 ```
 
@@ -43,6 +47,7 @@ python infra/scripts/seed_demo.py
 | 1 | Platform (tenant, host), Catalog (ngôn ngữ, khung năng lực), Identity (2 realm, tài khoản trung tâm cấp, khóa sau 5 lần sai) | ✅ — còn để sau: đăng nhập Google (cần OAuth client), xác thực tập trung `auth.konnyaku.app` (hiện đăng nhập theo từng host), 2FA cho nhân viên, kiểm tra quyền theo phạm vi cơ sở |
 | 2 | Crm (form đăng ký công khai → lead, chống trùng & spam, gán tư vấn viên, hồ sơ học viên), Academic (chương trình theo ngôn ngữ + khung năng lực, cấp độ & bài học, lớp theo cơ sở, ghi danh giữ chỗ nguyên tử, bảo lưu/nghỉ học) | ✅ — còn để sau: captcha (hiện honeypot + giới hạn tần suất), đặt lịch test/học thử, giao diện tạo chương trình/lớp trong `ops` (hiện qua API) |
 | 3 | Scheduling: sinh buổi học theo lịch tuần trong múi giờ của lớp (giữ đúng giờ địa phương qua DST), bỏ ngày lễ (Organization: ngày lễ theo trung tâm/cơ sở, phòng học), mỗi buổi gắn một bài học; chống trùng lịch giáo viên/phòng bằng exclusion constraint PostgreSQL (đúng cả khi đồng thời); đổi giờ, đổi giáo viên, hủy buổi; lịch dạy (`teach`) và lịch học (`learn`) | ✅ — còn để sau: availability giáo viên, thời gian di chuyển giữa cơ sở, giao diện xếp lịch trong `ops` |
+| 4 | Billing: gói học (buổi trả phí + buổi tặng), đơn hàng, thanh toán nhiều lần, sổ cái buổi học append-only (DB chặn sửa/xóa), số dư theo đơn; đơn đã trả cho lớp → Worker tự ghi danh (saga Billing ↔ Academic, lớp đầy → đơn chờ hoàn tiền); trừ buổi idempotent theo điểm danh, trả phí trước rồi buổi tặng, cho phép nợ buổi; doanh thu ghi nhận theo cơ sở của lớp; portal hiển thị số buổi còn lại | ✅ — còn để sau: cổng thanh toán online, hóa đơn điện tử, hoàn tiền thực tế, chuyển gói giữa lớp |
 
 ## Tài liệu phân tích
 

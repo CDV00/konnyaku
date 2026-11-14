@@ -20,6 +20,8 @@ public interface IAcademicDbContext
 
     void Publish(IIntegrationEvent integrationEvent, string? correlationId = null);
 
+    Task<bool> TryAcceptAsync(Guid eventId, string consumer, CancellationToken cancellationToken);
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
 
@@ -145,7 +147,7 @@ public sealed class CreateClassHandler(IAcademicDbContext db, IOrganizationApi o
     }
 }
 
-public sealed record EnrollCommand(Guid StudentId, EnrollmentType Type);
+public sealed record EnrollCommand(Guid StudentId, EnrollmentType Type, Guid? OrderId = null);
 
 public sealed class EnrollHandler(IAcademicDbContext db, ICrmApi crm, TimeProvider clock)
 {
@@ -184,9 +186,9 @@ public sealed class EnrollHandler(IAcademicDbContext db, ICrmApi crm, TimeProvid
             return Error.Conflict("academic.class_full", new Dictionary<string, object?> { ["capacity"] = cls.Capacity });
         }
 
-        var enrollment = new Enrollment(classId, command.StudentId, command.Type, cls.StartsOn, clock.GetUtcNow());
+        var enrollment = new Enrollment(classId, command.StudentId, command.Type, cls.StartsOn, clock.GetUtcNow(), command.OrderId);
         db.Enrollments.Add(enrollment);
-        db.Publish(new EnrollmentActivatedV1(enrollment.Id, classId, command.StudentId, command.Type.ToString()));
+        db.Publish(new EnrollmentActivatedV1(enrollment.Id, classId, command.StudentId, command.Type.ToString(), command.OrderId));
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new RosterEntryDto(enrollment.Id, enrollment.StudentId, enrollment.Status.ToString());

@@ -1,7 +1,8 @@
 """Dev only: creates tenant "demo" (host demo.localhost) with test data.
 
 - staff: admin@demo.example.com / Admin-Pass-123 (TenantAdmin), teacher@demo.example.com / Teacher-Pass-123 (Teacher)
-- learner: hv000001 with a temporary password (printed), linked to a student enrolled in class JP-N5-01
+- learner: hv000001 with a temporary password (printed), linked to a student who bought a 24+2 lesson package for class JP-N5-01
+  (the Worker must be running to turn the paid order into an enrollment)
 - an Online branch, a Japanese (JLPT) program with a 24-lesson N5 level, the class scheduled Tue/Thu 19:00
 
 Usage: python infra/scripts/seed_demo.py [learner.json]
@@ -85,7 +86,20 @@ sessions = must(call("POST", f"/api/scheduling/classes/{cls['id']}/schedule", {
 learner = must(call("POST", "/api/identity/learners", {
     "displayName": "Học viên Test", "role": "Student", "username": "hv000001"}, ADMIN), "learner")
 student = must(call("POST", "/api/crm/students", {"fullName": "Học viên Test", "userId": learner["userId"]}, ADMIN), "student")
-must(call("POST", f"/api/academic/classes/{cls['id']}/enrollments", {"studentId": student["id"], "type": "Regular"}, ADMIN), "enroll")
+
+# Real flow: package -> order for the class -> payment. The Worker turns the paid order into an enrollment.
+package = must(call("POST", "/api/billing/packages", {
+    "code": "N5-24", "name": {"vi": "Gói N5 24 buổi", "en": "N5 package, 24 lessons"}, "paidCredits": 24,
+    "bonusCredits": 2, "price": 4800000, "currency": "VND"}, ADMIN), "package")
+order = must(call("POST", "/api/billing/orders", {"studentId": student["id"], "packageId": package["id"], "classId": cls["id"]}, ADMIN), "order")
+must(call("POST", f"/api/billing/orders/{order['id']}/payments", {"amount": 4800000, "method": "bank_transfer"}, ADMIN), "payment")
+for _ in range(30):
+    roster = must(call("GET", f"/api/academic/classes/{cls['id']}/roster", None, ADMIN), "roster")
+    if roster:
+        break
+    time.sleep(1)
+else:
+    print("warning: no enrollment yet - is the Worker running? (dotnet run --project backend/src/Hosts/Konnyaku.Worker)")
 
 print(f"tenant demo ready: {len(sessions)} sessions scheduled for class JP-N5-01")
 print("learner hv000001 temporary password:", learner["temporaryPassword"])

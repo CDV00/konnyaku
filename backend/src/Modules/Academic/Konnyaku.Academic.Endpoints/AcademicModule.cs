@@ -26,6 +26,7 @@ public sealed class AcademicModule : IModule
         services.AddScoped<CreateClassHandler>();
         services.AddScoped<EnrollHandler>();
         services.AddScoped<EnrollmentLifecycleHandler>();
+        services.AddScoped<Konnyaku.Application.Messaging.IIntegrationEventHandler<Konnyaku.Billing.Contracts.OrderPaidV1>, OrderPaidConsumer>();
     }
 
     public void AddWorkerServices(IServiceCollection services) => services.AddOutboxProcessor<AcademicDbContext>();

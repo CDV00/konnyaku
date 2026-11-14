@@ -1,4 +1,5 @@
 using Konnyaku.Academic.Endpoints;
+using Konnyaku.Billing.Endpoints;
 using Konnyaku.Catalog.Endpoints;
 using Konnyaku.Crm.Endpoints;
 using Konnyaku.Identity.Endpoints;
@@ -21,5 +22,6 @@ public static class KonnyakuModules
         new CrmModule(),
         new AcademicModule(),
         new SchedulingModule(),
+        new BillingModule(),
     ];
 }

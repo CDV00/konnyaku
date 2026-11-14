@@ -1,6 +1,8 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Konnyaku.Composition;
+using Konnyaku.Infrastructure.Messaging;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 
@@ -24,6 +26,35 @@ public sealed class KonnyakuApiFactory(PostgresFixture db) : WebApplicationFacto
         builder.UseSetting("Platform:AdminKey", PlatformKey);
         builder.UseSetting("Platform:BaseDomain", BaseDomain);
         builder.UseSetting("RateLimits:PublicFormsPerMinute", "1000");
+        builder.ConfigureServices(services =>
+        {
+            foreach (var contextType in OutboxContexts)
+            {
+                services.AddSingleton(typeof(OutboxProcessor<>).MakeGenericType(contextType));
+            }
+        });
+    }
+
+    private static IEnumerable<Type> OutboxContexts => KonnyakuModules.All.SelectMany(m => m.DbContextTypes);
+
+    /// <summary>Runs every module outbox until no message is left, like the Worker host does continuously.</summary>
+    public async Task DrainOutboxAsync()
+    {
+        var processors = OutboxContexts.Select(t => Services.GetRequiredService(typeof(OutboxProcessor<>).MakeGenericType(t))).ToList();
+        for (var round = 0; round < 20; round++)
+        {
+            var processed = 0;
+            foreach (var processor in processors)
+            {
+                processed += await (Task<int>)processor.GetType().GetMethod(nameof(OutboxProcessor<Konnyaku.Organization.Infrastructure.OrganizationDbContext>.ProcessBatchAsync))!
+                    .Invoke(processor, [100, CancellationToken.None])!;
+            }
+
+            if (processed == 0)
+            {
+                return;
+            }
+        }
     }
 
     /// <summary>Client acting on a tenant's host, as the web apps' server side does.</summary>
