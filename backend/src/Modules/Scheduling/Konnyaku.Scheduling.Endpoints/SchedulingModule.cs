@@ -51,10 +51,10 @@ public sealed class SchedulingModule : IModule
                 Results.Ok(await queries.ListClassSessionsAsync(classId, ct)))
             .RequireAuthorization(Policies.Staff);
 
-        // Teacher app: own teaching schedule.
+        // Teacher app: own teaching schedule, including the past week (attendance is taken after the lesson).
         group.MapGet("/my/teaching", async (DateTimeOffset? from, DateTimeOffset? to, ClaimsPrincipal user, SchedulingQueries queries, CancellationToken ct) =>
             {
-                var start = from ?? DateTimeOffset.UtcNow.AddHours(-12);
+                var start = from ?? DateTimeOffset.UtcNow.AddDays(-7);
                 return Results.Ok(await queries.ListTeacherSessionsAsync(user.UserId()!.Value, start, to ?? start.Add(DefaultWindow), ct));
             })
             .RequireAuthorization(Policies.Staff);

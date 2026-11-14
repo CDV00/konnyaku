@@ -29,6 +29,7 @@ public sealed class BillingModule : IModule
         services.AddScoped<AdjustCreditsHandler>();
         services.AddScoped<IIntegrationEventHandler<EnrollmentActivatedV1>, EnrollmentActivatedConsumer>();
         services.AddScoped<IIntegrationEventHandler<EnrollmentRejectedV1>, EnrollmentRejectedConsumer>();
+        services.AddScoped<IIntegrationEventHandler<Konnyaku.Learning.Contracts.AttendanceConfirmedV1>, AttendanceConfirmedConsumer>();
     }
 
     public void AddWorkerServices(IServiceCollection services) => services.AddOutboxProcessor<BillingDbContext>();
