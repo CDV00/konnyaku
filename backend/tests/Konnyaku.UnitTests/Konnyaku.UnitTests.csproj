@@ -9,7 +9,7 @@
 
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Modules\Organization\Konnyaku.Organization.Endpoints\Konnyaku.Organization.Endpoints.csproj" />
+    <ProjectReference Include="..\..\src\Hosts\Konnyaku.Composition\Konnyaku.Composition.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

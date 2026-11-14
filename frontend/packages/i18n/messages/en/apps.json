@@ -11,5 +11,41 @@
   },
   "ops": {
     "title": "Center operations"
+  },
+  "login": {
+    "title": "Sign in",
+    "learnTab": "Students · Parents",
+    "staffTab": "Teachers · Staff",
+    "email": "Email",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "learnHint": "Use the account your center gave you.",
+    "staffHint": "Use your work email.",
+    "errors": {
+      "identity_invalid_credentials": "The sign-in details are incorrect.",
+      "identity_account_locked": "Too many failed attempts. Try again in 15 minutes.",
+      "identity_tenant_unknown": "This address does not belong to a known center.",
+      "unknown": "Something went wrong. Please try again."
+    }
+  },
+  "session": {
+    "greeting": "Hello, {name}",
+    "roles": "Roles: {roles}",
+    "logout": "Sign out"
+  },
+  "password": {
+    "title": "Change password",
+    "current": "Current password",
+    "next": "New password (at least 8 characters)",
+    "submit": "Save password",
+    "required": "Please replace your temporary password to continue.",
+    "errors": {
+      "identity_password_too_short": "The new password must have at least 8 characters.",
+      "identity_invalid_credentials": "The current password is incorrect.",
+      "identity_account_locked": "Account locked. Try again in 15 minutes.",
+      "unknown": "Something went wrong. Please try again."
+    }
   }
 }

@@ -1,3 +1,36 @@
+Konnyaku.Catalog.Contracts.FrameworkDto
+  IReadOnlyDictionary`2 Name
+  IReadOnlyList`1 Levels
+  IReadOnlyList`1 Skills
+  String Code
+  String LanguageCode
+Konnyaku.Catalog.Contracts.ICatalogApi
+  Task`1 GetFrameworkAsync(String, CancellationToken)
+  Task`1 ListFrameworksAsync(String, CancellationToken)
+  Task`1 ListLanguagesAsync(CancellationToken)
+Konnyaku.Catalog.Contracts.LanguageDto
+  IReadOnlyDictionary`2 Name
+  String Code
+Konnyaku.Catalog.Contracts.LevelDto
+  Int32 Ordinal
+  String CefrApprox
+  String Code
+Konnyaku.Catalog.Contracts.SkillDto
+  IReadOnlyDictionary`2 Name
+  String Code
+Konnyaku.Identity.Contracts.IIdentityApi
+  Task`1 GetMemberAsync(Guid, CancellationToken)
+Konnyaku.Identity.Contracts.LearnerAccountCreatedV1
+  Guid UserId
+  String Role
+  String Username
+Konnyaku.Identity.Contracts.MeDto
+  Guid TenantId
+  Guid UserId
+  IReadOnlyList`1 Roles
+  String DisplayName
+  String Email
+  String PreferredLocale
 Konnyaku.Organization.Contracts.BranchCreatedV1
   Boolean IsVirtual
   Guid BranchId
@@ -11,3 +44,19 @@ Konnyaku.Organization.Contracts.BranchDto
   String TimeZone
 Konnyaku.Organization.Contracts.IOrganizationApi
   Task`1 GetBranchAsync(Guid, CancellationToken)
+Konnyaku.Platform.Contracts.IPlatformApi
+  Task`1 GetTenantAsync(Guid, CancellationToken)
+  Task`1 ResolveHostAsync(String, CancellationToken)
+Konnyaku.Platform.Contracts.TenantCreatedV1
+  Guid TenantId
+  String DefaultLocale
+  String Slug
+  String TimeZone
+Konnyaku.Platform.Contracts.TenantInfo
+  Guid Id
+  IReadOnlyList`1 EnabledLocales
+  IReadOnlyList`1 Hosts
+  String DefaultLocale
+  String Name
+  String Slug
+  String TimeZone

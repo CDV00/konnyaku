@@ -7,16 +7,38 @@
   </Folder>
   <Folder Name="/src/Hosts/">
     <Project Path="src/Hosts/Konnyaku.Api/Konnyaku.Api.csproj" />
+    <Project Path="src/Hosts/Konnyaku.Composition/Konnyaku.Composition.csproj" />
     <Project Path="src/Hosts/Konnyaku.Migrator/Konnyaku.Migrator.csproj" />
     <Project Path="src/Hosts/Konnyaku.Worker/Konnyaku.Worker.csproj" />
   </Folder>
   <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Catalog/">
+    <Project Path="src/Modules/Catalog/Konnyaku.Catalog.Application/Konnyaku.Catalog.Application.csproj" />
+    <Project Path="src/Modules/Catalog/Konnyaku.Catalog.Contracts/Konnyaku.Catalog.Contracts.csproj" />
+    <Project Path="src/Modules/Catalog/Konnyaku.Catalog.Domain/Konnyaku.Catalog.Domain.csproj" />
+    <Project Path="src/Modules/Catalog/Konnyaku.Catalog.Endpoints/Konnyaku.Catalog.Endpoints.csproj" />
+    <Project Path="src/Modules/Catalog/Konnyaku.Catalog.Infrastructure/Konnyaku.Catalog.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Identity/">
+    <Project Path="src/Modules/Identity/Konnyaku.Identity.Application/Konnyaku.Identity.Application.csproj" />
+    <Project Path="src/Modules/Identity/Konnyaku.Identity.Contracts/Konnyaku.Identity.Contracts.csproj" />
+    <Project Path="src/Modules/Identity/Konnyaku.Identity.Domain/Konnyaku.Identity.Domain.csproj" />
+    <Project Path="src/Modules/Identity/Konnyaku.Identity.Endpoints/Konnyaku.Identity.Endpoints.csproj" />
+    <Project Path="src/Modules/Identity/Konnyaku.Identity.Infrastructure/Konnyaku.Identity.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Organization/">
     <Project Path="src/Modules/Organization/Konnyaku.Organization.Application/Konnyaku.Organization.Application.csproj" />
     <Project Path="src/Modules/Organization/Konnyaku.Organization.Contracts/Konnyaku.Organization.Contracts.csproj" />
     <Project Path="src/Modules/Organization/Konnyaku.Organization.Domain/Konnyaku.Organization.Domain.csproj" />
     <Project Path="src/Modules/Organization/Konnyaku.Organization.Endpoints/Konnyaku.Organization.Endpoints.csproj" />
     <Project Path="src/Modules/Organization/Konnyaku.Organization.Infrastructure/Konnyaku.Organization.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Platform/">
+    <Project Path="src/Modules/Platform/Konnyaku.Platform.Application/Konnyaku.Platform.Application.csproj" />
+    <Project Path="src/Modules/Platform/Konnyaku.Platform.Contracts/Konnyaku.Platform.Contracts.csproj" />
+    <Project Path="src/Modules/Platform/Konnyaku.Platform.Domain/Konnyaku.Platform.Domain.csproj" />
+    <Project Path="src/Modules/Platform/Konnyaku.Platform.Endpoints/Konnyaku.Platform.Endpoints.csproj" />
+    <Project Path="src/Modules/Platform/Konnyaku.Platform.Infrastructure/Konnyaku.Platform.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Konnyaku.ArchitectureTests/Konnyaku.ArchitectureTests.csproj" />

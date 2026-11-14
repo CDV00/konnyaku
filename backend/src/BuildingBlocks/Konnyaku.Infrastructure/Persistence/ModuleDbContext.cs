@@ -27,6 +27,10 @@ public abstract class ModuleDbContext(DbContextOptions options, ITenantContext t
     public void Publish(IIntegrationEvent integrationEvent, string? correlationId = null) =>
         OutboxMessages.Add(OutboxMessage.Create(integrationEvent, tenant.RequiredTenantId, correlationId));
 
+    /// <summary>For platform-level modules that act on behalf of a tenant without being in its context.</summary>
+    public void PublishFor(Guid tenantId, IIntegrationEvent integrationEvent, string? correlationId = null) =>
+        OutboxMessages.Add(OutboxMessage.Create(integrationEvent, tenantId, correlationId));
+
     /// <summary>Records that <paramref name="consumer"/> handled <paramref name="eventId"/>; false if it already did.</summary>
     public async Task<bool> TryAcceptAsync(Guid eventId, string consumer, CancellationToken cancellationToken)
     {

@@ -5,7 +5,7 @@ Stack: .NET 10 (ASP.NET Core) · Next.js App Router · PostgreSQL.
 
 ## Chạy local
 
-Yêu cầu: .NET SDK 10, Node 20+, Docker. pnpm dùng qua `npx pnpm@10.34.9` nếu corepack trên máy lỗi.
+Yêu cầu: .NET SDK 10, Node 20+, Docker, Python 3 (script seed). pnpm dùng qua `npx pnpm@10.34.9` nếu corepack trên máy lỗi.
 
 ```bash
 docker compose -f infra/docker/docker-compose.yml up -d
@@ -16,17 +16,30 @@ cd backend && dotnet run --project src/Hosts/Konnyaku.Migrator
 ```
 
 ```bash
-cd backend && dotnet run --project src/Hosts/Konnyaku.Api
+cd backend && dotnet run --project src/Hosts/Konnyaku.Api --launch-profile http
 ```
 
 ```bash
 cd frontend && npx pnpm@10.34.9 install && npx pnpm@10.34.9 dev
 ```
 
-- API: `http://localhost:5xxx` (xem log), tài liệu API tại `/scalar`. Ở Development, tenant lấy từ header `X-Tenant-Id` (tạm thời đến Phase 1).
-- Web: `http://localhost:3000/vi` (site), `/learn`, `/teach`, `/ops` (Multi-Zones qua site).
-- Test backend: `cd backend && dotnet test --solution Konnyaku.slnx` (test tích hợp tự bật PostgreSQL bằng Testcontainers).
-- Cấu trúc code: [docs/05-scaffolding.md](docs/05-scaffolding.md). Mỗi module mới cần thêm khối role/schema trong `infra/docker/postgres/init/01-modules.sql`.
+```bash
+python infra/scripts/seed_demo.py
+```
+
+- Mở `http://demo.localhost:3000/login` (trình duyệt tự trỏ `*.localhost` về máy mình; tenant xác định theo host).
+  - Tab **Giáo viên · Nhân viên**: `admin@demo.example.com` / `Admin-Pass-123` → `/ops`.
+  - Tab **Học viên · Phụ huynh**: `hv000001` / mật khẩu tạm script in ra → bắt buộc đổi mật khẩu → `/learn`.
+- API: `http://localhost:5080`, tài liệu API tại `/scalar`. Thao tác cấp nền tảng (tạo tenant) cần header `X-Platform-Key` (dev: `dev-platform-key`).
+- Test backend: `cd backend && dotnet test --solution Konnyaku.slnx` (test tích hợp tự bật PostgreSQL bằng Testcontainers, cần Docker).
+- Thêm module mới: thêm dòng role/schema trong `infra/docker/postgres/init/01-modules.sql` rồi tạo lại volume dev (`docker compose ... down -v`).
+
+## Trạng thái triển khai
+
+| Phase | Nội dung | Trạng thái |
+|---|---|---|
+| 0 | Khung dự án: module, multi-tenant RLS, outbox, 4 app web, i18n, CI | ✅ |
+| 1 | Platform (tenant, host), Catalog (ngôn ngữ, khung năng lực), Identity (2 realm, tài khoản trung tâm cấp, khóa sau 5 lần sai) | ✅ — còn để sau: đăng nhập Google (cần OAuth client), xác thực tập trung `auth.konnyaku.app` (hiện đăng nhập theo từng host), 2FA cho nhân viên, kiểm tra quyền theo phạm vi cơ sở |
 
 ## Tài liệu phân tích
 

@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
 using Konnyaku.Infrastructure.Modules;
-using Konnyaku.Organization.Endpoints;
-using Konnyaku.Organization.Infrastructure;
+using Konnyaku.Composition;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -43,7 +42,10 @@ public sealed class PostgresFixture : IAsyncLifetime
 
         using var host = BuildHost(OwnerConnectionString);
         using var scope = host.Services.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<OrganizationDbContext>().Database.MigrateAsync();
+        foreach (var contextType in KonnyakuModules.All.SelectMany(m => m.DbContextTypes))
+        {
+            await ((DbContext)scope.ServiceProvider.GetRequiredService(contextType)).Database.MigrateAsync();
+        }
     }
 
     public async ValueTask DisposeAsync() => await _container.DisposeAsync();
@@ -52,12 +54,10 @@ public sealed class PostgresFixture : IAsyncLifetime
     public IHost BuildHost(string? connectionString = null, Action<IServiceCollection>? configure = null)
     {
         var builder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings());
-        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            ["ConnectionStrings:organization"] = connectionString ?? ModuleConnectionString("organization"),
-        });
+        builder.Configuration.AddInMemoryCollection(KonnyakuModules.All.Select(m =>
+            new KeyValuePair<string, string?>($"ConnectionStrings:{m.Name}", connectionString ?? ModuleConnectionString(m.Name))));
         builder.Services.AddLogging();
-        builder.AddModules(HostRole.Api, new OrganizationModule());
+        builder.AddModules(HostRole.Api, KonnyakuModules.All);
         configure?.Invoke(builder.Services);
         return builder.Build();
     }
