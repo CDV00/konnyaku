@@ -50,6 +50,15 @@ export async function requireMe(realm: Realm): Promise<{ me: Me; token: string }
   redirect(`${origin}/login?realm=${realm}`);
 }
 
+/** First and last day (YYYY-MM-DD) of the current month in a time zone. */
+export function currentMonth(timeZone: string): { from: string; to: string } {
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const [year, month] = today.split("-").map(Number) as [number, number];
+  const last = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const mm = String(month).padStart(2, "0");
+  return { from: `${year}-${mm}-01`, to: `${year}-${mm}-${String(last).padStart(2, "0")}` };
+}
+
 export type TenantInfo = {
   id: string;
   slug: string;

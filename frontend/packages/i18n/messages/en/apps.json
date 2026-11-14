@@ -24,7 +24,8 @@
     "colGoal": "Goal",
     "colStatus": "Status",
     "colDue": "Call back by",
-    "back": "Back to home"
+    "back": "Back to home",
+    "payroll": "Payroll"
   },
   "login": {
     "title": "Sign in",
@@ -137,5 +138,42 @@
     "title": "Lesson replays",
     "empty": "No recordings yet.",
     "lesson": "Lesson {number} · {date}"
+  },
+  "timesheet": {
+    "title": "This month's teaching",
+    "summary": "{sessions, number} lessons · {minutes, number} minutes · {amount}",
+    "empty": "No teaching recorded this month.",
+    "row": "{date} · {minutes, number} min{late}",
+    "late": " ({minutes, number} min late)",
+    "status": {
+      "Draft": "Draft",
+      "Approved": "Approved",
+      "Locked": "Locked"
+    },
+    "noRate": "no rate set"
+  },
+  "payroll": {
+    "title": "Payroll periods",
+    "from": "From",
+    "to": "To",
+    "create": "Create period",
+    "lock": "Lock period",
+    "teacher": "Teacher",
+    "sessions": "Lessons",
+    "minutes": "Minutes",
+    "amount": "Amount",
+    "unpriced": "Missing rate",
+    "empty": "No payroll period yet.",
+    "period": "{from} → {to} · {status}",
+    "status": {
+      "Open": "Open",
+      "Locked": "Locked"
+    },
+    "errors": {
+      "hr_period_overlaps": "This period overlaps an existing one.",
+      "hr_period_range_invalid": "Invalid date range.",
+      "hr_period_locked": "This period is already locked.",
+      "unknown": "Could not complete the action. Please try again."
+    }
   }
 }

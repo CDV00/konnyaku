@@ -40,6 +40,13 @@
     <Project Path="src/Modules/Crm/Konnyaku.Crm.Endpoints/Konnyaku.Crm.Endpoints.csproj" />
     <Project Path="src/Modules/Crm/Konnyaku.Crm.Infrastructure/Konnyaku.Crm.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Hr/">
+    <Project Path="src/Modules/Hr/Konnyaku.Hr.Application/Konnyaku.Hr.Application.csproj" />
+    <Project Path="src/Modules/Hr/Konnyaku.Hr.Contracts/Konnyaku.Hr.Contracts.csproj" />
+    <Project Path="src/Modules/Hr/Konnyaku.Hr.Domain/Konnyaku.Hr.Domain.csproj" />
+    <Project Path="src/Modules/Hr/Konnyaku.Hr.Endpoints/Konnyaku.Hr.Endpoints.csproj" />
+    <Project Path="src/Modules/Hr/Konnyaku.Hr.Infrastructure/Konnyaku.Hr.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Identity/">
     <Project Path="src/Modules/Identity/Konnyaku.Identity.Application/Konnyaku.Identity.Application.csproj" />
     <Project Path="src/Modules/Identity/Konnyaku.Identity.Contracts/Konnyaku.Identity.Contracts.csproj" />
