@@ -23,6 +23,7 @@ public sealed class OrganizationModule : IModule
         services.AddOrganizationInfrastructure(configuration, Name);
         services.AddScoped<CreateBranchHandler>();
         services.AddScoped<ListBranchesHandler>();
+        services.AddScoped<CalendarHandlers>();
     }
 
     public void AddWorkerServices(IServiceCollection services) =>
@@ -36,6 +37,18 @@ public sealed class OrganizationModule : IModule
 
         group.MapPost("/branches", async (CreateBranchCommand command, CreateBranchHandler handler, CancellationToken ct) =>
             ApiResults.From(await handler.HandleAsync(command, ct), branch => Results.Created($"branches/{branch.Id}", branch)))
+            .RequireAuthorization(Policies.TenantAdmin);
+
+        group.MapGet("/holidays", async (DateOnly from, DateOnly to, CalendarHandlers handlers, CancellationToken ct) =>
+                Results.Ok(await handlers.ListHolidaysAsync(from, to, ct)))
+            .RequireAuthorization(Policies.Staff);
+
+        group.MapPost("/holidays", async (AddHolidayCommand command, CalendarHandlers handlers, CancellationToken ct) =>
+                ApiResults.From(await handlers.AddHolidayAsync(command, ct), h => Results.Created($"holidays/{h.Id}", h)))
+            .RequireAuthorization(Policies.TenantAdmin);
+
+        group.MapPost("/branches/{branchId:guid}/rooms", async (Guid branchId, AddRoomCommand command, CalendarHandlers handlers, CancellationToken ct) =>
+                ApiResults.From(await handlers.AddRoomAsync(branchId, command, ct), x => Results.Created($"rooms/{x.Id}", x)))
             .RequireAuthorization(Policies.TenantAdmin);
     }
 }

@@ -18,6 +18,9 @@ public interface IAcademicApi
 
     /// <summary>Enrollments holding a seat (active or frozen) — who may join the class's sessions.</summary>
     Task<IReadOnlyList<RosterEntryDto>> GetRosterAsync(Guid classId, CancellationToken cancellationToken);
+
+    /// <summary>Classes in which the students hold a seat (active or frozen enrollment).</summary>
+    Task<IReadOnlyList<Guid>> ListClassIdsOfStudentsAsync(IReadOnlyCollection<Guid> studentIds, CancellationToken cancellationToken);
 }
 
 public sealed record EnrollmentActivatedV1(Guid EnrollmentId, Guid ClassId, Guid StudentId, string Type) : IIntegrationEvent;

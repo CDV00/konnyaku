@@ -54,6 +54,13 @@
     <Project Path="src/Modules/Platform/Konnyaku.Platform.Endpoints/Konnyaku.Platform.Endpoints.csproj" />
     <Project Path="src/Modules/Platform/Konnyaku.Platform.Infrastructure/Konnyaku.Platform.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Scheduling/">
+    <Project Path="src/Modules/Scheduling/Konnyaku.Scheduling.Application/Konnyaku.Scheduling.Application.csproj" />
+    <Project Path="src/Modules/Scheduling/Konnyaku.Scheduling.Contracts/Konnyaku.Scheduling.Contracts.csproj" />
+    <Project Path="src/Modules/Scheduling/Konnyaku.Scheduling.Domain/Konnyaku.Scheduling.Domain.csproj" />
+    <Project Path="src/Modules/Scheduling/Konnyaku.Scheduling.Endpoints/Konnyaku.Scheduling.Endpoints.csproj" />
+    <Project Path="src/Modules/Scheduling/Konnyaku.Scheduling.Infrastructure/Konnyaku.Scheduling.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Konnyaku.ArchitectureTests/Konnyaku.ArchitectureTests.csproj" />
     <Project Path="tests/Konnyaku.IntegrationTests/Konnyaku.IntegrationTests.csproj" />

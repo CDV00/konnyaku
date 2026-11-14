@@ -6,5 +6,6 @@
     <ProjectReference Include="..\..\Modules\Identity\Konnyaku.Identity.Endpoints\Konnyaku.Identity.Endpoints.csproj" />
     <ProjectReference Include="..\..\Modules\Crm\Konnyaku.Crm.Endpoints\Konnyaku.Crm.Endpoints.csproj" />
     <ProjectReference Include="..\..\Modules\Academic\Konnyaku.Academic.Endpoints\Konnyaku.Academic.Endpoints.csproj" />
+    <ProjectReference Include="..\..\Modules\Scheduling\Konnyaku.Scheduling.Endpoints\Konnyaku.Scheduling.Endpoints.csproj" />
   </ItemGroup>
 </Project>

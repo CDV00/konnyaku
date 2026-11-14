@@ -85,5 +85,16 @@
       "crm_language_required": "Please choose a language.",
       "unknown": "The request could not be sent. Please try again."
     }
+  },
+  "schedule": {
+    "teaching": "Upcoming teaching",
+    "learning": "Upcoming lessons",
+    "empty": "No sessions yet.",
+    "lesson": "Lesson {number}",
+    "mode": {
+      "Online": "Online",
+      "Offline": "On site",
+      "Hybrid": "Hybrid"
+    }
   }
 }

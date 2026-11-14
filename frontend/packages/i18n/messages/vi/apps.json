@@ -85,5 +85,16 @@
       "crm_language_required": "Vui lòng chọn ngôn ngữ.",
       "unknown": "Không gửi được đăng ký, vui lòng thử lại."
     }
+  },
+  "schedule": {
+    "teaching": "Lịch dạy sắp tới",
+    "learning": "Lịch học sắp tới",
+    "empty": "Chưa có buổi học nào.",
+    "lesson": "Buổi {number}",
+    "mode": {
+      "Online": "Trực tuyến",
+      "Offline": "Tại cơ sở",
+      "Hybrid": "Kết hợp"
+    }
   }
 }

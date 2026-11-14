@@ -5,6 +5,7 @@ using Konnyaku.Identity.Endpoints;
 using Konnyaku.Infrastructure.Modules;
 using Konnyaku.Organization.Endpoints;
 using Konnyaku.Platform.Endpoints;
+using Konnyaku.Scheduling.Endpoints;
 
 namespace Konnyaku.Composition;
 
@@ -19,5 +20,6 @@ public static class KonnyakuModules
         new OrganizationModule(),
         new CrmModule(),
         new AcademicModule(),
+        new SchedulingModule(),
     ];
 }

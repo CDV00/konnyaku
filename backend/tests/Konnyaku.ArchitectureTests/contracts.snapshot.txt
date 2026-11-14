@@ -24,6 +24,7 @@ Konnyaku.Academic.Contracts.IAcademicApi
   Task`1 GetClassAsync(Guid, CancellationToken)
   Task`1 GetLessonsAsync(Guid, CancellationToken)
   Task`1 GetRosterAsync(Guid, CancellationToken)
+  Task`1 ListClassIdsOfStudentsAsync(IReadOnlyCollection`1, CancellationToken)
 Konnyaku.Academic.Contracts.LessonDto
   Guid Id
   IReadOnlyDictionary`2 Title
@@ -54,6 +55,7 @@ Konnyaku.Catalog.Contracts.SkillDto
   String Code
 Konnyaku.Crm.Contracts.ICrmApi
   Task`1 GetStudentAsync(Guid, CancellationToken)
+  Task`1 ListStudentsOfUserAsync(Guid, CancellationToken)
 Konnyaku.Crm.Contracts.LeadCreatedV1
   Guid LeadId
   Nullable`1 AssignedConsultantId
@@ -96,8 +98,20 @@ Konnyaku.Organization.Contracts.BranchDto
   IReadOnlyDictionary`2 Name
   String Code
   String TimeZone
+Konnyaku.Organization.Contracts.HolidayDto
+  DateOnly Date
+  Guid Id
+  IReadOnlyDictionary`2 Name
+  Nullable`1 BranchId
 Konnyaku.Organization.Contracts.IOrganizationApi
   Task`1 GetBranchAsync(Guid, CancellationToken)
+  Task`1 GetRoomAsync(Guid, CancellationToken)
+  Task`1 ListHolidaysAsync(Guid, DateOnly, DateOnly, CancellationToken)
+Konnyaku.Organization.Contracts.RoomDto
+  Guid BranchId
+  Guid Id
+  Int32 Capacity
+  String Code
 Konnyaku.Platform.Contracts.IPlatformApi
   Task`1 GetTenantAsync(Guid, CancellationToken)
   Task`1 ResolveHostAsync(String, CancellationToken)
@@ -114,3 +128,34 @@ Konnyaku.Platform.Contracts.TenantInfo
   String Name
   String Slug
   String TimeZone
+Konnyaku.Scheduling.Contracts.ISchedulingApi
+  Task`1 GetSessionAsync(Guid, CancellationToken)
+Konnyaku.Scheduling.Contracts.SessionCancelledV1
+  Guid SessionId
+  String Reason
+Konnyaku.Scheduling.Contracts.SessionDto
+  DateOnly LocalDate
+  DateTimeOffset EndsAt
+  DateTimeOffset StartsAt
+  Guid BranchId
+  Guid ClassId
+  Guid Id
+  Int32 SequenceNo
+  Nullable`1 LessonId
+  Nullable`1 RoomId
+  Nullable`1 TeacherId
+  String DeliveryMode
+  String Status
+  String TimeZone
+Konnyaku.Scheduling.Contracts.SessionRescheduledV1
+  DateTimeOffset EndsAt
+  DateTimeOffset StartsAt
+  Guid SessionId
+Konnyaku.Scheduling.Contracts.SessionScheduledV1
+  DateTimeOffset EndsAt
+  DateTimeOffset StartsAt
+  Guid BranchId
+  Guid ClassId
+  Guid SessionId
+  Nullable`1 TeacherId
+  String DeliveryMode

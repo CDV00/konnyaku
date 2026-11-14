@@ -188,6 +188,10 @@ public sealed class CrmQueries(ICrmDbContext db) : ICrmApi
         return student?.ToDto();
     }
 
+    public async Task<IReadOnlyList<StudentDto>> ListStudentsOfUserAsync(Guid userId, CancellationToken cancellationToken) =>
+        (await db.Students.AsNoTracking().Where(s => s.UserId == userId).ToListAsync(cancellationToken))
+        .Select(s => s.ToDto()).ToList();
+
     public async Task<IReadOnlyList<StudentDto>> ListStudentsAsync(CancellationToken cancellationToken) =>
         (await db.Students.AsNoTracking().OrderBy(s => s.FullName).Take(500).ToListAsync(cancellationToken))
         .Select(s => s.ToDto()).ToList();
