@@ -19,6 +19,8 @@ Luật ranh giới module (kiểm tra tự động bằng architecture test):
 2. Module giao tiếp với nhau qua **public contract** (interface trong `*.Contracts`) hoặc **integration event** qua Outbox — không reference vào `Domain`/`Infrastructure` của module khác.
 3. Đọc báo cáo xuyên module được phép qua **read model / view** riêng (module `Reporting`).
 
+Chi tiết các đường cắt, cách cưỡng chế và playbook tách service: [Chương 6](06-evolution-strategy.md).
+
 ## 2.2 Sơ đồ tổng thể
 
 ```mermaid
