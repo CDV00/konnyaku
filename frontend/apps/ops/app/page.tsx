@@ -11,7 +11,7 @@ export default async function HomePage() {
       <h1>{t("title")}</h1>
       <p>{session("greeting", { name: me.displayName })}</p>
       <p>{session("roles", { roles: me.roles.join(", ") })}</p>
-      <p><Link href="/leads">{t("leads")}</Link></p>
+      <p><Link href="/leads">{t("leads")}</Link> | <Link href="/payroll">{t("payroll")}</Link></p>
       <form method="post" action="/api/session/staff/logout">
         <button type="submit">{session("logout")}</button>
       </form>

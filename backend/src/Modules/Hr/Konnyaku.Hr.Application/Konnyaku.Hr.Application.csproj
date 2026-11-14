@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Konnyaku.Application\Konnyaku.Application.csproj" />
+    <ProjectReference Include="..\..\Scheduling\Konnyaku.Scheduling.Contracts\Konnyaku.Scheduling.Contracts.csproj" />
+    <ProjectReference Include="..\..\Workspace\Konnyaku.Workspace.Contracts\Konnyaku.Workspace.Contracts.csproj" />
+    <ProjectReference Include="..\..\Learning\Konnyaku.Learning.Contracts\Konnyaku.Learning.Contracts.csproj" />
+    <ProjectReference Include="..\..\Identity\Konnyaku.Identity.Contracts\Konnyaku.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\Konnyaku.Hr.Domain\Konnyaku.Hr.Domain.csproj" />
+    <ProjectReference Include="..\Konnyaku.Hr.Contracts\Konnyaku.Hr.Contracts.csproj" />
+  </ItemGroup>
+</Project>

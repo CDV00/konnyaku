@@ -135,6 +135,7 @@ public sealed class AttendanceHandlers(ILearningDbContext db, ISchedulingApi sch
                 attendance.BranchId, attendance.LocalDate, attendance.Status.ToString(), attendance.Billable));
         }
 
+        db.Publish(new SessionAttendanceConfirmedV1(sessionId, userId, attendances.Count));
         await db.SaveChangesAsync(ct);
         return Result<IReadOnlyList<AttendanceView>>.Success(await ViewsAsync(attendances, ct));
     }

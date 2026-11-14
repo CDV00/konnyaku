@@ -109,6 +109,10 @@ Konnyaku.Crm.Contracts.StudentRegisteredV1
   Guid StudentId
   Nullable`1 HomeBranchId
   Nullable`1 LeadId
+Konnyaku.Hr.Contracts.PayrollPeriodLockedV1
+  DateOnly From
+  DateOnly To
+  Guid PeriodId
 Konnyaku.Identity.Contracts.IIdentityApi
   Task`1 GetMemberAsync(Guid, CancellationToken)
   Task`1 ListUsersWithRoleAsync(String, CancellationToken)
@@ -136,6 +140,10 @@ Konnyaku.Learning.Contracts.RecordingAccessGrantedV1
   Guid RecordingId
   Guid SessionId
   IReadOnlyList`1 ViewerUserIds
+Konnyaku.Learning.Contracts.SessionAttendanceConfirmedV1
+  Guid ConfirmedBy
+  Guid SessionId
+  Int32 StudentCount
 Konnyaku.Organization.Contracts.BranchCreatedV1
   Boolean IsVirtual
   Guid BranchId

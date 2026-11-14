@@ -1,6 +1,6 @@
 """Dev only: creates tenant "demo" (host demo.localhost) with test data.
 
-- staff: admin@demo.example.com / Admin-Pass-123 (TenantAdmin), teacher@demo.example.com / Teacher-Pass-123 (Teacher)
+- staff: admin@demo.example.com / Admin-Pass-123 (TenantAdmin), teacher@demo.example.com / Teacher-Pass-123 (Teacher, 300,000 VND/hour)
 - learner: hv000001 with a temporary password (printed), linked to a student who bought a 24+2 lesson package for class JP-N5-01
   (the Worker must be running to turn the paid order into an enrollment)
 - an Online branch, a Japanese (JLPT) program with a 24-lesson N5 level, the class scheduled Tue/Thu 19:00
@@ -68,6 +68,9 @@ must(call("POST", "/api/workspace/hosts", {"email": "host01@demo.example.com"}, 
 teacher = must(call("POST", "/api/identity/staff", {
     "email": "teacher@demo.example.com", "displayName": "Giáo viên Demo", "initialPassword": "Teacher-Pass-123",
     "roles": ["Teacher"]}, ADMIN), "teacher")
+must(call("PUT", f"/api/hr/teachers/{teacher['userId']}/rate", {
+    "hourlyRate": 300000, "currency": "VND",
+    "effectiveFrom": (datetime.date.today() - datetime.timedelta(days=60)).isoformat()}, ADMIN), "teacher rate")
 branch = must(call("POST", "/api/organization/branches", {
     "code": "ONLINE", "name": {"vi": "Cơ sở Online", "en": "Online campus"}, "timeZone": "Asia/Ho_Chi_Minh",
     "isVirtual": True}, ADMIN), "branch")

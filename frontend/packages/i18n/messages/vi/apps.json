@@ -24,7 +24,8 @@
     "colGoal": "Mục tiêu",
     "colStatus": "Trạng thái",
     "colDue": "Hạn gọi lại",
-    "back": "Về trang chính"
+    "back": "Về trang chính",
+    "payroll": "Kỳ lương"
   },
   "login": {
     "title": "Đăng nhập",
@@ -137,5 +138,42 @@
     "title": "Xem lại buổi học",
     "empty": "Chưa có video nào.",
     "lesson": "Buổi {number} · {date}"
+  },
+  "timesheet": {
+    "title": "Công tháng này",
+    "summary": "{sessions, number} buổi · {minutes, number} phút · {amount}",
+    "empty": "Chưa có công trong tháng.",
+    "row": "{date} · {minutes, number} phút{late}",
+    "late": " (muộn {minutes, number} phút)",
+    "status": {
+      "Draft": "Nháp",
+      "Approved": "Đã duyệt",
+      "Locked": "Đã chốt"
+    },
+    "noRate": "chưa có đơn giá"
+  },
+  "payroll": {
+    "title": "Kỳ lương",
+    "from": "Từ ngày",
+    "to": "Đến ngày",
+    "create": "Tạo kỳ lương",
+    "lock": "Chốt kỳ",
+    "teacher": "Giáo viên",
+    "sessions": "Buổi",
+    "minutes": "Phút",
+    "amount": "Thành tiền",
+    "unpriced": "Thiếu đơn giá",
+    "empty": "Chưa có kỳ lương nào.",
+    "period": "{from} → {to} · {status}",
+    "status": {
+      "Open": "Đang mở",
+      "Locked": "Đã chốt"
+    },
+    "errors": {
+      "hr_period_overlaps": "Kỳ lương bị chồng với một kỳ đã có.",
+      "hr_period_range_invalid": "Khoảng ngày không hợp lệ.",
+      "hr_period_locked": "Kỳ này đã chốt.",
+      "unknown": "Không thực hiện được, vui lòng thử lại."
+    }
   }
 }

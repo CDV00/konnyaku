@@ -10,5 +10,6 @@
     <ProjectReference Include="..\..\Modules\Billing\Konnyaku.Billing.Endpoints\Konnyaku.Billing.Endpoints.csproj" />
     <ProjectReference Include="..\..\Modules\Workspace\Konnyaku.Workspace.Endpoints\Konnyaku.Workspace.Endpoints.csproj" />
     <ProjectReference Include="..\..\Modules\Learning\Konnyaku.Learning.Endpoints\Konnyaku.Learning.Endpoints.csproj" />
+    <ProjectReference Include="..\..\Modules\Hr\Konnyaku.Hr.Endpoints\Konnyaku.Hr.Endpoints.csproj" />
   </ItemGroup>
 </Project>
