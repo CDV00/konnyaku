@@ -1,0 +1,24 @@
+{
+  "name": "@konnyaku/ops",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3003",
+    "build": "next build",
+    "start": "next start --port 3003",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@konnyaku/i18n": "workspace:*",
+    "next": "16.4.6",
+    "next-intl": "^4.15.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
+  }
+}

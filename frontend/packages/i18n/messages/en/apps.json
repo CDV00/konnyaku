@@ -1,0 +1,15 @@
+{
+  "site": {
+    "title": "Center website",
+    "register": "Request a consultation"
+  },
+  "learn": {
+    "title": "Student & parent portal"
+  },
+  "teach": {
+    "title": "Teacher app"
+  },
+  "ops": {
+    "title": "Center operations"
+  }
+}

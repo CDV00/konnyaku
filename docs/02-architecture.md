@@ -165,7 +165,20 @@ sequenceDiagram
    - Quyền Drive cho người ngoài domain trên Shared Drive (cấu hình chia sẻ ra ngoài của tenant).
 10. **An ninh ủy quyền**: một credential của Konnyaku được ủy quyền domain-wide trên domain của mọi tenant → lộ key là lộ tất cả. Bắt buộc: **không dùng key file** (ký JWT bằng IAM `signJwt`/Workload Identity), scope tối thiểu, kiểm tra kỹ phương án phát hành dạng **Google Workspace Marketplace app** để admin tenant cài đặt. Ghi thành ADR (Chương 5).
 
-### 2.3.5 Thuật toán cấp phát Host (Allocator)
+### 2.3.5 Môi trường dev & test của Meeting Engine
+
+Dev và CI **không cần Google Workspace thật**. Module `Workspace` làm việc với Google qua một lớp provider (`IVirtualRoomProvider` + adapter cho Calendar/Meet/Drive/Events), nên mỗi môi trường chọn một provider bằng cấu hình `Modules:Workspace:Provider`:
+
+| Provider | Dùng ở | Hành vi |
+|---|---|---|
+| `Fake` *(mặc định dev & CI)* | Máy dev, test tích hợp, demo | Lưu "phòng" trong DB, trả `meetingUri` giả (trang mô phỏng của Konnyaku). Một endpoint chỉ bật ở Development (`POST /api/workspace/dev/sessions/{id}/simulate`) phát ra đủ chuỗi sự kiện: kết thúc buổi học, danh sách người tham gia (có/không Google, vào trễ, rời sớm), recording sẵn sàng — để chạy trọn luồng điểm danh → trừ buổi → xem lại video mà không cần ai mở Meet. |
+| `Google` + WireMock | Test hợp đồng (contract test) | Gọi đúng client Google thật nhưng tới WireMock: giả lập 429/403 rate limit, 5xx, event trùng/mất — kiểm tra retry, idempotency, đối soát. |
+| `Google` | Spike tuần đầu, môi trường staging | Workspace **test domain** riêng (không dùng domain production), Pub/Sub thật. Là nơi duy nhất kiểm chứng các điểm ở mục 9 phía trên. |
+| `LiveKit`/`Jitsi` *(tùy chọn)* | Demo có video thật tại máy dev | Chạy bằng docker; cũng là phương án dự phòng nếu mô hình host pool của Google không dùng được. |
+
+Hệ quả: Phase phát triển Meeting Engine làm provider `Fake` trước, toàn bộ luồng nghiệp vụ chạy được end-to-end; provider `Google` cắm vào sau khi có test domain.
+
+### 2.3.6 Thuật toán cấp phát Host (Allocator)
 - Bài toán = **tô màu đồ thị khoảng (interval graph coloring)**; greedy theo thời điểm bắt đầu là tối ưu về số màu (số host).
 - Online (cấp từng buổi): chọn host rảnh trong khoảng, ưu tiên **best-fit** (host có lease kết thúc gần nhất trước `start`) để gom lịch, chừa host trống cho lớp đột xuất.
 - Offline (đêm, cho 14 ngày tới): chạy lại tối ưu toàn cục, chỉ hoán đổi host cho buổi **chưa provision**.

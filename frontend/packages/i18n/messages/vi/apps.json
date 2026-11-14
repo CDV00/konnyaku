@@ -1,0 +1,15 @@
+{
+  "site": {
+    "title": "Trang của trung tâm",
+    "register": "Đăng ký tư vấn"
+  },
+  "learn": {
+    "title": "Cổng học viên & phụ huynh"
+  },
+  "teach": {
+    "title": "Ứng dụng giáo viên"
+  },
+  "ops": {
+    "title": "Vận hành trung tâm"
+  }
+}

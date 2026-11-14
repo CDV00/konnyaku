@@ -1,0 +1,26 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/Konnyaku.Application/Konnyaku.Application.csproj" />
+    <Project Path="src/BuildingBlocks/Konnyaku.Infrastructure/Konnyaku.Infrastructure.csproj" />
+    <Project Path="src/BuildingBlocks/Konnyaku.SharedKernel/Konnyaku.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/Hosts/">
+    <Project Path="src/Hosts/Konnyaku.Api/Konnyaku.Api.csproj" />
+    <Project Path="src/Hosts/Konnyaku.Migrator/Konnyaku.Migrator.csproj" />
+    <Project Path="src/Hosts/Konnyaku.Worker/Konnyaku.Worker.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Organization/">
+    <Project Path="src/Modules/Organization/Konnyaku.Organization.Application/Konnyaku.Organization.Application.csproj" />
+    <Project Path="src/Modules/Organization/Konnyaku.Organization.Contracts/Konnyaku.Organization.Contracts.csproj" />
+    <Project Path="src/Modules/Organization/Konnyaku.Organization.Domain/Konnyaku.Organization.Domain.csproj" />
+    <Project Path="src/Modules/Organization/Konnyaku.Organization.Endpoints/Konnyaku.Organization.Endpoints.csproj" />
+    <Project Path="src/Modules/Organization/Konnyaku.Organization.Infrastructure/Konnyaku.Organization.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Konnyaku.ArchitectureTests/Konnyaku.ArchitectureTests.csproj" />
+    <Project Path="tests/Konnyaku.IntegrationTests/Konnyaku.IntegrationTests.csproj" />
+    <Project Path="tests/Konnyaku.UnitTests/Konnyaku.UnitTests.csproj" />
+  </Folder>
+</Solution>
