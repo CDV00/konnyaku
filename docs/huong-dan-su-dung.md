@@ -4,14 +4,14 @@ Cập nhật: 15/11/2026
 
 ## Giới thiệu
 
-Konnyaku chia thành 4 khu vực. Mỗi người dùng chỉ vào khu vực đúng với vai trò của mình. Mỗi trung tâm có tên miền riêng; ví dụ dưới đây dùng trung tâm demo chạy trên máy (`demo.localhost:3000`).
+Konnyaku chia thành 4 khu vực. Mỗi người dùng chỉ vào khu vực đúng với vai trò của mình. Mỗi trung tâm có tên miền riêng; ví dụ dưới đây dùng trung tâm demo chạy trên máy (`demo.localhost:4000`).
 
 | Khu vực | Ai dùng | Địa chỉ (bản chạy local) | Dùng để |
 | --- | --- | --- | --- |
-| Trang công khai (`site`) | Khách, phụ huynh | `http://demo.localhost:3000/vi` | Xem khoá học, đăng ký tư vấn, đăng nhập |
-| Học viên (`learn`) | Học viên, phụ huynh | `http://demo.localhost:3000/learn` | Xem số buổi còn lại, lịch học, vào lớp, xem lại buổi học |
-| Giáo viên (`teach`) | Giáo viên | `http://demo.localhost:3000/teach` | Xem lịch dạy, vào lớp, điểm danh, xem công tháng này |
-| Vận hành (`ops`) | Quản trị trung tâm, giáo vụ, tư vấn viên, kế toán | `http://demo.localhost:3000/ops` | Quản lý lead, học viên, thu phí, lớp, chương trình, nhân sự, cơ sở, kỳ lương |
+| Trang công khai (`site`) | Khách, phụ huynh | `http://demo.localhost:4000/vi` | Xem khoá học, đăng ký tư vấn, đăng nhập |
+| Học viên (`learn`) | Học viên, phụ huynh | `http://demo.localhost:4000/learn` | Xem số buổi còn lại, lịch học, vào lớp, xem lại buổi học |
+| Giáo viên (`teach`) | Giáo viên | `http://demo.localhost:4000/teach` | Xem lịch dạy, vào lớp, điểm danh, xem công tháng này |
+| Vận hành (`ops`) | Quản trị trung tâm, giáo vụ, tư vấn viên, kế toán | `http://demo.localhost:4000/ops` | Quản lý lead, học viên, thu phí, lớp, chương trình, nhân sự, cơ sở, kỳ lương |
 
 Học viên và nhân viên đăng nhập bằng hai phiên tách biệt. Vì vậy cùng một trình duyệt có thể vừa đăng nhập học viên vừa đăng nhập nhân viên mà không ảnh hưởng nhau.
 

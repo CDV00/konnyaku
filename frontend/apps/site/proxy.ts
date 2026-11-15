@@ -5,9 +5,9 @@ import { routing } from "./i18n/routing";
 const intl = createMiddleware(routing);
 
 const zones: Record<string, string> = {
-  learn: process.env.LEARN_URL ?? "http://localhost:3001",
-  teach: process.env.TEACH_URL ?? "http://localhost:3002",
-  ops: process.env.OPS_URL ?? "http://localhost:3003",
+  learn: process.env.LEARN_URL ?? "http://localhost:4001",
+  teach: process.env.TEACH_URL ?? "http://localhost:4002",
+  ops: process.env.OPS_URL ?? "http://localhost:4003",
 };
 
 // Root zone of the tenant host. /learn, /teach and /ops are separate Next.js apps (Multi-Zones): the request is

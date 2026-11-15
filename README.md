@@ -5,6 +5,8 @@ Stack: .NET 10 (ASP.NET Core) · Next.js App Router · PostgreSQL.
 
 ## Chạy local
 
+Hướng dẫn đầy đủ cách bật, tắt, bảng cổng và xử lý lỗi: [docs/chay-local.md](docs/chay-local.md). Frontend chạy ở cổng 4000–4003 (`site` 4000 là cổng vào). Người cùng phát triển đọc thêm [CLAUDE.md](CLAUDE.md) và các skill trong `.claude/skills/`.
+
 Yêu cầu: .NET SDK 10, Node 20+, Docker, Python 3 (script seed). pnpm dùng qua `npx pnpm@10.34.9` nếu corepack trên máy lỗi.
 
 ```bash
@@ -31,13 +33,13 @@ cd frontend && npx pnpm@10.34.9 install && npx pnpm@10.34.9 dev
 python infra/scripts/seed_demo.py
 ```
 
-- Mở `http://demo.localhost:3000/login` (trình duyệt tự trỏ `*.localhost` về máy mình; tenant xác định theo host).
+- Mở `http://demo.localhost:4000/login` (trình duyệt tự trỏ `*.localhost` về máy mình; tenant xác định theo host).
   - Tab **Giáo viên · Nhân viên**: `admin@demo.example.com` / `Admin-Pass-123` → `/ops`; `teacher@demo.example.com` / `Teacher-Pass-123` → `/teach` (lịch dạy lớp JP-N5-01).
   - Tab **Học viên · Phụ huynh**: `hv000001` / mật khẩu tạm script in ra → bắt buộc đổi mật khẩu → `/learn`.
 - Kỳ lương: `admin` mở `/ops/payroll` → tạo kỳ → chốt; giáo viên xem "Công tháng này" ở `/teach`.
 - Giáo viên mở **Điểm danh** của buổi trong `/teach` → xác nhận → số buổi của học viên giảm ở `/learn`.
 - Học viên bấm **Vào lớp** → `/learn/join/{buổi}` → phòng học mô phỏng (provider Fake). Mô phỏng kết thúc buổi học: `POST /api/workspace/dev/sessions/{id}/simulate` (vai trò TenantAdmin/Coordinator).
-- Trang công khai: `http://demo.localhost:3000/vi` (danh mục khóa học), form đăng ký `http://demo.localhost:3000/vi/dang-ky`; lead hiện ở `/ops/leads`.
+- Trang công khai: `http://demo.localhost:4000/vi` (danh mục khóa học), form đăng ký `http://demo.localhost:4000/vi/dang-ky`; lead hiện ở `/ops/leads`.
 - API: `http://localhost:5080`, tài liệu API tại `/scalar`. Thao tác cấp nền tảng (tạo tenant) cần header `X-Platform-Key` (dev: `dev-platform-key`).
 - Test backend: `cd backend && dotnet test --solution Konnyaku.slnx` (test tích hợp tự bật PostgreSQL bằng Testcontainers, cần Docker).
 - Thêm module mới: thêm dòng role/schema trong `infra/docker/postgres/init/01-modules.sql` rồi tạo lại volume dev (`docker compose ... down -v`).
