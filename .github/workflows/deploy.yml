@@ -1,0 +1,91 @@
+name: Deploy
+
+# Builds the four images, pushes them to GHCR and rolls the server forward.
+# After CI succeeds on main it deploys to staging; production is deployed by hand
+# (Actions → Deploy → Run workflow → production), optionally gated by required reviewers on that environment.
+# Repository settings needed (Settings → Environments → production / staging):
+#   secrets  DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY (private key), DEPLOY_KNOWN_HOSTS (ssh-keyscan -H <host>)
+#   vars     DEPLOY_PATH (default /opt/konnyaku)
+# The server logs in to GHCR once with a read:packages token (docs/trien-khai.md).
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [staging, production]
+        default: staging
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment || 'staging' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io/${{ github.repository_owner }}
+
+jobs:
+  images:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - id: tag
+        run: echo "tag=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push backend images
+        run: |
+          for target in api worker migrator; do
+            docker buildx build backend --target "$target" --push \
+              --cache-from "type=gha,scope=backend" --cache-to "type=gha,mode=max,scope=backend" \
+              -t "$REGISTRY/konnyaku-$target:${{ steps.tag.outputs.tag }}" -t "$REGISTRY/konnyaku-$target:latest"
+          done
+      - name: Build and push web image
+        run: |
+          docker buildx build frontend --push \
+            --cache-from "type=gha,scope=web" --cache-to "type=gha,mode=max,scope=web" \
+            -t "$REGISTRY/konnyaku-web:${{ steps.tag.outputs.tag }}" -t "$REGISTRY/konnyaku-web:latest"
+
+  deploy:
+    needs: images
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          sparse-checkout: infra/deploy
+      - name: Roll forward on the server
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          TARGET: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/konnyaku' }}
+          TAG: ${{ needs.images.outputs.tag }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # Stack definition comes from the repo; .env (secrets, domain) and backups/ stay on the server.
+          cd infra/deploy
+          tar -czf - compose.yaml Caddyfile postgres scripts .env.example \
+            | ssh -i ~/.ssh/id_deploy "$TARGET" "mkdir -p '$DEPLOY_PATH' && tar -xzf - -C '$DEPLOY_PATH'"
+          ssh -i ~/.ssh/id_deploy "$TARGET" "cd '$DEPLOY_PATH' && sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=$TAG/' .env \
+            && docker compose pull --quiet && docker compose up -d --remove-orphans && docker image prune -f"

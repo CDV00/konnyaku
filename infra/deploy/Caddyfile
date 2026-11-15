@@ -1,0 +1,54 @@
+# Every tenant lives on its own host ({slug}.BASE_DOMAIN, later custom domains), so certificates are issued
+# on demand (HTTP-01) the first time a host is visited, and only after the web app confirms the host is a tenant.
+# DNS: A/AAAA records for BASE_DOMAIN and *.BASE_DOMAIN point to this server (Cloudflare: "DNS only").
+# Caddy is the edge: it ignores X-Forwarded-For sent by clients and sets it to the real client IP.
+
+{
+	email {$ACME_EMAIL}
+	on_demand_tls {
+		ask http://web:3000/api/internal/tls-ask
+	}
+}
+
+(web) {
+	encode zstd gzip
+
+	# Internal endpoints (certificate checks) are not public.
+	@internal path /api/internal/*
+	respond @internal 404
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	request_body {
+		max_size 10MB
+	}
+
+	# One upstream per web replica (Docker DNS returns all of them). A replica that refuses connections
+	# (restarting during a deploy) is skipped for 30 s and the request is retried on another one.
+	reverse_proxy {
+		dynamic a {
+			name web
+			port 3000
+			refresh 5s
+		}
+		lb_policy round_robin
+		lb_try_duration 10s
+		fail_duration 30s
+	}
+}
+
+https:// {
+	tls {
+		on_demand
+	}
+	import web
+}
+
+http:// {
+	redir https://{host}{uri} permanent
+}
