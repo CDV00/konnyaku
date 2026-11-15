@@ -12,7 +12,6 @@ Hệ thống local gồm 3 phần: hạ tầng trong Docker, backend .NET (API +
 | PostgreSQL | 5433 | User `konnyaku` / `konnyaku_dev`, DB `konnyaku` |
 | Redis | 6380 | |
 | Mailpit (xem email gửi đi) | 8025 (web), 1025 (SMTP) | `http://localhost:8025` |
-| MinIO | 9000 (API), 9001 (console) | `konnyaku` / `konnyaku_dev` |
 
 Frontend dùng 4000 để tránh trùng các dự án khác hay chạy ở 3000/3001. Cần đổi thì sửa đồng thời: `frontend/apps/site/package.json` (script `dev`, `start`), `.claude/launch.json` và tài liệu này.
 
