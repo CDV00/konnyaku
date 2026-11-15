@@ -1,6 +1,11 @@
 import { getLocale, getTranslations } from "next-intl/server";
+import { Globe, Layers } from "lucide-react";
 import { requireMe } from "@konnyaku/session";
-import { ActionForm } from "../action-form";
+import { Input } from "@konnyaku/ui/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@konnyaku/ui/components/ui/table";
+import { EmptyState, PageHeader, Panel, StatusBadge } from "@konnyaku/ui/kk/blocks";
+import { CheckRow, Field, NativeSelect } from "@konnyaku/ui/kk/field";
+import { ActionForm, FormSheet } from "../action-form";
 import { getJson, localized, type Localized, type Program } from "../lib";
 
 type Language = { code: string; name: Localized };
@@ -16,94 +21,111 @@ export default async function ProgramsPage() {
     getJson<Framework[]>("/api/catalog/frameworks", token, []),
   ]);
   const frameworkOf = new Map(frameworks.map((f) => [f.code, f]));
+  const languageName = new Map(languages.map((l) => [l.code, localized(l.name, locale)]));
 
   return (
-    <main>
-      <h1>{t("programs.title")}</h1>
-      {programs.length === 0 && <p className="muted">{t("programs.empty")}</p>}
+    <div className="space-y-6">
+      <PageHeader
+        title={t("programs.title")}
+        description={t("programs.description")}
+        actions={
+          <FormSheet triggerLabel={t("programs.create")} title={t("programs.create")}>
+            <ActionForm api="academic/programs" submitLabel={t("save")}>
+              <Field label={t("fields.code")}><Input name="code" required /></Field>
+              <Field label={t("fields.nameVi")}><Input name="name.vi" required /></Field>
+              <Field label={t("fields.nameEn")}><Input name="name.en" /></Field>
+              <Field label={t("programs.language")}>
+                <NativeSelect name="languageCode" required>
+                  {languages.map((l) => <option key={l.code} value={l.code}>{localized(l.name, locale)}</option>)}
+                </NativeSelect>
+              </Field>
+              <Field label={t("programs.framework")}>
+                <NativeSelect name="frameworkCode" required>
+                  {frameworks.map((f) => (
+                    <option key={f.code} value={f.code}>
+                      {t("programs.frameworkOption", { name: localized(f.name, locale), language: f.languageCode ?? t("programs.shared") })}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </Field>
+              <CheckRow name="isPublic" defaultChecked>{t("programs.public")}</CheckRow>
+            </ActionForm>
+          </FormSheet>
+        }
+      />
+      {programs.length === 0 && <EmptyState icon={Layers} title={t("programs.empty")} />}
       {programs.map((program) => {
         const framework = frameworkOf.get(program.frameworkCode);
         return (
-          <section key={program.id}>
-            <h2>
-              {t("programs.heading", {
-                code: program.code,
-                name: localized(program.name, locale),
-                language: program.languageCode,
-                framework: program.frameworkCode,
-              })}
-              {program.isPublic && <small className="muted">{t("programs.publicTag")}</small>}
-            </h2>
+          <Panel
+            key={program.id}
+            title={
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="rounded bg-muted px-2 py-0.5 font-mono text-xs">{program.code}</span>
+                {localized(program.name, locale)}
+                {program.isPublic && (
+                  <StatusBadge tone="success">
+                    <Globe className="size-3" />
+                    {t("programs.publicTag")}
+                  </StatusBadge>
+                )}
+              </span>
+            }
+            description={t("programs.meta", {
+              language: languageName.get(program.languageCode) ?? program.languageCode,
+              framework: framework ? localized(framework.name, locale) : program.frameworkCode,
+            })}
+            action={
+              <FormSheet triggerLabel={t("programs.addLevel")} title={t("programs.addLevel")} description={localized(program.name, locale)} variant="outline" size="sm">
+                <ActionForm api={`academic/programs/${program.id}/levels`} submitLabel={t("save")}>
+                  <Field label={t("fields.code")}><Input name="code" required /></Field>
+                  <Field label={t("fields.nameVi")}><Input name="name.vi" required /></Field>
+                  <Field label={t("fields.nameEn")}><Input name="name.en" /></Field>
+                  <Field label={t("programs.target")}>
+                    <NativeSelect name="targetLevelCode" required>
+                      {framework?.levels.map((level) => <option key={level.code} value={level.code}>{level.code}</option>)}
+                    </NativeSelect>
+                  </Field>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label={t("programs.sessionCount")}><Input name="sessionCount" type="number" min={1} required /></Field>
+                    <Field label={t("programs.sessionMinutes")}>
+                      <Input name="sessionMinutes" type="number" min={15} step={15} defaultValue={90} required />
+                    </Field>
+                  </div>
+                </ActionForm>
+              </FormSheet>
+            }
+            bodyClassName="p-0"
+          >
             {program.levels.length === 0 ? (
-              <p className="muted">{t("programs.noLevels")}</p>
+              <p className="px-5 py-4 text-sm text-muted-foreground">{t("programs.noLevels")}</p>
             ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>{t("fields.code")}</th>
-                    <th>{t("fields.name")}</th>
-                    <th>{t("programs.target")}</th>
-                    <th className="num">{t("programs.sessionCount")}</th>
-                    <th className="num">{t("programs.sessionMinutes")}</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-5">{t("fields.code")}</TableHead>
+                    <TableHead>{t("fields.name")}</TableHead>
+                    <TableHead>{t("programs.target")}</TableHead>
+                    <TableHead className="text-right">{t("programs.sessionCount")}</TableHead>
+                    <TableHead className="pr-5 text-right">{t("programs.sessionMinutes")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {program.levels.map((level) => (
-                    <tr key={level.id}>
-                      <td>{level.code}</td>
-                      <td>{localized(level.name, locale)}</td>
-                      <td>{level.targetLevelCode}</td>
-                      <td className="num">{level.sessionCount}</td>
-                      <td className="num">{level.sessionMinutes}</td>
-                    </tr>
+                    <TableRow key={level.id}>
+                      <TableCell className="pl-5 font-mono text-xs">{level.code}</TableCell>
+                      <TableCell className="font-medium">{localized(level.name, locale)}</TableCell>
+                      <TableCell><StatusBadge tone="primary">{level.targetLevelCode}</StatusBadge></TableCell>
+                      <TableCell className="text-right tabular-nums">{level.sessionCount}</TableCell>
+                      <TableCell className="pr-5 text-right tabular-nums">{level.sessionMinutes}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             )}
-            <details className="panel">
-              <summary>{t("programs.addLevel")}</summary>
-              <ActionForm api={`academic/programs/${program.id}/levels`} submitLabel={t("save")}>
-                <label>{t("fields.code")}<input name="code" required className="compact" /></label>
-                <label>{t("fields.nameVi")}<input name="name.vi" required /></label>
-                <label>{t("fields.nameEn")}<input name="name.en" /></label>
-                <label>
-                  {t("programs.target")}
-                  <select name="targetLevelCode" required>
-                    {framework?.levels.map((level) => <option key={level.code} value={level.code}>{level.code}</option>)}
-                  </select>
-                </label>
-                <label>{t("programs.sessionCount")}<input name="sessionCount" type="number" min={1} required className="compact" /></label>
-                <label>{t("programs.sessionMinutes")}<input name="sessionMinutes" type="number" min={15} step={15} defaultValue={90} required className="compact" /></label>
-              </ActionForm>
-            </details>
-          </section>
+          </Panel>
         );
       })}
-      <details className="panel">
-        <summary>{t("programs.create")}</summary>
-        <ActionForm api="academic/programs" submitLabel={t("save")}>
-          <label>{t("fields.code")}<input name="code" required className="compact" /></label>
-          <label>{t("fields.nameVi")}<input name="name.vi" required /></label>
-          <label>{t("fields.nameEn")}<input name="name.en" /></label>
-          <label>
-            {t("programs.language")}
-            <select name="languageCode" required>
-              {languages.map((l) => <option key={l.code} value={l.code}>{localized(l.name, locale)}</option>)}
-            </select>
-          </label>
-          <label>
-            {t("programs.framework")}
-            <select name="frameworkCode" required>
-              {frameworks.map((f) => (
-                <option key={f.code} value={f.code}>
-                  {t("programs.frameworkOption", { name: localized(f.name, locale), language: f.languageCode ?? t("programs.shared") })}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="inline"><input name="isPublic" type="checkbox" defaultChecked />{t("programs.public")}</label>
-        </ActionForm>
-      </details>
-    </main>
+    </div>
   );
 }

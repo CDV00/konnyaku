@@ -2,6 +2,11 @@
 
 import { useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
+import { AnimatePresence, motion } from "motion/react";
+import { CheckCircle2, Users } from "lucide-react";
+import { Button } from "@konnyaku/ui/components/animate-ui/components/buttons/button";
+import { ToggleGroup, ToggleGroupItem } from "@konnyaku/ui/components/animate-ui/components/radix/toggle-group";
+import { EmptyState, FormMessage } from "@konnyaku/ui/kk/blocks";
 
 export type AttendanceRow = {
   enrollmentId: string;
@@ -13,20 +18,32 @@ export type AttendanceRow = {
 
 const statuses = ["Present", "Late", "LeftEarly", "Absent", "ExcusedAbsent"] as const;
 
+const dot: Record<string, string> = {
+  Present: "bg-success",
+  Late: "bg-warning",
+  LeftEarly: "bg-warning",
+  Absent: "bg-destructive",
+  ExcusedAbsent: "bg-muted-foreground",
+};
+
 export function AttendanceForm({ sessionId, rows }: { sessionId: string; rows: AttendanceRow[] }) {
   const t = useTranslations("attendance");
   const [confirmed, setConfirmed] = useState(rows.some((r) => r.confirmed));
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [picked, setPicked] = useState<Record<string, string>>(() => Object.fromEntries(rows.map((r) => [r.enrollmentId, r.status])));
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const overrides = rows.map((r) => ({ enrollmentId: r.enrollmentId, status: String(form.get(r.enrollmentId) ?? r.status) }));
+    setPending(true);
+    setError(null);
+    const overrides = rows.map((r) => ({ enrollmentId: r.enrollmentId, status: picked[r.enrollmentId] ?? r.status }));
     const response = await fetch(`/teach/api/attendance/${sessionId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ overrides }),
     });
+    setPending(false);
     if (response.ok) {
       setConfirmed(true);
       return;
@@ -36,40 +53,63 @@ export function AttendanceForm({ sessionId, rows }: { sessionId: string; rows: A
     setError(t.has(key) ? t(key) : t("errors.unknown"));
   }
 
-  if (confirmed) return <p role="status">{t("confirmed")}</p>;
+  const present = Object.values(picked).filter((s) => s === "Present" || s === "Late" || s === "LeftEarly").length;
 
   return (
-    <form method="post" onSubmit={onSubmit}>
-      {rows.length === 0 ? (
-        <p>{t("empty")}</p>
+    <AnimatePresence mode="wait" initial={false}>
+      {confirmed ? (
+        <motion.div
+          key="done"
+          role="status"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-success"
+        >
+          <CheckCircle2 className="size-5 shrink-0" />
+          <span className="text-sm font-medium">{t("confirmed")}</span>
+        </motion.div>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>{t("student")}</th>
-              <th>{t("minutes")}</th>
-              <th>{t("status")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.enrollmentId}>
-                <td>{r.studentName}</td>
-                <td>{r.presentMinutes}</td>
-                <td>
-                  <select name={r.enrollmentId} defaultValue={r.status}>
-                    {statuses.map((s) => (
-                      <option key={s} value={s}>{t(`statuses.${s}`)}</option>
-                    ))}
-                  </select>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <motion.form key="form" method="post" onSubmit={onSubmit} exit={{ opacity: 0 }} className="space-y-4">
+          {rows.length === 0 ? (
+            <EmptyState icon={Users} title={t("empty")} />
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">{t("summary", { present, total: rows.length })}</p>
+              <ul className="divide-y rounded-xl border bg-card">
+                {rows.map((r) => (
+                  <li key={r.enrollmentId} className="flex flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className={`size-2.5 shrink-0 rounded-full ${dot[picked[r.enrollmentId] ?? r.status] ?? "bg-muted"}`} aria-hidden="true" />
+                      <div>
+                        <p className="font-medium">{r.studentName}</p>
+                        <p className="text-xs text-muted-foreground">{t("presentMinutes", { minutes: r.presentMinutes })}</p>
+                      </div>
+                    </div>
+                    <ToggleGroup
+                      type="single"
+                      variant="outline"
+                      size="sm"
+                      value={picked[r.enrollmentId] ?? r.status}
+                      onValueChange={(value: string) => value && setPicked((p) => ({ ...p, [r.enrollmentId]: value }))}
+                      className="flex-wrap"
+                      aria-label={t("status")}
+                    >
+                      {statuses.map((s) => (
+                        <ToggleGroupItem key={s} value={s} className="px-2.5 text-xs">{t(`statuses.${s}`)}</ToggleGroupItem>
+                      ))}
+                    </ToggleGroup>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {error && <FormMessage>{error}</FormMessage>}
+          <Button type="submit" size="lg" disabled={pending}>
+            <CheckCircle2 />
+            {t("confirm")}
+          </Button>
+        </motion.form>
       )}
-      {error && <p role="alert">{error}</p>}
-      <button type="submit">{t("confirm")}</button>
-    </form>
+    </AnimatePresence>
   );
 }

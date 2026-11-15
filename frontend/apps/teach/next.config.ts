@@ -6,7 +6,7 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 // Served under the tenant host at /teach through Next.js Multi-Zones (the site app rewrites to it).
 const config: NextConfig = {
   basePath: "/teach",
-  transpilePackages: ["@konnyaku/i18n", "@konnyaku/session"],
+  transpilePackages: ["@konnyaku/i18n", "@konnyaku/session", "@konnyaku/ui"],
 };
 
 export default withNextIntl(config);

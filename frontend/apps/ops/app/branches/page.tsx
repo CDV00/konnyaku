@@ -1,6 +1,10 @@
 import { getLocale, getTranslations } from "next-intl/server";
+import { Building2, Globe2, MapPin } from "lucide-react";
 import { requireMe } from "@konnyaku/session";
-import { ActionForm } from "../action-form";
+import { Input } from "@konnyaku/ui/components/ui/input";
+import { EmptyState, PageHeader } from "@konnyaku/ui/kk/blocks";
+import { CheckRow, Field } from "@konnyaku/ui/kk/field";
+import { ActionForm, FormSheet } from "../action-form";
 import { getJson, localized, type Branch } from "../lib";
 
 export default async function BranchesPage() {
@@ -9,42 +13,46 @@ export default async function BranchesPage() {
   const locale = await getLocale();
   const branches = await getJson<Branch[]>("/api/organization/branches", token, []);
   return (
-    <main>
-      <h1>{t("branches.title")}</h1>
+    <div className="space-y-6">
+      <PageHeader
+        title={t("branches.title")}
+        description={t("branches.description")}
+        actions={
+          <FormSheet triggerLabel={t("branches.create")} title={t("branches.create")}>
+            <ActionForm api="organization/branches" submitLabel={t("save")}>
+              <Field label={t("fields.code")}><Input name="code" required /></Field>
+              <Field label={t("fields.nameVi")}><Input name="name.vi" required /></Field>
+              <Field label={t("fields.nameEn")}><Input name="name.en" /></Field>
+              <Field label={t("fields.timeZone")} hint={t("branches.timeZoneHint")}>
+                <Input name="timeZone" required defaultValue="Asia/Ho_Chi_Minh" />
+              </Field>
+              <CheckRow name="isVirtual">{t("branches.virtual")}</CheckRow>
+            </ActionForm>
+          </FormSheet>
+        }
+      />
       {branches.length === 0 ? (
-        <p className="muted">{t("branches.empty")}</p>
+        <EmptyState icon={Building2} title={t("branches.empty")} />
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>{t("fields.code")}</th>
-              <th>{t("fields.name")}</th>
-              <th>{t("fields.timeZone")}</th>
-              <th>{t("branches.virtual")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {branches.map((b) => (
-              <tr key={b.id}>
-                <td>{b.code}</td>
-                <td>{localized(b.name, locale)}</td>
-                <td>{b.timeZone}</td>
-                <td>{b.isVirtual ? t("yes") : t("no")}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {branches.map((b) => (
+            <article key={b.id} className="rounded-xl border bg-card p-5 shadow-xs">
+              <div className="flex items-start justify-between gap-3">
+                <span className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary">
+                  {b.isVirtual ? <Globe2 className="size-5" /> : <MapPin className="size-5" />}
+                </span>
+                <span className="rounded bg-muted px-2 py-0.5 font-mono text-xs">{b.code}</span>
+              </div>
+              <h2 className="mt-4 font-semibold">{localized(b.name, locale)}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {b.isVirtual ? t("branches.virtual") : t("branches.physical")}
+                {" · "}
+                {b.timeZone}
+              </p>
+            </article>
+          ))}
+        </div>
       )}
-      <details className="panel">
-        <summary>{t("branches.create")}</summary>
-        <ActionForm api="organization/branches" submitLabel={t("save")}>
-          <label>{t("fields.code")}<input name="code" required className="compact" /></label>
-          <label>{t("fields.nameVi")}<input name="name.vi" required /></label>
-          <label>{t("fields.nameEn")}<input name="name.en" /></label>
-          <label>{t("fields.timeZone")}<input name="timeZone" required defaultValue="Asia/Ho_Chi_Minh" /></label>
-          <label className="inline"><input name="isVirtual" type="checkbox" />{t("branches.virtual")}</label>
-        </ActionForm>
-      </details>
-    </main>
+    </div>
   );
 }

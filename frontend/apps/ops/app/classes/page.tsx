@@ -1,8 +1,13 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
+import { CalendarDays, ChevronRight } from "lucide-react";
 import { requireMe } from "@konnyaku/session";
-import { ActionForm } from "../action-form";
-import { getJson, localized, type Branch, type ClassRow, type Program } from "../lib";
+import { Input } from "@konnyaku/ui/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@konnyaku/ui/components/ui/table";
+import { EmptyState, PageHeader, Panel, StatusBadge } from "@konnyaku/ui/kk/blocks";
+import { Field, NativeSelect } from "@konnyaku/ui/kk/field";
+import { ActionForm, FormSheet } from "../action-form";
+import { getJson, localized, statusTone, type Branch, type ClassRow, type Program } from "../lib";
 
 const deliveryModes = ["Online", "Offline", "Hybrid"] as const;
 
@@ -20,64 +25,85 @@ export default async function ClassesPage() {
   const branchName = new Map(branches.map((b) => [b.id, localized(b.name, locale)]));
 
   return (
-    <main>
-      <h1>{t("classes.title")}</h1>
-      {classes.length === 0 ? (
-        <p className="muted">{t("classes.empty")}</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>{t("fields.code")}</th>
-              <th>{t("classes.level")}</th>
-              <th>{t("classes.branch")}</th>
-              <th>{t("classes.mode")}</th>
-              <th className="num">{t("classes.seats")}</th>
-              <th>{t("classes.startsOn")}</th>
-              <th>{t("fields.status")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {classes.map((c) => (
-              <tr key={c.id}>
-                <td><Link href={`/classes/${c.id}`}>{c.code}</Link></td>
-                <td>{levelName.get(c.courseLevelId)}</td>
-                <td>{branchName.get(c.branchId)}</td>
-                <td>{t(`modes.${c.deliveryMode}`)}</td>
-                <td className="num">{t("classes.seatsValue", { enrolled: c.enrolledCount, capacity: c.capacity })}</td>
-                <td>{c.startsOn}</td>
-                <td>{t(`classStatus.${c.status}`)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      <details className="panel">
-        <summary>{t("classes.create")}</summary>
-        <ActionForm api="academic/classes" submitLabel={t("save")}>
-          <label>{t("fields.code")}<input name="code" required className="compact" /></label>
-          <label>
-            {t("classes.level")}
-            <select name="courseLevelId" required>
-              {levels.map((l) => <option key={l.id} value={l.id}>{levelName.get(l.id)}</option>)}
-            </select>
-          </label>
-          <label>
-            {t("classes.branch")}
-            <select name="branchId" required>
-              {branches.map((b) => <option key={b.id} value={b.id}>{localized(b.name, locale)}</option>)}
-            </select>
-          </label>
-          <label>
-            {t("classes.mode")}
-            <select name="deliveryMode" required>
-              {deliveryModes.map((m) => <option key={m} value={m}>{t(`modes.${m}`)}</option>)}
-            </select>
-          </label>
-          <label>{t("classes.capacity")}<input name="capacity" type="number" min={1} defaultValue={12} required className="compact" /></label>
-          <label>{t("classes.startsOn")}<input name="startsOn" type="date" required /></label>
-        </ActionForm>
-      </details>
-    </main>
+    <div className="space-y-6">
+      <PageHeader
+        title={t("classes.title")}
+        description={t("classes.description")}
+        actions={
+          <FormSheet triggerLabel={t("classes.create")} title={t("classes.create")} description={t("classes.createHint")}>
+            <ActionForm api="academic/classes" submitLabel={t("save")}>
+              <Field label={t("fields.code")}><Input name="code" required /></Field>
+              <Field label={t("classes.level")}>
+                <NativeSelect name="courseLevelId" required>
+                  {levels.map((l) => <option key={l.id} value={l.id}>{levelName.get(l.id)}</option>)}
+                </NativeSelect>
+              </Field>
+              <Field label={t("classes.branch")}>
+                <NativeSelect name="branchId" required>
+                  {branches.map((b) => <option key={b.id} value={b.id}>{localized(b.name, locale)}</option>)}
+                </NativeSelect>
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label={t("classes.mode")}>
+                  <NativeSelect name="deliveryMode" required>
+                    {deliveryModes.map((m) => <option key={m} value={m}>{t(`modes.${m}`)}</option>)}
+                  </NativeSelect>
+                </Field>
+                <Field label={t("classes.capacity")}><Input name="capacity" type="number" min={1} defaultValue={12} required /></Field>
+              </div>
+              <Field label={t("classes.startsOn")}><Input name="startsOn" type="date" required /></Field>
+            </ActionForm>
+          </FormSheet>
+        }
+      />
+      <Panel bodyClassName="p-0">
+        {classes.length === 0 ? (
+          <div className="p-5"><EmptyState icon={CalendarDays} title={t("classes.empty")} /></div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-5">{t("fields.code")}</TableHead>
+                <TableHead>{t("classes.level")}</TableHead>
+                <TableHead className="hidden xl:table-cell">{t("classes.branch")}</TableHead>
+                <TableHead className="w-44">{t("classes.seats")}</TableHead>
+                <TableHead className="hidden lg:table-cell">{t("classes.startsOn")}</TableHead>
+                <TableHead>{t("fields.status")}</TableHead>
+                <TableHead className="pr-5" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {classes.map((c) => (
+                <TableRow key={c.id} className="group">
+                  <TableCell className="pl-5">
+                    <Link href={`/classes/${c.id}`} className="font-medium hover:text-primary">{c.code}</Link>
+                    <p className="text-xs text-muted-foreground">{t(`modes.${c.deliveryMode}`)}</p>
+                  </TableCell>
+                  <TableCell>{levelName.get(c.courseLevelId)}</TableCell>
+                  <TableCell className="hidden xl:table-cell">{branchName.get(c.branchId)}</TableCell>
+                  <TableCell>
+                    <div className="space-y-1">
+                      <span className="text-xs tabular-nums text-muted-foreground">
+                        {t("classes.seatsValue", { enrolled: c.enrolledCount, capacity: c.capacity })}
+                      </span>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-primary/15" role="presentation">
+                        <div className="h-full rounded-full bg-primary" style={{ width: `${c.capacity ? Math.min(100, (c.enrolledCount / c.capacity) * 100) : 0}%` }} />
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden tabular-nums lg:table-cell">{c.startsOn}</TableCell>
+                  <TableCell><StatusBadge tone={statusTone[c.status]}>{t(`classStatus.${c.status}`)}</StatusBadge></TableCell>
+                  <TableCell className="pr-5 text-right">
+                    <Link href={`/classes/${c.id}`} aria-label={t("classes.open", { code: c.code })} className="inline-grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground">
+                      <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </Panel>
+    </div>
   );
 }

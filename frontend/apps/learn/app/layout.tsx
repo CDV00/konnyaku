@@ -1,14 +1,13 @@
 import type { ReactNode } from "react";
-import { NextIntlClientProvider } from "next-intl";
-import { getLocale } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { ZoneLayout } from "@konnyaku/session/zone-layout";
+import "./globals.css";
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const locale = await getLocale();
+  const t = await getTranslations("learn");
   return (
-    <html lang={locale}>
-      <body>
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
-      </body>
-    </html>
+    <ZoneLayout realm="learn" zone={t("zone")} links={[{ href: "/", label: t("nav.home"), icon: "home" }]}>
+      {children}
+    </ZoneLayout>
   );
 }

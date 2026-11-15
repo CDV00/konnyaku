@@ -4,7 +4,7 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const config: NextConfig = {
-  transpilePackages: ["@konnyaku/i18n", "@konnyaku/session"],
+  transpilePackages: ["@konnyaku/i18n", "@konnyaku/session", "@konnyaku/ui"],
 };
 
 export default withNextIntl(config);

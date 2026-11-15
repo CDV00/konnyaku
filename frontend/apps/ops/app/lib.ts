@@ -44,3 +44,37 @@ export type Student = { id: string; fullName: string; birthYear: number | null; 
 export type Package = { id: string; code: string; name: Localized; paidCredits: number; bonusCredits: number; price: number; currency: string };
 
 export const staffRoles = ["TenantAdmin", "BranchManager", "Coordinator", "Consultant", "Accountant", "Teacher"] as const;
+
+export type Tone = "primary" | "success" | "warning" | "highlight" | "destructive" | "muted";
+
+/** Badge colors per status value, shared by every ops table. */
+export const statusTone: Record<string, Tone> = {
+  // leads
+  New: "highlight",
+  Contacted: "primary",
+  Converted: "success",
+  Lost: "muted",
+  // classes
+  Planned: "muted",
+  Open: "primary",
+  Running: "success",
+  Completed: "muted",
+  Cancelled: "destructive",
+  // sessions
+  Scheduled: "muted",
+  Provisioned: "primary",
+  InProgress: "success",
+  // enrollments
+  Pending: "warning",
+  Active: "success",
+  Frozen: "warning",
+  Rejected: "destructive",
+  Transferred: "muted",
+  Dropped: "destructive",
+  // orders
+  PendingPayment: "warning",
+  Paid: "success",
+  RefundRequired: "destructive",
+  // payroll
+  Locked: "success",
+};

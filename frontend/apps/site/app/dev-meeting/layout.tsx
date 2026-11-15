@@ -1,14 +1,7 @@
 import type { ReactNode } from "react";
-import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
+import { SiteChrome } from "../site-chrome";
 
 export default async function DevMeetingLayout({ children }: { children: ReactNode }) {
-  const locale = await getLocale();
-  return (
-    <html lang={locale}>
-      <body>
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
-      </body>
-    </html>
-  );
+  return <SiteChrome locale={await getLocale()}>{children}</SiteChrome>;
 }

@@ -33,7 +33,7 @@
         "frontend/apps/site",
         "dev"
       ],
-      "port": 3000
+      "port": 4000
     },
     {
       "name": "learn",
@@ -45,7 +45,7 @@
         "frontend/apps/learn",
         "dev"
       ],
-      "port": 3001
+      "port": 4001
     },
     {
       "name": "teach",
@@ -57,7 +57,7 @@
         "frontend/apps/teach",
         "dev"
       ],
-      "port": 3002
+      "port": 4002
     },
     {
       "name": "ops",
@@ -69,7 +69,7 @@
         "frontend/apps/ops",
         "dev"
       ],
-      "port": 3003
+      "port": 4003
     }
   ]
 }

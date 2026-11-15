@@ -38,8 +38,8 @@ export async function sessionToken(realm: Realm): Promise<string | undefined> {
   return (await cookies()).get(sessionCookie[realm])?.value;
 }
 
-/** Current member for a realm, or a redirect to the login page of the tenant host. */
-export async function requireMe(realm: Realm): Promise<{ me: Me; token: string }> {
+/** Current member for a realm, or a redirect to the login page of the tenant host (once per request: layout + page). */
+export const requireMe = cache(async (realm: Realm): Promise<{ me: Me; token: string }> => {
   const token = await sessionToken(realm);
   if (token) {
     const response = await apiFetch("/api/identity/me", { token });
@@ -48,7 +48,7 @@ export async function requireMe(realm: Realm): Promise<{ me: Me; token: string }
   // Zones run under a basePath, so a relative redirect would land on /<zone>/login: use the site origin.
   const origin = (await headers()).get("x-site-origin") ?? "";
   redirect(`${origin}/login?realm=${realm}`);
-}
+});
 
 /** First and last day (YYYY-MM-DD) of the current month in a time zone. */
 export function currentMonth(timeZone: string): { from: string; to: string } {

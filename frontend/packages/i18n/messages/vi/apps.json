@@ -5,13 +5,48 @@
     "programs": "Chương trình đang tuyển sinh",
     "noPrograms": "Trung tâm chưa công bố chương trình nào.",
     "levels": "{count, plural, other {# cấp độ}}",
-    "login": "Đăng nhập"
+    "login": "Đăng nhập",
+    "heroEyebrow": "{count, plural, =0 {Đang mở tuyển sinh} other {# ngôn ngữ đang tuyển sinh}}",
+    "heroTitle": "Học ngoại ngữ <hl>tự tin hơn</hl> mỗi buổi tại {center}",
+    "heroBody": "Lớp nhỏ, giáo viên theo sát, học trực tuyến hoặc tại cơ sở — buổi nào lỡ cũng có video xem lại.",
+    "explore": "Xem khoá học",
+    "programsBody": "Chọn ngôn ngữ và mục tiêu, tư vấn viên sẽ giúp bạn xếp đúng trình độ.",
+    "consultThis": "Tư vấn khoá này",
+    "howTitle": "Bắt đầu chỉ với 3 bước",
+    "step": "Bước {number}",
+    "steps": {
+      "consult": {
+        "title": "Để lại thông tin",
+        "body": "Điền form một phút — tư vấn viên gọi lại trong giờ làm việc."
+      },
+      "placement": {
+        "title": "Kiểm tra & xếp lớp",
+        "body": "Đánh giá trình độ, chọn lịch học phù hợp với bạn."
+      },
+      "learn": {
+        "title": "Vào học & xem lại",
+        "body": "Vào lớp bằng một chạm, theo dõi số buổi còn lại và xem lại video."
+      }
+    },
+    "ctaTitle": "Sẵn sàng học buổi đầu tiên?",
+    "ctaBody": "Đăng ký tư vấn miễn phí, không ràng buộc."
   },
   "learn": {
-    "title": "Cổng học viên & phụ huynh"
+    "title": "Cổng học viên & phụ huynh",
+    "zone": "Học viên",
+    "nav": {
+      "home": "Tổng quan"
+    },
+    "subtitle": "Lịch học, số buổi còn lại và video xem lại của bạn.",
+    "nextLesson": "Buổi học kế tiếp"
   },
   "teach": {
-    "title": "Ứng dụng giáo viên"
+    "title": "Ứng dụng giáo viên",
+    "zone": "Giáo viên",
+    "nav": {
+      "home": "Tổng quan"
+    },
+    "subtitle": "Lịch dạy, điểm danh và công của tháng này."
   },
   "ops": {
     "title": "Vận hành trung tâm",
@@ -34,7 +69,8 @@
       "programs": "Chương trình",
       "staff": "Nhân sự",
       "branches": "Cơ sở",
-      "payroll": "Kỳ lương"
+      "payroll": "Kỳ lương",
+      "home": "Tổng quan"
     },
     "hint": {
       "leads": "Gọi lại, chuyển trạng thái khách đăng ký",
@@ -45,7 +81,21 @@
       "staff": "Tài khoản nhân sự, vai trò, đơn giá giáo viên",
       "branches": "Cơ sở và múi giờ",
       "payroll": "Tạo và chốt kỳ lương"
-    }
+    },
+    "zone": "Vận hành",
+    "subtitle": "Tình hình trung tâm hôm nay và lối tắt tới các việc thường làm.",
+    "stats": {
+      "leads": "Lead đang mở",
+      "leadsHint": "cần gọi lại",
+      "students": "Học viên",
+      "studentsHint": "hồ sơ đang quản lý",
+      "classes": "Lớp đang chạy",
+      "classesHint": "đang tuyển hoặc đang học",
+      "unpaid": "Đơn chờ thanh toán",
+      "unpaidHint": "cần ghi nhận tiền"
+    },
+    "leadsDescription": "Khách đăng ký từ trang công khai — gọi lại và cập nhật trạng thái.",
+    "colActions": "Xử lý"
   },
   "login": {
     "title": "Đăng nhập",
@@ -63,7 +113,9 @@
       "identity_account_locked": "Tài khoản tạm khóa do nhập sai nhiều lần. Thử lại sau 15 phút.",
       "identity_tenant_unknown": "Không xác định được trung tâm của địa chỉ này.",
       "unknown": "Có lỗi xảy ra, vui lòng thử lại."
-    }
+    },
+    "subtitle": "{center}",
+    "forgot": "Quên mật khẩu? Liên hệ trung tâm để được cấp lại."
   },
   "session": {
     "greeting": "Xin chào, {name}",
@@ -105,7 +157,15 @@
       "crm_birth_year_invalid": "Năm sinh không hợp lệ.",
       "crm_language_required": "Vui lòng chọn ngôn ngữ.",
       "unknown": "Không gửi được đăng ký, vui lòng thử lại."
-    }
+    },
+    "perks": {
+      "callback": "Tư vấn viên gọi lại trong 15 phút (giờ làm việc)",
+      "trial": "Kiểm tra trình độ và học thử miễn phí",
+      "flexible": "Chọn học trực tuyến hoặc tại cơ sở gần bạn"
+    },
+    "languagePlaceholder": "Chọn ngôn ngữ",
+    "sending": "Đang gửi…",
+    "sentTitle": "Cảm ơn bạn!"
   },
   "schedule": {
     "teaching": "Lịch dạy sắp tới",
@@ -118,14 +178,18 @@
       "Hybrid": "Kết hợp"
     },
     "join": "Vào lớp",
-    "attendance": "Điểm danh"
+    "attendance": "Điểm danh",
+    "cancelled": "Đã huỷ",
+    "more": "+{count, number} buổi nữa trong khoá"
   },
   "credits": {
     "title": "Số buổi học",
     "remaining": "Còn {total, number} buổi",
     "bonus": "(trong đó {bonus, number} buổi tặng)",
     "owed": "Đang nợ {owed, number} buổi — vui lòng gia hạn gói học.",
-    "none": "Chưa có gói học nào."
+    "none": "Chưa có gói học nào.",
+    "unit": "buổi học",
+    "bonusLabel": "Buổi tặng"
   },
   "meeting": {
     "title": "Phòng học mô phỏng",
@@ -152,12 +216,16 @@
     "errors": {
       "learning_already_confirmed": "Buổi này đã được xác nhận.",
       "unknown": "Không xác nhận được, vui lòng thử lại."
-    }
+    },
+    "summary": "{present, number}/{total, number} học viên có mặt",
+    "presentMinutes": "{minutes, number} phút trong phòng",
+    "intro": "Hệ thống đã đề xuất trạng thái từ dữ liệu phòng học — chỉnh lại nếu cần rồi xác nhận."
   },
   "replay": {
     "title": "Xem lại buổi học",
     "empty": "Chưa có video nào.",
-    "lesson": "Buổi {number} · {date}"
+    "lesson": "Buổi {number} · {date}",
+    "emptyHint": "Video của các buổi đã học sẽ xuất hiện ở đây."
   },
   "timesheet": {
     "title": "Công tháng này",
@@ -170,7 +238,16 @@
       "Approved": "Đã duyệt",
       "Locked": "Đã chốt"
     },
-    "noRate": "chưa có đơn giá"
+    "noRate": "chưa có đơn giá",
+    "sessionsLabel": "Buổi đã dạy",
+    "thisMonth": "trong tháng này",
+    "minutesLabel": "Phút được tính công",
+    "minutesUnit": "phút",
+    "amountLabel": "Thu nhập tạm tính",
+    "estimate": "chốt khi kỳ lương được khoá",
+    "lateLabel": "Buổi vào muộn",
+    "lateHint": "tính theo dữ liệu phòng học",
+    "minutesValue": "{minutes, number} phút"
   },
   "payroll": {
     "title": "Kỳ lương",
@@ -194,7 +271,11 @@
       "hr_period_range_invalid": "Khoảng ngày không hợp lệ.",
       "hr_period_locked": "Kỳ này đã chốt.",
       "unknown": "Không thực hiện được, vui lòng thử lại."
-    }
+    },
+    "description": "Mở kỳ để duyệt công nháp đến hết kỳ; chốt kỳ để đóng băng số tiền.",
+    "createHint": "Mọi công nháp đến ngày kết thúc (kể cả công đến muộn của kỳ trước) sẽ vào kỳ này.",
+    "range": "{from} → {to}",
+    "total": "Tổng {amount}"
   },
   "admin": {
     "save": "Lưu",
@@ -259,7 +340,10 @@
       "title": "Cơ sở",
       "empty": "Chưa có cơ sở nào.",
       "virtual": "Cơ sở online",
-      "create": "Thêm cơ sở"
+      "create": "Thêm cơ sở",
+      "description": "Mỗi cơ sở có múi giờ riêng — lịch học hiển thị theo giờ của cơ sở.",
+      "timeZoneHint": "Theo chuẩn IANA, ví dụ Asia/Ho_Chi_Minh",
+      "physical": "Cơ sở tại chỗ"
     },
     "staff": {
       "title": "Nhân sự",
@@ -272,13 +356,16 @@
       "hourlyRate": "Đơn giá mỗi giờ",
       "effectiveFrom": "Áp dụng từ",
       "create": "Thêm nhân sự",
-      "initialPassword": "Mật khẩu ban đầu (để trống nếu đã có tài khoản)"
+      "initialPassword": "Mật khẩu ban đầu (để trống nếu đã có tài khoản)",
+      "description": "Tài khoản, vai trò và đơn giá dạy của giáo viên.",
+      "setRateFor": "Đơn giá của {name}",
+      "rateHint": "Áp dụng cho các buổi từ ngày hiệu lực; công đã duyệt hoặc đã chốt không đổi."
     },
     "programs": {
       "title": "Chương trình học",
       "empty": "Chưa có chương trình nào.",
       "heading": "{code} · {name} ({language}, {framework})",
-      "publicTag": " · hiện trên trang công khai",
+      "publicTag": "Công khai",
       "noLevels": "Chưa có cấp độ.",
       "target": "Trình độ đầu ra",
       "sessionCount": "Số buổi",
@@ -289,7 +376,9 @@
       "framework": "Khung trình độ",
       "frameworkOption": "{name} ({language})",
       "shared": "dùng chung",
-      "public": "Hiện trên trang công khai"
+      "public": "Hiện trên trang công khai",
+      "description": "Chương trình theo ngôn ngữ và khung trình độ, chia thành các cấp độ.",
+      "meta": "{language} · {framework}"
     },
     "classes": {
       "title": "Lớp học",
@@ -316,7 +405,12 @@
       "when": "Thời gian",
       "roster": "Danh sách lớp",
       "emptyRoster": "Chưa có học viên.",
-      "enrollHint": "Học viên vào lớp khi đơn hàng gắn với lớp được thanh toán (trang Thu phí)."
+      "enrollHint": "Học viên vào lớp khi đơn hàng gắn với lớp được thanh toán (trang Thu phí).",
+      "description": "Mở lớp, xếp lịch và theo dõi sĩ số.",
+      "createHint": "Sau khi mở lớp, vào chi tiết lớp để xếp lịch.",
+      "open": "Xem lớp {code}",
+      "sessionsTotal": "Tổng số buổi",
+      "sessionsDone": "Buổi đã học"
     },
     "students": {
       "title": "Học viên",
@@ -327,7 +421,9 @@
       "guardian": "Phụ huynh",
       "noBranch": "Không chọn",
       "account": "Có tài khoản",
-      "createAccount": "Cấp tài khoản đăng nhập"
+      "createAccount": "Cấp tài khoản đăng nhập",
+      "description": "Hồ sơ học viên; cấp tài khoản để học viên vào cổng học.",
+      "createHint": "Nếu cấp tài khoản, tên đăng nhập và mật khẩu tạm chỉ hiện một lần — hãy gửi cho học viên."
     },
     "billing": {
       "title": "Thu phí",
@@ -357,7 +453,12 @@
       "createPackage": "Thêm gói học",
       "paidCredits": "Số buổi",
       "bonusCredits": "Buổi tặng",
-      "packageOption": "{name} — {price}"
+      "packageOption": "{name} — {price}",
+      "description": "Gói học, đơn hàng và ghi nhận thanh toán.",
+      "orderHint": "Đơn gắn với lớp: khi thanh toán đủ, học viên tự vào lớp.",
+      "forClass": "Lớp {code}",
+      "paymentFor": "{name} · còn {amount}",
+      "bonusTag": "+{bonus} tặng"
     },
     "errors": {
       "unknown": "Không thực hiện được ({code}).",
@@ -388,7 +489,10 @@
       "billing_package_amounts_invalid": "Số buổi hoặc giá không hợp lệ.",
       "billing_order_not_payable": "Đơn hàng không còn chờ thanh toán.",
       "billing_payment_amount_invalid": "Số tiền không hợp lệ.",
-      "billing_class_unknown": "Lớp không tồn tại."
+      "billing_class_unknown": "Lớp không tồn tại.",
+      "hr_period_overlaps": "Kỳ lương bị chồng với một kỳ đã có.",
+      "hr_period_range_invalid": "Khoảng ngày không hợp lệ.",
+      "hr_period_locked": "Kỳ này đã chốt."
     },
     "classStatus": {
       "Planned": "Dự kiến",
@@ -412,6 +516,31 @@
       "InProgress": "Đang học",
       "Completed": "Đã học",
       "Cancelled": "Đã huỷ"
-    }
+    },
+    "copy": "Sao chép"
+  },
+  "shell": {
+    "theme": "Đổi giao diện sáng/tối",
+    "menu": "Mở menu",
+    "logout": "Đăng xuất",
+    "close": "Đóng"
+  },
+  "siteNav": {
+    "brand": "Trung tâm",
+    "programs": "Khoá học",
+    "register": "Đăng ký tư vấn",
+    "login": "Đăng nhập",
+    "switchLocale": "Chuyển ngôn ngữ",
+    "footer": "© {name} · Vận hành bởi Konnyaku"
+  },
+  "roles": {
+    "TenantAdmin": "Quản trị",
+    "BranchManager": "Quản lý cơ sở",
+    "Coordinator": "Điều phối",
+    "Consultant": "Tư vấn",
+    "Accountant": "Kế toán",
+    "Teacher": "Giáo viên",
+    "Student": "Học viên",
+    "Parent": "Phụ huynh"
   }
 }
