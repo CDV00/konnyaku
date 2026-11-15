@@ -1,15 +1,12 @@
 # Chạy và tắt Konnyaku trên máy dev
 
-Hệ thống local gồm 3 phần: hạ tầng trong Docker, backend .NET (API + Worker), frontend Next.js (4 app). Bật theo thứ tự dưới đây, tắt theo thứ tự ngược lại.
+Hệ thống local gồm 3 phần: hạ tầng trong Docker, backend .NET (API + Worker), frontend Next.js (một app). Bật theo thứ tự dưới đây, tắt theo thứ tự ngược lại.
 
 ## Cổng sử dụng
 
 | Thành phần | Cổng | Ghi chú |
 | --- | --- | --- |
-| `site` (trang công khai, đăng nhập, cổng vào chung) | **4000** | Mở trình duyệt ở đây; `site` chuyển `/learn`, `/teach`, `/ops` sang các app bên dưới |
-| `learn` | 4001 | Không cần mở trực tiếp |
-| `teach` | 4002 | Không cần mở trực tiếp |
-| `ops` | 4003 | Không cần mở trực tiếp |
+| Web (`frontend/apps/site`: trang công khai, đăng nhập, `/learn`, `/teach`, `/ops`) | **4000** | Mở trình duyệt ở đây |
 | API | 5080 | Tài liệu API: `http://localhost:5080/scalar` |
 | Worker | 5090 | Xử lý outbox (ghi danh sau thanh toán, tạo phòng học, trừ buổi, công) |
 | PostgreSQL | 5433 | User `konnyaku` / `konnyaku_dev`, DB `konnyaku` |
@@ -17,7 +14,7 @@ Hệ thống local gồm 3 phần: hạ tầng trong Docker, backend .NET (API +
 | Mailpit (xem email gửi đi) | 8025 (web), 1025 (SMTP) | `http://localhost:8025` |
 | MinIO | 9000 (API), 9001 (console) | `konnyaku` / `konnyaku_dev` |
 
-Frontend dùng 4000–4003 để tránh trùng các dự án khác hay chạy ở 3000/3001. Cần đổi tiếp thì sửa đồng thời: `frontend/apps/*/package.json` (script `dev`, `start`), `frontend/apps/site/proxy.ts` (hoặc đặt biến môi trường `LEARN_URL`, `TEACH_URL`, `OPS_URL`), `.claude/launch.json` và tài liệu này.
+Frontend dùng 4000 để tránh trùng các dự án khác hay chạy ở 3000/3001. Cần đổi thì sửa đồng thời: `frontend/apps/site/package.json` (script `dev`, `start`), `.claude/launch.json` và tài liệu này.
 
 ## Cần cài sẵn
 
@@ -51,13 +48,11 @@ Mỗi lệnh chạy lâu (API, Worker, frontend) cần một cửa sổ terminal
    dotnet run --project backend/src/Hosts/Konnyaku.Worker
    ```
 
-5. Frontend, cả 4 app cùng lúc (terminal 3):
+5. Frontend (terminal 3):
 
    ```bash
    cd frontend && npx -y pnpm@10.34.9 install && npx -y pnpm@10.34.9 dev
    ```
-
-   Chỉ cần một app: `npx -y pnpm@10.34.9 --dir apps/site dev` (nhớ `site` luôn phải chạy vì là cổng vào).
 
 6. Dữ liệu demo, **một lần** trên database mới (cần API và Worker đang chạy):
 
@@ -97,13 +92,13 @@ Terminal đóng ngang có thể để lại tiến trình chạy ngầm. Tìm v�
 Windows (PowerShell):
 
 ```powershell
-Get-NetTCPConnection -LocalPort 4000,4001,4002,4003,5080,5090 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+Get-NetTCPConnection -LocalPort 4000,5080,5090 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
 ```
 
 macOS / Linux:
 
 ```bash
-for p in 4000 4001 4002 4003 5080 5090; do lsof -ti tcp:$p | xargs -r kill; done
+for p in 4000 5080 5090; do lsof -ti tcp:$p | xargs -r kill; done
 ```
 
 ## Lỗi thường gặp khi chạy
@@ -114,6 +109,5 @@ for p in 4000 4001 4002 4003 5080 5090; do lsof -ti tcp:$p | xargs -r kill; done
 | `relation ... does not exist` | Chưa chạy Migrator (bước 2) |
 | Đã thanh toán nhưng học viên chưa vào lớp, không có phòng học | Worker chưa chạy (bước 4) |
 | Trang báo không xác định được trung tâm | Đang mở `localhost:4000` thay vì `demo.localhost:4000`, hoặc chưa chạy seed |
-| `/learn`, `/teach`, `/ops` trả lỗi 502/không tải | App tương ứng (4001–4003) chưa chạy |
 | Build frontend lỗi `require() of ES Module` | Tailwind bị nâng khỏi 4.1.18; trả về đúng bản đó |
 | Seed báo tenant đã tồn tại | Database đã có dữ liệu demo; dùng tài khoản cũ hoặc `down -v` để làm lại |

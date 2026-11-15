@@ -5,7 +5,7 @@ Stack: .NET 10 (ASP.NET Core) · Next.js App Router · PostgreSQL.
 
 ## Chạy local
 
-Hướng dẫn đầy đủ cách bật, tắt, bảng cổng và xử lý lỗi: [docs/chay-local.md](docs/chay-local.md). Frontend chạy ở cổng 4000–4003 (`site` 4000 là cổng vào). Người cùng phát triển đọc thêm [CLAUDE.md](CLAUDE.md) và các skill trong `.claude/skills/`.
+Hướng dẫn đầy đủ cách bật, tắt, bảng cổng và xử lý lỗi: [docs/chay-local.md](docs/chay-local.md). Frontend là một app Next.js chạy ở cổng 4000 (trang công khai, `/learn`, `/teach`, `/ops`). Người cùng phát triển đọc thêm [CLAUDE.md](CLAUDE.md) và các skill trong `.claude/skills/`.
 
 Yêu cầu: .NET SDK 10, Node 20+, Docker, Python 3 (script seed). pnpm dùng qua `npx pnpm@10.34.9` nếu corepack trên máy lỗi.
 
@@ -51,7 +51,7 @@ Hướng dẫn cho người dùng cuối (học viên, giáo viên, nhân viên 
 
 | Phase | Nội dung | Trạng thái |
 |---|---|---|
-| 0 | Khung dự án: module, multi-tenant RLS, outbox, 4 app web, i18n, CI | ✅ |
+| 0 | Khung dự án: module, multi-tenant RLS, outbox, web (trang công khai + 3 khu vực `learn`/`teach`/`ops`), i18n, CI | ✅ |
 | 1 | Platform (tenant, host), Catalog (ngôn ngữ, khung năng lực), Identity (2 realm, tài khoản trung tâm cấp, khóa sau 5 lần sai) | ✅ — còn để sau: đăng nhập Google (cần OAuth client), xác thực tập trung `auth.konnyaku.app` (hiện đăng nhập theo từng host), 2FA cho nhân viên, kiểm tra quyền theo phạm vi cơ sở |
 | 2 | Crm (form đăng ký công khai → lead, chống trùng & spam, gán tư vấn viên, hồ sơ học viên), Academic (chương trình theo ngôn ngữ + khung năng lực, cấp độ & bài học, lớp theo cơ sở, ghi danh giữ chỗ nguyên tử, bảo lưu/nghỉ học) | ✅ — còn để sau: captcha (hiện honeypot + giới hạn tần suất), đặt lịch test/học thử, giao diện tạo chương trình/lớp trong `ops` (hiện qua API) |
 | 3 | Scheduling: sinh buổi học theo lịch tuần trong múi giờ của lớp (giữ đúng giờ địa phương qua DST), bỏ ngày lễ (Organization: ngày lễ theo trung tâm/cơ sở, phòng học), mỗi buổi gắn một bài học; chống trùng lịch giáo viên/phòng bằng exclusion constraint PostgreSQL (đúng cả khi đồng thời); đổi giờ, đổi giáo viên, hủy buổi; lịch dạy (`teach`) và lịch học (`learn`) | ✅ — còn để sau: availability giáo viên, thời gian di chuyển giữa cơ sở, giao diện xếp lịch trong `ops` |
@@ -69,7 +69,7 @@ Hướng dẫn cho người dùng cuối (học viên, giáo viên, nhân viên 
 | [2. Kiến trúc](docs/02-architecture.md) | Modular Monolith, Meeting Engine (sequence diagram), async/rate limit, điểm cần xác minh trong spike |
 | [3. Dữ liệu lõi](docs/03-core-database.md) | ERD, bảng Session/ResourceBooking/HostLease/Ledger/Attendance/Timesheet, múi giờ, audit, concurrency |
 | [4. Lộ trình](docs/04-roadmap.md) | **Nguồn duy nhất** về phạm vi V1.0 MVP → V2.0 Scale-up/SaaS → V3.0 AI, mục tiêu + Definition of Done |
-| [5. Scaffolding](docs/05-scaffolding.md) | Cấu trúc thư mục BE/FE (4 app), NuGet/npm packages, ADR & checklist ngày đầu |
+| [5. Scaffolding](docs/05-scaffolding.md) | Cấu trúc thư mục BE/FE, NuGet/npm packages, ADR & checklist ngày đầu |
 | [6. Tiến hóa kiến trúc](docs/06-evolution-strategy.md) | **Nguồn duy nhất** về danh sách module & event; 10 đường cắt, tách theo tenant (Silo), tiêu chí & playbook tách service |
 | [7. Đa trung tâm, đa cơ sở, đa ngôn ngữ](docs/07-multi-tenant-multi-language.md) | **Nguồn duy nhất** về quy tắc đa tenant; identity xuyên tenant, RLS, cấu hình kế thừa, khung năng lực, i18n, đăng nhập 2 tab & trang công khai |
 

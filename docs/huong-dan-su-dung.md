@@ -4,7 +4,7 @@ Cập nhật: 15/11/2026
 
 ## Giới thiệu
 
-Konnyaku chia thành 4 khu vực. Mỗi người dùng chỉ vào khu vực đúng với vai trò của mình. Mỗi trung tâm có tên miền riêng; ví dụ dưới đây dùng trung tâm demo chạy trên máy (`demo.localhost:4000`).
+Konnyaku chia thành 4 khu vực trên cùng một địa chỉ. Mỗi người dùng chỉ vào khu vực đúng với vai trò của mình. Mỗi trung tâm có tên miền riêng; ví dụ dưới đây dùng trung tâm demo chạy trên máy (`demo.localhost:4000`).
 
 | Khu vực | Ai dùng | Địa chỉ (bản chạy local) | Dùng để |
 | --- | --- | --- | --- |

@@ -15,9 +15,11 @@ export type SessionView = {
 
 /**
  * Upcoming sessions as a date-led list, formatted in the center's time zone (set in each app's i18n config).
- * `canJoin`: a join button when the room is ready (resolved under the app basePath: /learn/join or /teach/join).
+ * `canJoin`: a join button when the room is ready (`{base}/join/{id}`, e.g. /learn/join or /teach/join).
  */
-export async function SessionList({ sessions, title, canJoin = false, canTakeAttendance = false, limit = 8 }: {
+export async function SessionList({ base, sessions, title, canJoin = false, canTakeAttendance = false, limit = 8 }: {
+  /** Area the list is shown in: join and attendance links live under it. */
+  base: "/learn" | "/teach";
   sessions: SessionView[];
   title: string;
   canJoin?: boolean;
@@ -63,7 +65,7 @@ export async function SessionList({ sessions, title, canJoin = false, canTakeAtt
                   {s.status === "Cancelled" && <StatusBadge tone="destructive">{t("cancelled")}</StatusBadge>}
                   {canJoin && ready && (
                     <Link
-                      href={`/join/${s.id}`}
+                      href={`${base}/join/${s.id}`}
                       prefetch={false}
                       className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
                     >
@@ -73,7 +75,7 @@ export async function SessionList({ sessions, title, canJoin = false, canTakeAtt
                   )}
                   {canTakeAttendance && s.status !== "Cancelled" && (
                     <Link
-                      href={`/sessions/${s.id}/attendance?n=${s.sequenceNo}`}
+                      href={`${base}/sessions/${s.id}/attendance?n=${s.sequenceNo}`}
                       className="inline-flex h-9 items-center gap-1.5 rounded-md border bg-background px-3 text-sm font-medium shadow-xs transition-colors hover:bg-accent"
                     >
                       <ClipboardCheck className="size-4" />

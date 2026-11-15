@@ -5,7 +5,7 @@
 ```
 konnyaku/
 ├── backend/                      .NET solution (Modular Monolith)
-├── frontend/                     Next.js (pnpm workspace: 4 app + packages dùng chung)
+├── frontend/                     Next.js (pnpm workspace: 1 app + packages dùng chung)
 ├── ai/                           (V3) Python service nếu cần model tự host
 ├── infra/
 │   ├── docker/                   docker-compose: postgres, redis, minio, pubsub-emulator, mailpit
@@ -113,7 +113,9 @@ frontend/
 └── e2e/                               Playwright
 ```
 
-Bốn app chạy chung một domain của tenant theo đường dẫn (`/`, `/learn`, `/teach`, `/ops`) bằng **Next.js Multi-Zones** — mỗi app build/deploy độc lập nhưng người dùng thấy một website. Realm `learn` và `staff` dùng cookie khác tên và token khác `aud` (xem [7.9.2](07-multi-tenant-multi-language.md#792-trang-đăng-nhập-hai-tab--tách-hẳn-hai-cõi-realm)).
+> **Cập nhật:** bản triển khai gộp 4 app trên thành **một app Next.js** (`frontend/apps/site`); `learn`, `teach`, `ops` là thư mục `app/learn`, `app/teach`, `app/ops`, mỗi thư mục có root layout riêng. Thiết kế ban đầu dùng Next.js Multi-Zones (mỗi app build/deploy độc lập), nhưng với một team và một VPS thì Multi-Zones chỉ thêm chi phí: 4 process, proxy trung gian, header chuyển tiếp phải tin cậy. Khi cần deploy riêng từng khu vực thì tách lại thành zone, mã từng khu vực đã nằm gọn trong thư mục của nó.
+
+Bốn khu vực chạy chung một domain của tenant theo đường dẫn (`/`, `/learn`, `/teach`, `/ops`). Realm `learn` và `staff` dùng cookie khác tên và token khác `aud` (xem [7.9.2](07-multi-tenant-multi-language.md#792-trang-đăng-nhập-hai-tab--tách-hẳn-hai-cõi-realm)).
 
 Đa tenant ở FE: middleware Next.js đọc host (`{tenant}.konnyaku.app` hoặc custom domain) → nạp thương hiệu và danh sách locale tenant cho phép. Đăng nhập đi qua `auth.konnyaku.app` rồi quay về host của tenant; người có nhiều membership đổi trung tâm bằng cách chuyển sang host của trung tâm kia ([7.3](07-multi-tenant-multi-language.md#73-định-danh-xuyên-tenant)). Trang công khai của tenant (đăng ký học thử, placement test) nằm dưới `app/[locale]/...` để locale có trong URL; trang sau đăng nhập lấy locale từ hồ sơ user.
 
