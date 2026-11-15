@@ -26,7 +26,7 @@ Danh sách module chuẩn, danh mục event, các đường cắt và playbook t
 
 ```mermaid
 flowchart LR
-  subgraph Clients[Next.js - 4 app chung domain của tenant]
+  subgraph Clients[Next.js - một app, 4 khu vực theo đường dẫn trên domain của tenant]
     P[site<br/>Trang công khai · Đăng nhập]:::fe
     A[ops<br/>Vận hành · Quản trị]:::fe
     S[learn<br/>Học viên · Phụ huynh]:::fe

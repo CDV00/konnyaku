@@ -34,42 +34,6 @@
         "dev"
       ],
       "port": 4000
-    },
-    {
-      "name": "learn",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": [
-        "-y",
-        "pnpm@10.34.9",
-        "--dir",
-        "frontend/apps/learn",
-        "dev"
-      ],
-      "port": 4001
-    },
-    {
-      "name": "teach",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": [
-        "-y",
-        "pnpm@10.34.9",
-        "--dir",
-        "frontend/apps/teach",
-        "dev"
-      ],
-      "port": 4002
-    },
-    {
-      "name": "ops",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": [
-        "-y",
-        "pnpm@10.34.9",
-        "--dir",
-        "frontend/apps/ops",
-        "dev"
-      ],
-      "port": 4003
     }
   ]
 }

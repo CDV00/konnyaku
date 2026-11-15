@@ -18,11 +18,28 @@ export type Me = {
   roles: string[];
 };
 
-/** Tenant host of the current request: set by the site proxy for zone apps, otherwise the Host header. */
+/** Tenant host of the current request (the browser-facing Host header, without the port). */
 export async function tenantHost(): Promise<string> {
-  const h = await headers();
-  const host = h.get("x-tenant-host") ?? h.get("host") ?? "";
+  const host = (await headers()).get("host") ?? "";
   return host.split(":")[0] ?? "";
+}
+
+/**
+ * Redirect with a relative Location, resolved by the browser against the tenant host it is on
+ * (route handlers may see a normalized dev origin such as localhost instead of demo.localhost).
+ */
+export function redirectTo(location: string): Response {
+  return new Response(null, { status: 307, headers: { Location: location } });
+}
+
+/** Entry point of every class: the API checks this person may attend, then the browser goes to the meeting. */
+export async function joinSession(realm: Realm, sessionId: string, home: string): Promise<Response> {
+  const token = await sessionToken(realm);
+  if (!token) return redirectTo(`/login?realm=${realm}`);
+  const response = await apiFetch(`/api/workspace/sessions/${encodeURIComponent(sessionId)}/join`, { token });
+  if (!response.ok) return redirectTo(`${home}?meeting=unavailable`);
+  const { meetingUri } = (await response.json()) as { meetingUri: string };
+  return redirectTo(meetingUri);
 }
 
 export async function apiFetch(path: string, init: RequestInit & { token?: string } = {}): Promise<Response> {
@@ -45,9 +62,7 @@ export const requireMe = cache(async (realm: Realm): Promise<{ me: Me; token: st
     const response = await apiFetch("/api/identity/me", { token });
     if (response.ok) return { me: (await response.json()) as Me, token };
   }
-  // Zones run under a basePath, so a relative redirect would land on /<zone>/login: use the site origin.
-  const origin = (await headers()).get("x-site-origin") ?? "";
-  redirect(`${origin}/login?realm=${realm}`);
+  redirect(`/login?realm=${realm}`);
 });
 
 /** First and last day (YYYY-MM-DD) of the current month in a time zone. */

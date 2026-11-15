@@ -28,7 +28,7 @@ function RealmForm({ realm }: { realm: Realm }) {
     });
     const body = (await response.json().catch(() => ({}))) as { redirect?: string; code?: string };
     if (response.ok && body.redirect) {
-      // Full navigation: the target is another zone (separate Next.js app).
+      // Full navigation: the target area (learn, teach, ops) has its own root layout.
       window.location.assign(body.redirect);
       return;
     }

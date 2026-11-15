@@ -22,7 +22,7 @@ Ví dụ mẫu đáng đọc trước: `backend/src/Modules/Hr/` (nhỏ, đủ c
    - Phân quyền tường minh: `.RequireAuthorization(Policies.Staff)`, `Policies.Learn`, `Policies.TenantAdmin`, hoặc policy builder với `.RequireClaim(KonnyakuClaims.Audience, Audiences.Staff).RequireRole("TenantAdmin", "Accountant")`. Endpoint "của tôi" lấy `user.UserId()` từ `ClaimsPrincipal`, không nhận id từ client.
    - Đăng ký handler mới trong `AddServices` (`services.AddScoped<XHandlers>()`).
 4. **Mã lỗi phía frontend**: mỗi mã mới cần chuỗi trong `frontend/packages/i18n/messages/{vi,en}/apps.json` dưới namespace màn hình dùng nó, key là mã với `.` đổi thành `_` (ví dụ `admin.errors.hr_period_overlaps`).
-5. **Màn hình `ops` gọi API ghi** → thêm regex đường dẫn vào allowlist `frontend/apps/ops/app/api/relay/[...path]/route.ts`.
+5. **Màn hình `ops` gọi API ghi** → thêm regex đường dẫn vào allowlist `frontend/apps/site/app/ops/api/relay/[...path]/route.ts`.
 6. **Test**:
    - Logic thuần (chính sách, tính toán) → `tests/Konnyaku.UnitTests`.
    - Luồng API → `tests/Konnyaku.IntegrationTests`: `[Collection(PostgresCollection.Name)]`, `KonnyakuApiFactory`, `CreateTenantWithAdminAsync`, `StaffLoginAsync`, `ClientFor(slug, token)`; gọi `DrainOutboxAsync()` khi luồng đi qua event. Email test dạng `$"x-{Guid.NewGuid():N}@example.com"`.

@@ -53,16 +53,18 @@ export type NavLink = {
   href: string;
   label: string;
   icon?: IconName;
-  /** Another zone (separate Next.js app): plain <a>, full navigation. */
+  /** A page under another root layout (e.g. public pages from a signed-in area): plain <a>, full navigation. */
   external?: boolean;
+  /** Active only on this exact path, not on its sub-pages (the home link of an area, e.g. /ops). */
+  exact?: boolean;
 };
 
 export type ShellUser = { name: string; detail?: string };
 
 export type ShellLabels = { theme: string; menu: string; logout: string; close?: string };
 
-function isActive(pathname: string, href: string) {
-  if (href === "/") return pathname === "/";
+function isActive(pathname: string, { href, exact }: NavLink) {
+  if (exact || href === "/") return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -143,7 +145,7 @@ export function TopBar({ brand, links, user, logoutAction, labels, actions }: {
               <SheetTitle className="mb-2">{brand}</SheetTitle>
               <nav className="grid gap-1">
                 {links.map((link) => (
-                  <NavAnchor key={link.href} link={link} active={isActive(pathname, link.href)} onNavigate={() => setOpen(false)} />
+                  <NavAnchor key={link.href} link={link} active={isActive(pathname, link)} onNavigate={() => setOpen(false)} />
                 ))}
               </nav>
             </SheetContent>
@@ -154,7 +156,7 @@ export function TopBar({ brand, links, user, logoutAction, labels, actions }: {
           <nav className="hidden items-center md:flex">
             <Highlight hover controlledItems={false} className="rounded-md bg-accent" transition={{ type: "spring", stiffness: 350, damping: 35 }}>
               {links.map((link) => (
-                <NavAnchor key={link.href} link={link} active={isActive(pathname, link.href)} />
+                <NavAnchor key={link.href} link={link} active={isActive(pathname, link)} />
               ))}
             </Highlight>
           </nav>
@@ -183,7 +185,7 @@ export function SidebarShell({ brand, links, user, logoutAction, labels, childre
   const nav = (onNavigate?: () => void) => (
     <Highlight hover controlledItems={false} className="rounded-md bg-accent" transition={{ type: "spring", stiffness: 350, damping: 35 }}>
       {links.map((link) => {
-        const active = isActive(pathname, link.href);
+        const active = isActive(pathname, link);
         return (
           <NavAnchor
             key={link.href}

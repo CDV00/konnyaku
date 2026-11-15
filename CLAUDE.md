@@ -13,7 +13,7 @@ SaaS Education ERP + LMS cho trung tâm ngoại ngữ: nhiều trung tâm (tenan
 | `backend/src/BuildingBlocks/` | `SharedKernel` (Entity, `ITenantOwned`, `Result<T>`, `Error`, `LocalizedString`), `Application`, `Infrastructure` (ModuleDbContext, outbox/inbox, auth, `ApiResults`, RLS helpers) |
 | `backend/src/Hosts/Konnyaku.Composition/KonnyakuModules.cs` | Danh sách module đăng ký |
 | `backend/tests/` | `UnitTests`, `IntegrationTests` (Testcontainers PostgreSQL, cần Docker), `ArchitectureTests` (ranh giới module + snapshot contracts) |
-| `frontend/` | pnpm workspace. Apps Next.js 16 (multi-zone): `site` (4000, trang công khai + login), `learn` (`/learn`), `teach` (`/teach`), `ops` (`/ops`) |
+| `frontend/` | pnpm workspace. Một app Next.js 16 `apps/site` (cổng 4000): trang công khai + login, và 3 khu vực `app/learn`, `app/teach`, `app/ops` (mỗi khu vực có root layout riêng) |
 | `frontend/packages/` | `i18n` (catalog `messages/{vi,en}/*.json`), `session` (đăng nhập, `requireMe`, `apiFetch`, `ZoneLayout`, lịch), `ui` (`@konnyaku/ui`: Tailwind v4, animate-ui + shadcn vendored, khối riêng `src/kk`) |
 | `infra/` | `docker/docker-compose.yml` (PostgreSQL cổng 5433), `postgres/init/01-modules.sql` (schema + role mỗi module), `scripts/seed_demo.py` |
 
@@ -32,8 +32,8 @@ SaaS Education ERP + LMS cho trung tâm ngoại ngữ: nhiều trung tâm (tenan
 
 - Node 20.18: giữ `tailwindcss` và `@tailwindcss/postcss` đúng **4.1.18** (4.3 cần `require(esm)`, lỗi build).
 - Nếu `pnpm` (corepack) lỗi, dùng `npx -y pnpm@10.34.9 …`.
-- Cách bật/tắt, bảng cổng, lỗi thường gặp: [docs/chay-local.md](docs/chay-local.md). Cổng: site 4000 (cổng vào), learn 4001, teach 4002, ops 4003, API 5080, Worker 5090, PostgreSQL 5433.
-- Dev server khai báo trong `.claude/launch.json` (api, worker, site, learn, teach, ops).
+- Cách bật/tắt, bảng cổng, lỗi thường gặp: [docs/chay-local.md](docs/chay-local.md). Cổng: web 4000, API 5080, Worker 5090, PostgreSQL 5433.
+- Dev server khai báo trong `.claude/launch.json` (api, worker, site).
 - Tenant xác định theo host: mở `http://demo.localhost:4000`. Tài khoản demo trong `docs/chay-local.md`.
 
 ## Skill dùng chung

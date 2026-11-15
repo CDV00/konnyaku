@@ -27,7 +27,7 @@ Build lỗi `require() of ES Module` → ai đó đã nâng Tailwind khỏi 4.1.
 
 ## Chạy thử trên trình duyệt
 
-1. Bật hệ thống theo `docs/chay-local.md` (Claude Code: dùng cấu hình trong `.claude/launch.json` — api 5080, worker 5090, site 4000, learn 4001, teach 4002, ops 4003).
+1. Bật hệ thống theo `docs/chay-local.md` (Claude Code: dùng cấu hình trong `.claude/launch.json` — api 5080, worker 5090, site 4000).
 2. Mở `http://demo.localhost:4000/login`. Tài khoản demo (do `infra/scripts/seed_demo.py` tạo): admin `admin@demo.example.com` / `Admin-Pass-123`, giáo viên `teacher@demo.example.com` / `Teacher-Pass-123`, học viên `hv000001` + mật khẩu tạm script in ra.
 3. Thử đúng luồng vừa sửa, cả ca lỗi; đổi sáng/tối; thu về 375px.
 4. Mô phỏng buổi học đã diễn ra (provider Fake): `POST /api/workspace/dev/sessions/{id}/simulate` với tài khoản TenantAdmin/Coordinator.
