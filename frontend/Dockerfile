@@ -1,5 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # Web image (apps/site: public pages, sign-in, /learn, /teach, /ops). Build context: frontend/.
+# Build on a machine of the target architecture (CI: amd64 and arm64 runners): the standalone output ships
+# native modules (sharp) for the architecture it was built on. A cross build (--platform) runs under QEMU.
 
 FROM node:20-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm \
