@@ -1,0 +1,158 @@
+# Konnyaku production stack on one VPS (docker compose v2).
+#   cp .env.example .env && ./scripts/gen-secrets.sh >> .env   # once, then edit BASE_DOMAIN / ACME_EMAIL / IMAGE_*
+#   docker compose up -d
+# Only Caddy publishes ports (80/443). Web, API, Worker and PostgreSQL stay on internal networks.
+# Runbook: docs/trien-khai.md
+
+name: konnyaku
+
+x-backend-env: &backend-env
+  ConnectionStrings__platform: Host=postgres;Database=konnyaku;Username=kk_platform;Password=${DB_PASSWORD_PLATFORM:?}
+  ConnectionStrings__catalog: Host=postgres;Database=konnyaku;Username=kk_catalog;Password=${DB_PASSWORD_CATALOG:?}
+  ConnectionStrings__identity: Host=postgres;Database=konnyaku;Username=kk_identity;Password=${DB_PASSWORD_IDENTITY:?}
+  ConnectionStrings__organization: Host=postgres;Database=konnyaku;Username=kk_organization;Password=${DB_PASSWORD_ORGANIZATION:?}
+  ConnectionStrings__academic: Host=postgres;Database=konnyaku;Username=kk_academic;Password=${DB_PASSWORD_ACADEMIC:?}
+  ConnectionStrings__crm: Host=postgres;Database=konnyaku;Username=kk_crm;Password=${DB_PASSWORD_CRM:?}
+  ConnectionStrings__scheduling: Host=postgres;Database=konnyaku;Username=kk_scheduling;Password=${DB_PASSWORD_SCHEDULING:?}
+  ConnectionStrings__billing: Host=postgres;Database=konnyaku;Username=kk_billing;Password=${DB_PASSWORD_BILLING:?}
+  ConnectionStrings__workspace: Host=postgres;Database=konnyaku;Username=kk_workspace;Password=${DB_PASSWORD_WORKSPACE:?}
+  ConnectionStrings__learning: Host=postgres;Database=konnyaku;Username=kk_learning;Password=${DB_PASSWORD_LEARNING:?}
+  ConnectionStrings__hr: Host=postgres;Database=konnyaku;Username=kk_hr;Password=${DB_PASSWORD_HR:?}
+  Auth__SigningKey: ${AUTH_SIGNING_KEY:?}
+  Platform__AdminKey: ${PLATFORM_ADMIN_KEY:?}
+  Platform__BaseDomain: ${BASE_DOMAIN:?}
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 20m
+    max-file: "5"
+
+services:
+  caddy:
+    image: caddy:2.10
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      BASE_DOMAIN: ${BASE_DOMAIN:?}
+      ACME_EMAIL: ${ACME_EMAIL:?}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [edge]
+    depends_on: [web]
+    logging: *logging
+
+  web:
+    image: ${IMAGE_WEB:-ghcr.io/OWNER/konnyaku-web}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      KONNYAKU_API_URL: http://api:8080
+    deploy:
+      replicas: ${WEB_REPLICAS:-2}
+    networks: [edge, app]
+    depends_on: [api]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging: *logging
+
+  api:
+    image: ${IMAGE_API:-ghcr.io/OWNER/konnyaku-api}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      <<: *backend-env
+      # Trust X-Forwarded-For only from the web containers (the only caller), for per-visitor rate limits.
+      ForwardedHeaders__KnownNetworks__0: ${APP_SUBNET:-172.30.1.0/24}
+    deploy:
+      replicas: ${API_REPLICAS:-2}
+    networks: [app, data]
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /health HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '200 OK' <&3"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging: *logging
+
+  worker:
+    image: ${IMAGE_WORKER:-ghcr.io/OWNER/konnyaku-worker}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      <<: *backend-env
+    # Several workers are safe: outbox rows are claimed with FOR UPDATE SKIP LOCKED.
+    deploy:
+      replicas: ${WORKER_REPLICAS:-1}
+    # app: outbound internet for providers (Google Meet, email); data: PostgreSQL.
+    networks: [app, data]
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    logging: *logging
+
+  # Runs on every `up`, applies pending EF migrations with the schema owner, then exits.
+  migrator:
+    image: ${IMAGE_MIGRATOR:-ghcr.io/OWNER/konnyaku-migrator}:${IMAGE_TAG:-latest}
+    restart: "no"
+    environment:
+      ConnectionStrings__Owner: Host=postgres;Database=konnyaku;Username=konnyaku;Password=${POSTGRES_PASSWORD:?}
+    networks: [data]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *logging
+
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    shm_size: 256mb
+    environment:
+      POSTGRES_USER: konnyaku
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: konnyaku
+      DB_PASSWORD_PLATFORM: ${DB_PASSWORD_PLATFORM:?}
+      DB_PASSWORD_CATALOG: ${DB_PASSWORD_CATALOG:?}
+      DB_PASSWORD_IDENTITY: ${DB_PASSWORD_IDENTITY:?}
+      DB_PASSWORD_ORGANIZATION: ${DB_PASSWORD_ORGANIZATION:?}
+      DB_PASSWORD_ACADEMIC: ${DB_PASSWORD_ACADEMIC:?}
+      DB_PASSWORD_CRM: ${DB_PASSWORD_CRM:?}
+      DB_PASSWORD_SCHEDULING: ${DB_PASSWORD_SCHEDULING:?}
+      DB_PASSWORD_BILLING: ${DB_PASSWORD_BILLING:?}
+      DB_PASSWORD_WORKSPACE: ${DB_PASSWORD_WORKSPACE:?}
+      DB_PASSWORD_LEARNING: ${DB_PASSWORD_LEARNING:?}
+      DB_PASSWORD_HR: ${DB_PASSWORD_HR:?}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - ${BACKUP_DIR:-./backups}:/backups
+    networks: [data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U konnyaku -d konnyaku"]
+      interval: 5s
+      retries: 10
+    logging: *logging
+
+networks:
+  edge: {}
+  app:
+    ipam:
+      config:
+        - subnet: ${APP_SUBNET:-172.30.1.0/24}
+  # No route to the internet is needed by PostgreSQL; Api/Worker reach it here.
+  data:
+    internal: true
+
+volumes:
+  postgres-data:
+  caddy-data:
+  caddy-config:

@@ -29,7 +29,7 @@ Mỗi module = một schema PostgreSQL + một role `kk_<module>` chỉ có quy�
 3. `<M>DbContext : ModuleDbContext`, `SchemaName` = tên schema; extension `Add<M>Infrastructure` gọi `AddModuleDbContext<...>(configuration, connectionName, SchemaName)`; design-time factory như `HrDesignTimeFactory` (bảng lịch sử `__ef_migrations_history` trong schema module).
 4. `<M>Module : IModule` (`Name`, `DbContextTypes`, `AddServices`, `AddWorkerServices` → `services.AddOutboxProcessor<<M>DbContext>()`, `MapEndpoints`).
 5. Đăng ký `new <M>Module()` trong `src/Hosts/Konnyaku.Composition/KonnyakuModules.cs`.
-6. Thêm dòng `('<module>', '<schema>')` vào `infra/docker/postgres/init/01-modules.sql`, connection string `"<module>": "...Username=kk_<module>;Password=kk_<module>_dev"` vào `appsettings.Development.json` của Api và Worker (Migrator dùng chuỗi `Owner` chung, không cần thêm). Dev phải tạo lại volume: `docker compose -f infra/docker/docker-compose.yml down -v && ... up -d`.
+6. Thêm dòng `('<module>', '<schema>')` vào `infra/docker/postgres/init/01-modules.sql`, connection string `"<module>": "...Username=kk_<module>;Password=kk_<module>_dev"` vào `appsettings.Development.json` của Api và Worker (Migrator dùng chuỗi `Owner` chung, không cần thêm). Dev phải tạo lại volume: `docker compose -f infra/docker/docker-compose.yml down -v && ... up -d`. Production: thêm `"<module> <schema>"` vào `infra/deploy/postgres/init/01-modules.sh`, biến `DB_PASSWORD_<MODULE>` vào `infra/deploy/compose.yaml` (cả `x-backend-env` lẫn `postgres.environment`) và `infra/deploy/scripts/gen-secrets.sh`; server đang chạy thì tạo role bằng tay (script init chỉ chạy trên volume rỗng).
 7. Cập nhật danh sách module trong `docs/06-evolution-strategy.md` nếu module là mới hoàn toàn.
 
 ## Kiểm tra

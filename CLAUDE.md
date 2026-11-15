@@ -2,7 +2,7 @@
 
 SaaS Education ERP + LMS cho trung tâm ngoại ngữ: nhiều trung tâm (tenant), mỗi trung tâm nhiều cơ sở, dạy nhiều ngôn ngữ, giao diện `vi` / `en`. Học online qua Google Meet (dev dùng provider **Fake**), mở rộng Hybrid / tại cơ sở.
 
-Đọc thêm: [README.md](README.md) (chạy local, trạng thái từng phase, thuật ngữ, quyết định chính) và `docs/` (phân tích; `04-roadmap`, `06-evolution-strategy`, `07-multi-tenant-multi-language` là nguồn duy nhất cho phạm vi, module/event và quy tắc đa tenant). Hướng dẫn người dùng cuối: [docs/huong-dan-su-dung.md](docs/huong-dan-su-dung.md).
+Đọc thêm: [README.md](README.md) (chạy local, trạng thái từng phase, thuật ngữ, quyết định chính) và `docs/` (phân tích; `04-roadmap`, `06-evolution-strategy`, `07-multi-tenant-multi-language` là nguồn duy nhất cho phạm vi, module/event và quy tắc đa tenant). Hướng dẫn người dùng cuối: [docs/huong-dan-su-dung.md](docs/huong-dan-su-dung.md). Triển khai: [docs/trien-khai.md](docs/trien-khai.md).
 
 ## Bố cục
 
@@ -15,7 +15,7 @@ SaaS Education ERP + LMS cho trung tâm ngoại ngữ: nhiều trung tâm (tenan
 | `backend/tests/` | `UnitTests`, `IntegrationTests` (Testcontainers PostgreSQL, cần Docker), `ArchitectureTests` (ranh giới module + snapshot contracts) |
 | `frontend/` | pnpm workspace. Một app Next.js 16 `apps/site` (cổng 4000): trang công khai + login, và 3 khu vực `app/learn`, `app/teach`, `app/ops` (mỗi khu vực có root layout riêng) |
 | `frontend/packages/` | `i18n` (catalog `messages/{vi,en}/*.json`), `session` (đăng nhập, `requireMe`, `apiFetch`, `ZoneLayout`, lịch), `ui` (`@konnyaku/ui`: Tailwind v4, animate-ui + shadcn vendored, khối riêng `src/kk`) |
-| `infra/` | `docker/docker-compose.yml` (PostgreSQL cổng 5433), `postgres/init/01-modules.sql` (schema + role mỗi module), `scripts/seed_demo.py` |
+| `infra/` | `docker/docker-compose.yml` (PostgreSQL cổng 5433), `postgres/init/01-modules.sql` (schema + role mỗi module), `scripts/seed_demo.py`; `deploy/` (stack production: `compose.yaml`, `Caddyfile`, init DB có mật khẩu từ `.env`, `scripts/gen-secrets.sh`, `scripts/backup.sh`). Dockerfile ở `backend/` (target `api`/`worker`/`migrator`) và `frontend/` |
 
 ## Quy tắc không được phá
 
@@ -27,6 +27,7 @@ SaaS Education ERP + LMS cho trung tâm ngoại ngữ: nhiều trung tâm (tenan
 6. **Thời gian**: lưu UTC, lịch neo theo múi giờ IANA của lớp/cơ sở (`TimeZoneInfo`, giữ đúng giờ địa phương qua DST). Chống trùng lịch GV/phòng/host bằng exclusion constraint PostgreSQL, không kiểm tra bằng code.
 7. **Sổ buổi học append-only** (`Billing`): không sửa/xoá dòng ledger, chỉ ghi bút toán mới.
 8. **Dữ liệu test và seed** dùng `*@example.com`, không dùng email hay tên thật.
+9. **Thêm module** thì cập nhật danh sách module ở cả `infra/docker/postgres/init/01-modules.sql` (dev) và `infra/deploy/postgres/init/01-modules.sh` (production), cùng biến `DB_PASSWORD_<MODULE>` trong `infra/deploy/compose.yaml` và `scripts/gen-secrets.sh`.
 
 ## Môi trường máy dev
 
