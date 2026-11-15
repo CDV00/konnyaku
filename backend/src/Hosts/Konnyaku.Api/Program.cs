@@ -52,7 +52,9 @@ var app = builder.Build();
 app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseAuthentication();
-app.UseMiddleware<TenantResolutionMiddleware>();
+// /health is liveness for container health checks: it must not depend on PostgreSQL (tenant lookup).
+app.UseWhen(context => !context.Request.Path.StartsWithSegments("/health"),
+    branch => branch.UseMiddleware<TenantResolutionMiddleware>());
 app.UseAuthorization();
 app.UseRateLimiter();
 
