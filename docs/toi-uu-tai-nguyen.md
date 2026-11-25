@@ -177,7 +177,10 @@ Khi nào đổi:
 
 CI build và chạy thử image trên runner arm64 thật (`ubuntu-24.04-arm`); `smoke-test.sh` nay in RAM lúc rảnh của api và web ngay sau khởi động trên từng kiến trúc:
 
-ARM64_BANG
+| Kiến trúc | api lúc rảnh | web lúc rảnh | Nguồn |
+| --- | --- | --- | --- |
+| amd64 | ~50 MiB | ~53 MiB | `smoke-test.sh` trên máy dev |
+| arm64 | dòng `memory kk-smoke-…` | dòng `memory kk-smoke-…` | log bước *Smoke test* của job `images (arm64)` trong CI của PR |
 
 Chưa đo có tải trên arm64 (máy dev là amd64; giả lập QEMU làm sai số đo). Runtime .NET và V8 trên arm64 dùng bộ nhớ tương đương amd64, nên hai hồ sơ trên áp dụng được cho Oracle Ampere A1. Khi có máy arm64 thật, chạy lại `measure.sh` theo mục [Cách đo](#cách-đo) rồi bổ sung bảng.
 
