@@ -97,7 +97,7 @@ Thay cho Google Meet khi trung tâm chưa có Google Workspace. Trung tâm chọ
 `scripts/deploy.sh <tag>` ghi `IMAGE_TAG=<tag>` vào `.env` rồi:
 
 1. Kéo image của tag; build `konnyaku-postgres:17` nếu server chưa có.
-2. Hạ tầng (`postgres`, `backup`, `caddy`, `coturn`) chỉ được tạo lại khi định nghĩa của nó trong `compose.yaml` đổi (với `postgres` là một lần khởi động lại DB, vài giây lỗi — báo trước khi deploy bản như vậy). `Caddyfile` được nạp lại êm (`caddy reload`, không cắt kết nối).
+2. Hạ tầng (`postgres`, `backup`, `redis`, `caddy`, `coturn`, giám sát nếu bật) chỉ được tạo lại khi định nghĩa của nó trong `compose.yaml` đổi (với `postgres` là một lần khởi động lại DB, vài giây lỗi — báo trước khi deploy bản như vậy). `Caddyfile` được nạp lại êm (`caddy reload`, không cắt kết nối).
 3. **Migrator chạy trước**. Lỗi thì dừng, chưa bản sao nào bị đổi.
 4. `api`, rồi `web`, rồi `worker`: **từng bản sao một** — tạo một bản mới bên cạnh, chờ healthcheck báo `healthy` (tối đa `DEPLOY_HEALTH_TIMEOUT`, 180 s), rồi mới dừng một bản cũ. Bản mới không healthy thì bị xoá, script dừng và **bản cũ vẫn phục vụ**. Lúc cao nhất có thêm một bản sao (máy 2 GB: thêm ~150–400 MiB trong vài chục giây).
 5. Bản cũ không bị cắt ngang request nào:
