@@ -44,7 +44,7 @@ Thay cho Google Meet khi trung tâm chưa có Google Workspace. Trung tâm chọ
 
 ## Chuẩn bị (một lần)
 
-1. **VPS**: Ubuntu 24.04, 4 vCPU / 8 GB RAM / 100 GB SSD, x86 hoặc ARM (ví dụ Oracle Cloud Always Free, Ampere A1). Máy test 2 GB RAM chạy được nếu đặt `WEB_REPLICAS=1` và `API_REPLICAS=1`. Cài Docker Engine và plugin compose theo hướng dẫn chính thức của Docker. Mở firewall (cả firewall của nhà cung cấp cloud, ví dụ Security List của Oracle):
+1. **VPS**: Ubuntu 24.04, 4 vCPU / 8 GB RAM / 100 GB SSD, x86 hoặc ARM (ví dụ Oracle Cloud Always Free, Ampere A1). Máy test 2 GB RAM (1–2 vCPU) chạy được với hồ sơ **máy nhỏ** trong `.env.example` (1 web, 1 api chạy luôn outbox, không có container worker); số đo và cách chọn tham số ở [toi-uu-tai-nguyen.md](toi-uu-tai-nguyen.md). Cài Docker Engine và plugin compose theo hướng dẫn chính thức của Docker. Mở firewall (cả firewall của nhà cung cấp cloud, ví dụ Security List của Oracle):
 
    | Cổng | Giao thức | Dùng cho |
    | --- | --- | --- |
@@ -203,6 +203,8 @@ docker compose exec postgres psql -U konnyaku -c "CREATE ROLE kk_notification LO
 | Trạng thái | `docker compose ps` |
 | Log một thành phần | `docker compose logs -f --tail 200 api` |
 | Tăng bản sao web | `WEB_REPLICAS=3` trong `.env`, rồi `docker compose up -d` |
+| Đổi hồ sơ RAM (2 GB / 8 GB) | Sửa khối *Machine profile* trong `.env` theo `.env.example`, rồi `docker compose up -d` ([toi-uu-tai-nguyen.md](toi-uu-tai-nguyen.md)) |
+| RAM/CPU từng container | `docker stats --no-stream` |
 | Vào psql | `docker compose exec postgres psql -U konnyaku` |
 | Dung lượng | `docker system df` |
 | Phòng học đang mở | `docker compose exec caddy wget -qO- http://signaling:5100/rtc/health` (số phòng, số người) |
