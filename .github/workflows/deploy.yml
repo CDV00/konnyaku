@@ -1,7 +1,7 @@
 name: Deploy
 
-# Builds the four images for amd64 and arm64, smoke-tests each on its own architecture, pushes them to GHCR
-# as multi-arch tags and rolls the server forward.
+# Builds the five images (api, worker, migrator, web, signaling) for amd64 and arm64, smoke-tests each on its own
+# architecture, pushes them to GHCR as multi-arch tags and rolls the server forward.
 # After CI succeeds on main it deploys to staging; production is deployed by hand
 # (Actions → Deploy → Run workflow → production), optionally gated by required reviewers on that environment.
 # Repository settings needed (Settings → Environments → production / staging):
@@ -68,10 +68,13 @@ jobs:
           docker buildx build frontend --load \
             --cache-from "type=gha,scope=web-${{ matrix.arch }}" --cache-to "type=gha,mode=max,scope=web-${{ matrix.arch }}" \
             -t "$REGISTRY/konnyaku-web:$TAG"
+          docker buildx build services/signaling --load \
+            --cache-from "type=gha,scope=signaling-${{ matrix.arch }}" --cache-to "type=gha,mode=max,scope=signaling-${{ matrix.arch }}" \
+            -t "$REGISTRY/konnyaku-signaling:$TAG"
       - name: Smoke test
         run: infra/deploy/scripts/smoke-test.sh "$REGISTRY/konnyaku" "$TAG"
       - name: Push
-        run: for image in api worker migrator web; do docker push --quiet "$REGISTRY/konnyaku-$image:$TAG"; done
+        run: for image in api worker migrator web signaling; do docker push --quiet "$REGISTRY/konnyaku-$image:$TAG"; done
 
   # One multi-arch tag per image (<sha> and latest): Docker on the server pulls the variant for its CPU.
   manifest:
@@ -95,7 +98,7 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           registry="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"
-          for image in api worker migrator web; do
+          for image in api worker migrator web signaling; do
             docker buildx imagetools create -t "$registry/konnyaku-$image:$TAG" -t "$registry/konnyaku-$image:latest" \
               "$registry/konnyaku-$image:$TAG-amd64" "$registry/konnyaku-$image:$TAG-arm64"
           done

@@ -17,6 +17,7 @@ public interface IWorkspaceDbContext
     DbSet<HostAccount> Hosts { get; }
     DbSet<HostLease> Leases { get; }
     DbSet<Recording> Recordings { get; }
+    DbSet<RoomPresence> RoomPresences { get; }
 
     EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
 
@@ -32,7 +33,10 @@ public interface IVirtualRoomProvider
 {
     string Name { get; }
 
-    Task<CreatedSpace> CreateSpaceAsync(string hostEmail, Guid sessionId, DateTimeOffset startsAt, DateTimeOffset endsAt, CancellationToken cancellationToken);
+    /// <summary>False when rooms need no licensed organizer account, so sessions do not take a host from the pool.</summary>
+    bool UsesHostPool => true;
+
+    Task<CreatedSpace> CreateSpaceAsync(string? hostEmail, Guid sessionId, DateTimeOffset startsAt, DateTimeOffset endsAt, CancellationToken cancellationToken);
 
     Task GrantRecordingAccessAsync(string fileRef, IReadOnlyCollection<Guid> viewerUserIds, CancellationToken cancellationToken);
 }
@@ -96,18 +100,25 @@ public sealed class ProvisionMeetingHandler(IWorkspaceDbContext db, HostAllocato
 
         var lease = await db.Leases.FirstOrDefaultAsync(l => l.SessionId == sessionId &&
             (l.Status == LeaseStatus.Reserved || l.Status == LeaseStatus.Provisioned), ct)
-            ?? await allocator.AcquireAsync(sessionId, startsAt, endsAt, ct);
+            ?? (provider.UsesHostPool ? await allocator.AcquireAsync(sessionId, startsAt, endsAt, ct) : NewHostlessLease(sessionId, startsAt, endsAt));
         if (lease is null || lease.Status == LeaseStatus.Provisioned)
         {
             // No free host: reported by the pool capacity view; a reconciliation job retries later.
             return lease;
         }
 
-        var host = await db.Hosts.FirstAsync(h => h.Id == lease.HostAccountId, ct);
-        var space = await provider.CreateSpaceAsync(host.Email, sessionId, startsAt, endsAt, ct);
+        var hostEmail = lease.HostAccountId is { } hostId ? (await db.Hosts.FirstAsync(h => h.Id == hostId, ct)).Email : null;
+        var space = await provider.CreateSpaceAsync(hostEmail, sessionId, startsAt, endsAt, ct);
         lease.Provisioned(space.SpaceName, space.MeetingUri);
         db.Publish(new MeetingProvisionedV1(sessionId, space.MeetingUri));
         await db.SaveChangesAsync(ct);
+        return lease;
+    }
+
+    private HostLease NewHostlessLease(Guid sessionId, DateTimeOffset startsAt, DateTimeOffset endsAt)
+    {
+        var lease = new HostLease(null, sessionId, startsAt, endsAt);
+        db.Leases.Add(lease);
         return lease;
     }
 
@@ -158,16 +169,7 @@ public sealed class JoinHandler(IWorkspaceDbContext db, ISchedulingApi schedulin
 
     public async Task<Result<JoinInfo>> HandleAsync(Guid sessionId, Guid userId, bool isLearner, IReadOnlyCollection<string> roles, CancellationToken ct)
     {
-        var session = await scheduling.GetSessionAsync(sessionId, ct);
-        if (session is null)
-        {
-            return Error.NotFound("workspace.session_not_found");
-        }
-
-        var allowed = isLearner
-            ? await HoldsSeatAsync(session.ClassId, userId, ct)
-            : session.TeacherId == userId || roles.Any(CoordinatorRoles.Contains);
-        if (!allowed)
+        if (await AuthorizeAsync(sessionId, userId, isLearner, roles, ct) is null)
         {
             return Error.NotFound("workspace.session_not_found");
         }
@@ -178,6 +180,21 @@ public sealed class JoinHandler(IWorkspaceDbContext db, ISchedulingApi schedulin
         return lease?.MeetingUri is { } uri
             ? new JoinInfo(sessionId, uri)
             : Error.Conflict("workspace.meeting_not_ready");
+    }
+
+    /// <summary>The session when the person may attend it: a learner holding a seat, its teacher, or a coordinator.</summary>
+    public async Task<SessionDto?> AuthorizeAsync(Guid sessionId, Guid userId, bool isLearner, IReadOnlyCollection<string> roles, CancellationToken ct)
+    {
+        var session = await scheduling.GetSessionAsync(sessionId, ct);
+        if (session is null)
+        {
+            return null;
+        }
+
+        var allowed = isLearner
+            ? await HoldsSeatAsync(session.ClassId, userId, ct)
+            : session.TeacherId == userId || roles.Any(CoordinatorRoles.Contains);
+        return allowed ? session : null;
     }
 
     private async Task<bool> HoldsSeatAsync(Guid classId, Guid userId, CancellationToken ct)
@@ -193,7 +210,7 @@ public sealed record AddHostCommand(string Email);
 
 public sealed record HostView(Guid Id, string Email, string Status);
 
-public sealed record LeaseView(Guid Id, Guid HostAccountId, Guid SessionId, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string Status, string? MeetingUri);
+public sealed record LeaseView(Guid Id, Guid? HostAccountId, Guid SessionId, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string Status, string? MeetingUri);
 
 public sealed class PoolHandlers(IWorkspaceDbContext db, TimeProvider clock)
 {
@@ -204,12 +221,18 @@ public sealed class PoolHandlers(IWorkspaceDbContext db, TimeProvider clock)
             return Error.Validation("workspace.provider_unknown");
         }
 
-        if (await db.Connections.AnyAsync(ct))
+        // A tenant may switch platform (e.g. from the fake one to the built-in classroom): sessions provisioned
+        // from now on use the new provider, rooms already created keep their links.
+        var existing = await db.Connections.FirstOrDefaultAsync(ct);
+        if (existing is not null)
         {
-            return Error.Conflict("workspace.connection_exists");
+            existing.Change(command.Provider, command.Domain);
+        }
+        else
+        {
+            db.Connections.Add(new WorkspaceConnection(command.Provider, command.Domain, clock.GetUtcNow()));
         }
 
-        db.Connections.Add(new WorkspaceConnection(command.Provider, command.Domain, clock.GetUtcNow()));
         await db.SaveChangesAsync(ct);
         return command.Provider;
     }

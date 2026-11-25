@@ -15,6 +15,7 @@ public sealed class KonnyakuApiFactory(PostgresFixture db, bool captcha = false)
     public const string PlatformKey = "test-platform-key";
     public const string BaseDomain = "test.local";
     public const string CaptchaKey = "test-captcha-key-0123456789abcdef-0123456789";
+    public const string RtcSecret = "test-rtc-secret-0123456789abcdef-0123456789";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -30,6 +31,10 @@ public sealed class KonnyakuApiFactory(PostgresFixture db, bool captcha = false)
         builder.UseSetting("RateLimits:PublicFormsPerMinute", "1000");
         builder.UseSetting("Captcha:Enabled", captcha ? "true" : "false");
         builder.UseSetting("Captcha:Key", CaptchaKey);
+        builder.UseSetting("Rtc:SignalingSecret", RtcSecret);
+        builder.UseSetting("Rtc:StunUrls:0", "stun:turn.test.local:3478");
+        builder.UseSetting("Rtc:TurnUrls:0", "turn:turn.test.local:3478?transport=udp");
+        builder.UseSetting("Rtc:TurnSecret", "test-turn-secret");
         builder.ConfigureServices(services =>
         {
             foreach (var contextType in OutboxContexts)

@@ -4,13 +4,13 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
-/** Not for search engines: signed-in zones, sign-in, route handlers, dev meeting room (header works for non-HTML too). */
+/** Not for search engines: signed-in zones, sign-in, route handlers, meeting and classroom rooms (works for non-HTML too). */
 const noindex = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
 
 const config: NextConfig = {
   transpilePackages: ["@konnyaku/i18n", "@konnyaku/session", "@konnyaku/ui"],
   async headers() {
-    return ["learn", "teach", "ops", "login", "api", "dev-meeting"].flatMap((segment) => [
+    return ["learn", "teach", "ops", "login", "api", "dev-meeting", "room"].flatMap((segment) => [
       { source: `/${segment}`, headers: noindex },
       { source: `/${segment}/:path*`, headers: noindex },
     ]);

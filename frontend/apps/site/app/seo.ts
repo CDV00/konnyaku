@@ -5,8 +5,8 @@ import type { TenantInfo } from "@konnyaku/session";
 import { getPathname } from "@/i18n/navigation";
 import { routing, type PublicHref } from "@/i18n/routing";
 
-/** Paths search engines must not index: signed-in zones, sign-in, route handlers, the dev meeting room. */
-export const privatePaths = ["/learn", "/teach", "/ops", "/login", "/api", "/dev-meeting"] as const;
+/** Paths search engines must not index: signed-in zones, sign-in, route handlers, meeting and classroom rooms. */
+export const privatePaths = ["/learn", "/teach", "/ops", "/login", "/api", "/dev-meeting", "/room"] as const;
 
 /** Origin the visitor used (tenant host); https behind the proxy, http only for *.localhost in dev. */
 export async function siteOrigin(): Promise<string> {
