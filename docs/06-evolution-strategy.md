@@ -39,6 +39,7 @@ Bảng dưới là **danh sách module chuẩn** của Konnyaku; các chương k
 | `Billing` | `billing` | Bảng giá, gói học, đơn hàng, hóa đơn, thanh toán, **credit ledger & số dư buổi** | `IBillingApi` (số dư) |
 | `Hr` | `hr` | Hồ sơ GV, năng lực, availability, đơn giá, timesheet, kỳ lương | `IHrApi` (năng lực, availability) |
 | `Notification` | `notification` | Hàng đợi thông báo (chống trùng, retry), template theo kênh + locale, gửi email (SMTP), nhắc lịch, nhật ký | `INotificationApi` (yêu cầu gửi) + event `NotificationRequestedV1` |
+| `Assessment` | `assessment` | Một bộ máy đánh giá cho bài tập, kiểm tra, thi thử, xếp lớp: ngân hàng câu hỏi (phiên bản, rich text có ruby), đề theo phần có giờ riêng, câu cố định / rút ngẫu nhiên, giao bài, lượt làm (giờ theo server, tự nộp), tự chấm, hàng chờ chấm theo thang tiêu chí, công bố điểm | — (phát `AssessmentGradedV1`) |
 | `Reporting` | `reporting` | Read model báo cáo, đọc replica | — |
 | `Ai` *(V3)* | `ai` | Pipeline tóm tắt, chấm điểm | — (chỉ qua event) |
 
@@ -62,6 +63,8 @@ flowchart TD
   Workspace --> Scheduling
   Workspace --> Academic
   Notification
+  Assessment --> Academic
+  Assessment --> Scheduling
   Reporting -.->|đọc read model| Academic
 ```
 
@@ -93,6 +96,7 @@ Luật phụ thuộc:
 | `LearnerAccountCreatedV1` | Identity | Notification (chào mừng) |
 | `PayrollPeriodLockedV1` | Hr | Notification (báo giáo viên) |
 | `NotificationRequestedV1` | mọi module | Notification (gửi theo yêu cầu, ví dụ email đặt lại mật khẩu) |
+| `AssessmentGradedV1` | Assessment | (sau) Sổ điểm, Notification báo điểm — mang `VisibleFrom` theo chính sách công bố |
 | `BranchCreatedV1`, `SettingChangedV1` | Organization, Platform | Mọi module giữ bản sao cục bộ |
 
 Mọi event có envelope chung: `event_id`, `tenant_id`, `occurred_at`, `correlation_id`, `actor_id`, `schema_version`.
@@ -146,7 +150,7 @@ builder.AddModules(
     new IdentityModule(), new CrmModule(), new AcademicModule(),
     new SchedulingModule(), new BillingModule(), new LearningModule(),
     new HrModule(), new WorkspaceModule(), new NotificationModule(),
-    new ReportingModule());
+    new AssessmentModule(), new ReportingModule());
 
 // Sau khi tách: Konnyaku.Workspace.Host/Program.cs
 builder.AddModules(new WorkspaceModule());

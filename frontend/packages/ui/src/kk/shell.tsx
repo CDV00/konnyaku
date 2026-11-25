@@ -5,6 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
+  ClipboardCheck,
+  Library,
+  PenLine,
   CalendarCheck,
   CalendarClock,
   CalendarDays,
@@ -60,6 +63,9 @@ const icons = {
   audit: ScrollText,
   operators: ShieldCheck,
   account: KeyRound,
+  tests: ClipboardCheck,
+  questions: Library,
+  grading: PenLine,
   schedule: CalendarCheck,
   makeups: CalendarClock,
 } satisfies Record<string, LucideIcon>;

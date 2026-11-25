@@ -97,7 +97,7 @@ Mở **Chương trình**. Mỗi chương trình là một thẻ: mã, tên, nhã
 | --- | --- |
 | ![Thêm chương trình](images/chuong-trinh-them.webp) | ![Thêm cấp độ](images/cap-do-them.webp) |
 
-> Chưa có: bài học / giáo trình theo buổi, tài liệu, bài tập, bài kiểm tra.
+> Chưa có: bài học / giáo trình theo buổi, tài liệu. Bài tập và bài kiểm tra do giáo viên, quản lý cơ sở, điều phối soạn trong `/teach/assessments` (xem [Giáo viên → Bài tập và kiểm tra](giao-vien.md#bài-tập-và-kiểm-tra)).
 
 ## Quy tắc đặt buổi
 

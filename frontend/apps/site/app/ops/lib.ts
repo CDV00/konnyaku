@@ -155,7 +155,8 @@ export type Permission =
   | "crm.students.view"
   | "crm.export"
   | "crm.privacy"
-  | "notification.messages";
+  | "notification.messages"
+  | "assessment.manage";
 
 type PermissionScope = { permission: Permission; tenantWide: boolean; branchIds: string[] };
 

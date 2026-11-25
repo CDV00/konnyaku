@@ -24,6 +24,14 @@ Thẻ hướng dẫn trên **Tổng quan** của quản lý cơ sở gồm 3 bư
 | Thêm học viên, cấp tài khoản | [Khu vực Vận hành → Học viên](van-hanh-chung.md#học-viên) |
 | Xuất CSV, in danh sách | [Khu vực Vận hành → Xuất CSV và In](van-hanh-chung.md#xuất-csv-và-in) |
 
+## Bài tập và kiểm tra
+
+Quản lý cơ sở và điều phối làm mọi việc của giáo viên với bài tập, bài kiểm tra (ngân hàng câu hỏi, đề, giao bài, chấm bài) cho **mọi lớp của cơ sở mình**, trong khu vực Giáo viên: mở `/teach/assessments` (xem [Giáo viên → Bài tập và kiểm tra](giao-vien.md#bài-tập-và-kiểm-tra)). Bạn sửa được ngân hàng và đề của mọi người.
+
+Mục **Bài tập & kiểm tra** trong khu vực Vận hành chỉ để xem: số bài đã giao, số bài đang mở, số bài chờ chấm, điểm trung bình 30 ngày, các bài giao gần đây của cơ sở mình.
+
+![Tổng quan bài tập và kiểm tra](images/quan-ly-co-so-bai-tap.webp)
+
 ## Theo dõi cơ sở
 
 Hiện chưa có báo cáo riêng theo cơ sở (doanh thu, chuyên cần, sĩ số). Cách xem nhanh:

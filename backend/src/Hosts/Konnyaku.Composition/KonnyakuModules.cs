@@ -1,4 +1,5 @@
 using Konnyaku.Academic.Endpoints;
+using Konnyaku.Assessment.Endpoints;
 using Konnyaku.Billing.Endpoints;
 using Konnyaku.Catalog.Endpoints;
 using Konnyaku.Crm.Endpoints;
@@ -31,5 +32,6 @@ public static class KonnyakuModules
         new LearningModule(),
         new HrModule(),
         new NotificationModule(),
+        new AssessmentModule(),
     ];
 }

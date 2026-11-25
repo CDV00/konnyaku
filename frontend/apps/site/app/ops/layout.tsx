@@ -27,6 +27,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const t = await getTranslations("ops");
   const shell = await getTranslations("shell");
   const roles = await getTranslations("roles");
+  const assessment = await getTranslations("assessment");
   const links: NavLink[] = [
     { href: "/ops", label: t("nav.home"), icon: "home", exact: true },
     ...sections.flatMap((section): NavLink[] => [
@@ -42,6 +43,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     ...(access.any("notification.messages")
       ? [{ href: "/ops/notifications", label: t("nav.notifications"), icon: "notifications" as const }]
       : []),
+    ...(access.any("assessment.manage") ? [{ href: "/ops/assessments", label: assessment("ops.nav"), icon: "tests" as const }] : []),
   ];
   return (
     <html lang={locale} suppressHydrationWarning className={appFont.variable}>

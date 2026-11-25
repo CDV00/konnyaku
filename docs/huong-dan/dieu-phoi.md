@@ -126,6 +126,10 @@ Khung **Học viên xin nghỉ nhiều** liệt kê học viên xin nghỉ **t�
 
 Khung **Quy tắc đặt buổi** cho xem các mốc đang áp dụng: hạn xin nghỉ, số lần xin nghỉ mỗi khoá, hạn quyền học bù, hạn đổi hình thức, số chỗ học bù mỗi buổi, thời gian giữ chỗ cho hàng chờ. Chỉ quản trị sửa được (xem [Quản trị → Quy tắc đặt buổi](quan-tri-trung-tam.md#quy-tắc-đặt-buổi)).
 
+## Bài tập và kiểm tra
+
+Điều phối soạn đề, giao bài và chấm bài cho mọi lớp của cơ sở mình như giáo viên (`/teach/assessments`): xem [Giáo viên → Bài tập và kiểm tra](giao-vien.md#bài-tập-và-kiểm-tra) và [Quản lý cơ sở → Bài tập và kiểm tra](quan-ly-co-so.md#bài-tập-và-kiểm-tra).
+
 ## Bảo lưu, chuyển lớp
 
 Chưa có trên giao diện. Xem cách xử lý tạm thời ở [Quy trình: bảo lưu và nghỉ học](quy-trinh.md#5-bảo-lưu-và-nghỉ-học).

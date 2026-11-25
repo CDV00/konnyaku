@@ -19,6 +19,11 @@
 | **Học bù** | Buổi học ở lớp khác thay cho buổi đã xin nghỉ; có mặt thì trừ một buổi trong gói lớp gốc |
 | **Hàng chờ** | Danh sách chờ chỗ của một buổi đã đầy; chỗ trống được giữ có hạn cho người đầu hàng |
 | **Lớp linh hoạt** | Lớp không có lịch cố định cho từng học viên: mua gói rồi tự đặt từng buổi |
+| **Ngân hàng câu hỏi** | Kho câu hỏi theo ngôn ngữ, Riêng tư hoặc Dùng chung; câu hỏi có dạng, điểm, kỹ năng, trình độ, thẻ |
+| **Đề** | Bộ câu hỏi chia phần (thường theo kỹ năng), câu cố định hoặc bốc ngẫu nhiên; phần có thể có giờ riêng |
+| **Bài giao** | Một đề giao cho lớp, một buổi hoặc vài học viên, với loại bài, hạn nộp, số lần làm, cách công bố điểm |
+| **Lượt làm** | Một lần học viên làm một bài giao: đang làm, chờ chấm, đã chấm |
+| **Thang tiêu chí** | Các tiêu chí chấm tự luận, mỗi tiêu chí có mức tối đa (ví dụ IELTS Writing: 4 tiêu chí, band 0–9) |
 | **Lịch tuần** | Các ngày trong tuần + giờ bắt đầu + giáo viên + phòng của lớp; hệ thống sinh các buổi từ đây |
 | **Buổi** | Một lần học cụ thể của lớp, gắn một bài theo thứ tự. Trạng thái: Đã xếp, Đã tạo phòng, Đang học, Đã học, Đã huỷ |
 | **Lead** (khách hàng tiềm năng) | Người để lại thông tin trên form đăng ký tư vấn, chưa là học viên. Trạng thái: Mới, Đã liên hệ, Đã nhập học, Không theo |

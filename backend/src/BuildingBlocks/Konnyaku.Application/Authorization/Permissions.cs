@@ -50,10 +50,16 @@ public static class Permissions
     /// <summary>The notification log of the center: read who was emailed, resend (center-wide; TenantAdmin only).</summary>
     public const string Notifications = "notification.messages";
 
+    /// <summary>
+    /// Tests and homework of every class of the branch (assignments, grading, results) and every question bank and paper.
+    /// A teacher without it manages their own banks and papers and the assignments of the classes they teach.
+    /// </summary>
+    public const string Assessments = "assessment.manage";
+
     public static readonly IReadOnlyList<string> All =
     [
         Programs, Classes, ClassesView, Schedules, Branches, Rooms, Holidays, Staff, Accounts, PayRates, Payroll, Packages, Orders, Payments,
-        Refunds, Sales, Finance, Leads, Students, StudentsView, PersonalDataExport, Privacy, Notifications,
+        Refunds, Sales, Finance, Leads, Students, StudentsView, PersonalDataExport, Privacy, Notifications, Assessments,
     ];
 }
 
@@ -76,7 +82,7 @@ public static class StaffRoles
 
 /// <summary>
 /// The role → permission matrix. TenantAdmin changes everything; branch managers and coordinators run classes, schedules,
-/// rooms and days off of their branches and keep student records (branch managers also follow up the leads of their
+/// rooms, days off, tests and homework of their branches and keep student records (branch managers also follow up the leads of their
 /// branches); accountants handle packages, orders, payments, refunds, pay rates and payroll and read the student list;
 /// consultants handle leads and student records and place orders; teachers change nothing and see only the classes they
 /// teach. Account security (locking, password and 2FA resets, security log) is the administrator's alone.
@@ -92,12 +98,12 @@ public static class RolePermissions
         [StaffRoles.BranchManager] = new HashSet<string>
         {
             Permissions.Classes, Permissions.ClassesView, Permissions.Schedules, Permissions.Rooms, Permissions.Holidays, Permissions.Leads,
-            Permissions.Students, Permissions.StudentsView, Permissions.PersonalDataExport,
+            Permissions.Students, Permissions.StudentsView, Permissions.PersonalDataExport, Permissions.Assessments,
         },
         [StaffRoles.Coordinator] = new HashSet<string>
         {
             Permissions.Classes, Permissions.ClassesView, Permissions.Schedules, Permissions.Rooms, Permissions.Holidays,
-            Permissions.Students, Permissions.StudentsView,
+            Permissions.Students, Permissions.StudentsView, Permissions.Assessments,
         },
         [StaffRoles.Accountant] = new HashSet<string>
         {

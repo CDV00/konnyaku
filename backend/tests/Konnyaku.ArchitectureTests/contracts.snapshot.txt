@@ -71,6 +71,24 @@ Konnyaku.Academic.Contracts.RosterEntryDto
   Guid EnrollmentId
   Guid StudentId
   String Status
+Konnyaku.Assessment.Contracts.AssessmentGradedV1
+  Boolean Late
+  DateTimeOffset GradedAt
+  DateTimeOffset VisibleFrom
+  Decimal MaxScore
+  Decimal Score
+  Guid AssignmentId
+  Guid AttemptId
+  Guid ClassId
+  Guid PaperId
+  Guid StudentId
+  IReadOnlyList`1 Skills
+  Int32 AttemptNumber
+  String Kind
+Konnyaku.Assessment.Contracts.SkillScoreDto
+  Decimal MaxScore
+  Decimal Score
+  String SkillCode
 Konnyaku.Billing.Contracts.ConsumeResult
   Boolean Consumed
   Nullable`1 RemainingCredits
