@@ -41,6 +41,23 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build
 
+  signaling:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/signaling
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: services/signaling
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+
   # Builds the production images on amd64 and on a real arm64 runner and starts them (no push):
   # catches Dockerfile and architecture problems in the PR, before the Deploy workflow runs on main.
   images:
@@ -65,5 +82,8 @@ jobs:
           docker buildx build frontend --load \
             --cache-from "type=gha,scope=web-${{ matrix.arch }}" --cache-to "type=gha,mode=max,scope=web-${{ matrix.arch }}" \
             -t konnyaku-web:ci
+          docker buildx build services/signaling --load \
+            --cache-from "type=gha,scope=signaling-${{ matrix.arch }}" --cache-to "type=gha,mode=max,scope=signaling-${{ matrix.arch }}" \
+            -t konnyaku-signaling:ci
       - name: Smoke test
         run: infra/deploy/scripts/smoke-test.sh konnyaku ci
