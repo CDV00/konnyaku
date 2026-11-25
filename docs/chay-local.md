@@ -83,15 +83,15 @@ Mở `http://review.localhost:4000/login`. Mật khẩu chung: nhân viên `Revi
 | Vai trò | Tài khoản | Vào | Xem được gì |
 | --- | --- | --- | --- |
 | Quản trị trung tâm (TenantAdmin) | `admin@review.example.com` | `/ops` | Mọi màn vận hành, kỳ lương tháng trước đã chốt, tháng này đang mở |
-| Quản lý cơ sở (BranchManager) | `manager@review.example.com` | `/ops` | 3 cơ sở (Online, Quận 1, Cầu Giấy), phòng học, ngày nghỉ |
+| Quản lý cơ sở (BranchManager) | `manager@review.example.com` | `/ops` | 3 cơ sở (Online, Quận 1, Cầu Giấy), phòng học, ngày nghỉ; tổng quan **Bài tập & kiểm tra** |
 | Điều phối (Coordinator) | `coordinator@review.example.com` | `/ops` | 5 lớp; lớp `KO-T1-ON3` chưa xếp lịch để thử xếp |
 | Tư vấn (Consultant) | `consultant@review.example.com` | `/ops` | Lead ở đủ trạng thái (mới, đã liên hệ, đã chuyển đổi, mất) |
 | Kế toán (Accountant) | `accountant@review.example.com` | `/ops` | Đơn đã trả, trả một nửa, chưa trả, một đơn chờ hoàn tiền vì lớp đầy và một đơn đã hoàn (phiếu chi `PC-000001`). **Đã bật xác thực 2 bước**: seed in ra khoá bí mật (mỗi lần seed một khoá mới); lấy mã 6 số hiện tại bằng `python infra/scripts/seed_review.py --totp <khoá>` hoặc thêm khoá vào ứng dụng xác thực |
 | Kế toán Cầu Giấy | `accountant.hn@review.example.com` | `/ops` | Kế toán giao theo cơ sở: chỉ thu tiền, hoàn tiền, in phiếu cho đơn của cơ sở Cầu Giấy |
-| Giáo viên tiếng Nhật | `teacher.ja@review.example.com` | `/teach` | Lớp online `JP-N5-ON1` đã học khoảng 4 tuần, điểm danh đã xác nhận, công tháng này |
-| Giáo viên tiếng Anh | `teacher.en@review.example.com` | `/teach` | Lớp offline `EN-A2-Q1` (phòng P101), điểm danh tay |
-| Giáo viên tiếng Trung | `teacher.zh@review.example.com` | `/teach` | Lớp `ZH-HSK1-HN` khai giảng tuần sau |
-| Học viên | `hv-review01` … `hv-review12` | `/learn` | `hv-review01`–`05`: lớp tiếng Nhật, số buổi đã trừ, video xem lại; `06`–`09`: lớp tiếng Anh offline; `10`: lớp tiếng Trung; `11`: đơn mới trả một nửa; `12`: đơn chưa trả |
+| Giáo viên tiếng Nhật | `teacher.ja@review.example.com` | `/teach` | Lớp online `JP-N5-ON1` đã học khoảng 4 tuần, điểm danh đã xác nhận; ngân hàng câu hỏi N5 (furigana) và bài kiểm tra nhanh đã có 3 lượt nộp, công tháng này |
+| Giáo viên tiếng Anh | `teacher.en@review.example.com` | `/teach` | Lớp offline `EN-A2-Q1` (phòng P101), điểm danh tay; bài kiểm tra 2 phần có giờ, bài tự luận của `hv-review06`, `07` đang chờ chấm trong **Chấm bài** |
+| Giáo viên tiếng Trung | `teacher.zh@review.example.com` | `/teach` | Lớp `ZH-HSK1-HN` khai giảng tuần sau; ngân hàng HSK1 (pinyin) và bài tập về nhà đang mở |
+| Học viên | `hv-review01` … `hv-review12` | `/learn` | `hv-review01`–`05`: lớp tiếng Nhật, số buổi đã trừ, video xem lại; `06`–`09`: lớp tiếng Anh offline; `10`: lớp tiếng Trung; `11`: đơn mới trả một nửa; `12`: đơn chưa trả. Bài tập & kiểm tra: `hv-review04`, `05` còn làm được bài kiểm tra nhanh tiếng Nhật, `hv-review10` có bài tập tiếng Trung |
 | Phụ huynh | `ph-review01` | `/learn` | Chưa gắn với học viên nào (tính năng liên kết phụ huynh chưa có) |
 
 Thử danh sách lớn (phân trang, tìm kiếm không dấu, giới hạn xuất CSV): thêm học viên giả vào trung tâm `review` (tên tiếng Việt ngẫu nhiên, SĐT ngẫu nhiên, email `hv.<n>@example.com`, khoảng 1 phút cho 1.000 người):
