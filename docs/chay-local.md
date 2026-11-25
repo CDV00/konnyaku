@@ -128,6 +128,41 @@ Link trong email dùng `Notification:SiteUrlTemplate` (dev: `http://{host}:4000`
 
 Dùng Claude Code: các dịch vụ trên đã khai báo trong `.claude/launch.json` (`api`, `worker`, `site`); bảo Claude "chạy dev server" là đủ. Hạ tầng Docker và migration vẫn phải chạy trước.
 
+## Test giao diện tự động (Playwright)
+
+`frontend/e2e` chạy các luồng chính trên Chromium thật, với một hệ thống riêng dựng từ đầu (không đụng database dev). CI chạy cùng script này trong job `e2e` của mỗi PR.
+
+| Luồng (`frontend/e2e/tests`) | Kiểm tra |
+| --- | --- |
+| `public-lead` | Trang công khai `vi`/`en`, gửi form đăng ký → tư vấn viên thấy lead ở `/ops/leads` (SĐT bị che) |
+| `realms` | Học viên và giáo viên đăng nhập cùng lúc một trình duyệt; đăng xuất một bên không ảnh hưởng bên kia, về đúng host trung tâm |
+| `enrollment` | Quản trị tạo học viên + tài khoản → đơn → thu đủ tiền → Worker xếp lớp → học viên đăng nhập lần đầu, đổi mật khẩu, thấy lịch và số buổi |
+| `attendance` | Giáo viên xác nhận điểm danh buổi đã học (phòng Fake) → số buổi của học viên giảm; giáo viên không vào được lead (giao diện, relay, API) |
+| `refund` | Kế toán đăng nhập 2 bước, hoàn tiền đơn chờ hoàn (lớp đầy), tải phiếu thu PDF |
+| `password-reset` | Quên mật khẩu → email trong Mailpit → đặt lại → đăng nhập bằng mật khẩu mới; link chỉ dùng một lần |
+| `student-search` | Tìm "ngoc an" ra "Lê Ngọc Ân"; quản trị xem được liên hệ (có ghi nhật ký), kế toán chỉ thấy bản che |
+| `platform` | Super-admin đăng nhập bằng mã TOTP trên `admin.localhost`, tạo trung tâm; quản trị viên mới phải đổi mật khẩu tạm |
+
+Lần đầu cài trình duyệt: `npx -y pnpm@10.34.9 --dir frontend/e2e exec playwright install chromium`. Sau đó một lệnh (cần Docker, .NET 10, Python 3; từ thư mục gốc repo):
+
+```bash
+npx -y pnpm@10.34.9 --dir frontend e2e
+```
+
+Script `frontend/e2e/run.mjs` dựng PostgreSQL + Mailpit trong Docker (project `konnyaku-e2e`, database trống), build backend (Release) và web (`next build`) song song, chạy Migrator, bật Api/Worker/web, chạy `seed_review.py`, rồi `playwright test`; xong thì tắt và xoá hết. Khoảng 6–8 phút, phần lớn là build và seed. Tuỳ chọn:
+
+| Lệnh | Dùng khi |
+| --- | --- |
+| `node frontend/e2e/run.mjs --no-build` | Chạy lại, giữ bản build lần trước |
+| `node frontend/e2e/run.mjs -- --grep refund` | Sau `--` là tham số của `playwright test` (chỉ chạy một luồng, `--headed`, `--repeat-each 3`…) |
+| `node frontend/e2e/run.mjs --serve` | Dựng và seed rồi giữ nguyên để viết test: ở terminal khác `cd frontend/e2e && npx playwright test` (hoặc `--ui`); Ctrl+C để tắt |
+
+Cổng riêng, không trùng hệ thống dev: PostgreSQL 5450, Mailpit 1030/8030, API 5190, web 4950 (`http://review.localhost:4950`); đổi bằng biến `E2E_PG_PORT`, `E2E_SMTP_PORT`, `E2E_MAILPIT_PORT`, `E2E_API_PORT`, `E2E_WEB_PORT`. Python khác `python`/`python3`: đặt `PYTHON`. Môi trường test tắt captcha (`Captcha__Enabled=false`) và nới giới hạn tần suất form công khai / quên mật khẩu.
+
+Khi test lỗi: `frontend/e2e/playwright-report` (mở bằng `npx playwright show-report` trong `frontend/e2e`) có trace, video, ảnh chụp; log server ở `frontend/e2e/logs/{api,worker,web}.log`. Trên CI các thư mục này là artifact `e2e-results` của job.
+
+Viết test mới: mỗi test tự tạo dữ liệu nó thay đổi qua API (`support/api.ts`: lớp riêng có giáo viên riêng, học viên, đơn…), tên có hậu tố ngẫu nhiên, nên các test chạy song song và chạy lại được trên cùng database đã seed. Chữ trên giao diện lấy từ catalog i18n (`t("admin.billing.refund")` trong `support/i18n.ts`), không gõ cứng. Chờ theo điều kiện (`expect(...).toBeVisible()`, `expect.poll`, `toPass`), không `waitForTimeout`; việc của Worker (xếp lớp, trừ buổi, gửi email) thì poll đến khi thấy kết quả.
+
 ## Phòng học có sẵn (WebRTC)
 
 1. Bước 1 ở trên đã bật container `signaling` (lần đầu build image Rust mất vài phút). Chạy riêng: `docker compose -f infra/docker/docker-compose.yml up -d --build signaling`. Container gọi API dev ở `http://host.docker.internal:5080` để báo vào/ra phòng.

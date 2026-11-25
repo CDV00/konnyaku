@@ -25,6 +25,20 @@ cd frontend && npx -y pnpm@10.34.9 lint && npx -y pnpm@10.34.9 typecheck && npx 
 
 Build lỗi `require() of ES Module` → ai đó đã nâng Tailwind khỏi 4.1.18.
 
+## Test giao diện tự động (e2e)
+
+Đổi giao diện, luồng đăng nhập, quyền, hoặc event giữa các module mà người dùng nhìn thấy (xếp lớp, trừ buổi, email): chạy bộ Playwright, giống job `e2e` của CI.
+
+```bash
+npx -y pnpm@10.34.9 --dir frontend e2e                      # dựng stack riêng, seed, chạy hết (6–8 phút)
+node frontend/e2e/run.mjs --no-build -- --grep attendance   # chạy lại một luồng, giữ bản build
+```
+
+- Cần Docker, .NET 10, Python 3; lần đầu cài trình duyệt: `npx -y pnpm@10.34.9 --dir frontend/e2e exec playwright install chromium`. Cổng riêng (5450, 5190, 4950, Mailpit 8030) nên chạy song song với hệ thống dev được.
+- Lỗi: xem `frontend/e2e/playwright-report` (trace, video) và `frontend/e2e/logs/*.log`; trên CI là artifact `e2e-results`.
+- Thêm luồng mới hoặc sửa nhãn/chữ mà test dùng: test lấy chữ từ catalog i18n, đổi key thì sửa test theo. Chi tiết cách viết test: `docs/chay-local.md` mục "Test giao diện tự động".
+- Một test vừa qua vừa lỗi là lỗi phải sửa (test hoặc ứng dụng), không thêm `waitForTimeout` hay tăng retry.
+
 ## Chạy thử trên trình duyệt
 
 1. Bật hệ thống theo `docs/chay-local.md` (Claude Code: dùng cấu hình trong `.claude/launch.json` — api 5080, worker 5090, site 4000).
