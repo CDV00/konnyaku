@@ -5,8 +5,8 @@
 #   --no-pull                   use images already on this server
 #
 # 1. Pulls the images of <tag> (IMAGE_TAG in .env is set to it), builds the PostgreSQL image if missing.
-# 2. Infrastructure (postgres, backup, redis, caddy, coturn, monitoring) is only recreated when its definition changed;
-#    the Caddyfile is reloaded gracefully.
+# 2. Infrastructure (postgres, backup, redis, garage, files-backup, caddy, coturn, monitoring) is only recreated when its
+#    definition changed; the Caddyfile is reloaded gracefully; Garage gets its bucket and key (scripts/garage-init.sh).
 # 3. Migrator runs first; if it fails nothing else changes. Migrations must work with the previous version too
 #    (docs/trien-khai.md#migration-tương-thích-ngược): during the roll both versions serve requests.
 # 4. api, web, worker: ONE replica at a time: start a new one, wait until it is healthy, then stop an old one
@@ -53,10 +53,14 @@ docker image inspect konnyaku-postgres:17 > /dev/null 2>&1 || docker compose bui
 # The backup service runs its script in a loop: a changed script (postgres/backup) changes its definition.
 BACKUP_SCRIPTS_VERSION=$(cat postgres/backup/* | sha256sum | cut -c1-12)
 export BACKUP_SCRIPTS_VERSION
+FILES_BACKUP_SCRIPT_VERSION=$(sha256sum < garage/files-backup.sh | cut -c1-12)
+export FILES_BACKUP_SCRIPT_VERSION
 docker compose up -d --no-deps --wait postgres
 # Everything else that is not rolled below (backup, redis, caddy, coturn, the monitoring profile when enabled).
 mapfile -t infra < <(docker compose config --services | grep -vxE 'postgres|migrator|api|web|worker|signaling')
 docker compose up -d --no-deps "${infra[@]}"
+# Object storage of the Content module: layout, bucket and application key (idempotent; skipped with GARAGE_REPLICAS=0).
+./scripts/garage-init.sh || fail "garage-init failed (docker compose logs garage)"
 
 # Caddy finds the web replicas through Docker DNS (caddy/web-upstreams.caddy), which lists a container until it is
 # gone, and caches that list for 5 s: a POST sent to a replica that just disappeared cannot be retried. While web

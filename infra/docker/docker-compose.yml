@@ -44,8 +44,21 @@ services:
     ports:
       - "5100:5100"
 
-  # No object storage yet: nothing uses it. minio/minio was removed from Docker Hub (Sep 2026) and Quay now needs a login;
-  # pick a maintained S3-compatible store when recordings/backups need one.
+  # Files: the API stores them on disk in dev (Storage:Provider=LocalDisk, the default) and serves the signed URLs itself,
+  # so nothing runs here. To try the production path (S3), start Garage with the profile "s3" and point the API at it
+  # (docs/chay-local.md, "Kho file"). minio/minio is gone from Docker Hub (Sep 2026); production uses Garage too.
+  garage:
+    image: dxflrs/garage:v2.5.0
+    profiles: [s3]
+    environment:
+      GARAGE_RPC_SECRET: 0000000000000000000000000000000000000000000000000000000000000001
+      GARAGE_ADMIN_TOKEN: dev-garage-admin-token
+    volumes:
+      - ../deploy/garage/garage.toml:/etc/garage.toml:ro
+      - garage-data:/var/lib/garage
+    ports:
+      - "3900:3900"
 
 volumes:
   postgres-data:
+  garage-data:

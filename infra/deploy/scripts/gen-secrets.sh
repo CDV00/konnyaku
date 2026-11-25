@@ -35,3 +35,9 @@ rm -f "$vapid"
 # Monitoring profile: Grafana "admin" password and the read-only statistics role of postgres-exporter.
 echo "GRAFANA_ADMIN_PASSWORD=$(secret 24)"
 echo "DB_PASSWORD_MONITOR=$(secret)"
+# Garage (object storage of the files): cluster RPC secret (32 bytes hex), admin API token, and the S3 key of the
+# application (Garage format: GK + 24 hex characters, secret 64 hex), imported by scripts/garage-init.sh.
+echo "GARAGE_RPC_SECRET=$(openssl rand -hex 32)"
+echo "GARAGE_ADMIN_TOKEN=$(secret 48)"
+echo "S3_ACCESS_KEY=GK$(openssl rand -hex 12)"
+echo "S3_SECRET_KEY=$(openssl rand -hex 32)"

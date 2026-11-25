@@ -228,6 +228,14 @@ groups:
           summary: "pg_dump hằng đêm gần nhất cách đây {{ $value | humanizeDuration }}"
           description: "Xem backups/backup.log và crontab (docs/trien-khai.md#backup)."
 
+      - alert: FilesBackupOverdue
+        expr: max(konnyaku_files_backup_configured) == 1 and time() - max(konnyaku_files_backup_last_success_timestamp_seconds) > ${BACKUP_MAX_AGE_HOURS} * 3600
+        for: 10m
+        labels: { severity: critical, service: backup }
+        annotations:
+          summary: "Bản sao kho file (Garage) gần nhất cách đây {{ $value | humanizeDuration }}"
+          description: "docker compose logs files-backup; backups/status/files.json; ./scripts/kk-backup.sh files backup"
+
       - alert: BackupSidecarStalled
         expr: time() - max(konnyaku_backup_heartbeat_timestamp_seconds) > 300
         for: 5m

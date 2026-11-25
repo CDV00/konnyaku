@@ -78,6 +78,26 @@ https:// {
 	import web
 }
 
+# Files of the Content module (Garage, S3 API): browsers PUT and GET with signed URLs only (no listing, no public
+# object); the certificate is a regular one for this fixed name. Not used when S3_PUBLIC_URL points to a provider.
+files.{$BASE_DOMAIN} {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+
+	# Largest upload of any purpose (100 MB teaching material) plus headroom.
+	request_body {
+		max_size 110MB
+	}
+
+	reverse_proxy garage:3900 {
+		# Large uploads stream through; Garage reads the body as it arrives.
+		flush_interval -1
+	}
+}
+
 http:// {
 	redir https://{host}{uri} permanent
 }
