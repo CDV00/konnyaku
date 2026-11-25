@@ -1,7 +1,8 @@
 # Konnyaku production stack on one VPS (docker compose v2).
 #   cp .env.example .env && ./scripts/gen-secrets.sh >> .env   # once, then edit BASE_DOMAIN / ACME_EMAIL / IMAGE_*
 #   docker compose up -d
-# Only Caddy publishes ports (80/443). Web, API, Worker and PostgreSQL stay on internal networks.
+# Caddy publishes 80/443 (web + classroom signaling under /rtc/*); coturn (TURN for the built-in classroom) uses the
+# host network: 3478 udp/tcp and the relay range TURN_MIN_PORT-TURN_MAX_PORT udp. Everything else stays internal.
 # Runbook: docs/trien-khai.md
 
 name: konnyaku
@@ -21,6 +22,12 @@ x-backend-env: &backend-env
   Auth__SigningKey: ${AUTH_SIGNING_KEY:?}
   Platform__AdminKey: ${PLATFORM_ADMIN_KEY:?}
   Platform__BaseDomain: ${BASE_DOMAIN:?}
+  # Built-in classroom (WebRTC mesh): tickets for the signaling service, STUN/TURN with short-lived credentials.
+  Rtc__SignalingSecret: ${SIGNALING_SECRET:?}
+  Rtc__StunUrls__0: stun:${TURN_HOST:-${BASE_DOMAIN}}:3478
+  Rtc__TurnUrls__0: turn:${TURN_HOST:-${BASE_DOMAIN}}:3478?transport=udp
+  Rtc__TurnUrls__1: turn:${TURN_HOST:-${BASE_DOMAIN}}:3478?transport=tcp
+  Rtc__TurnSecret: ${TURN_SECRET:?}
 
 x-logging: &logging
   driver: json-file
@@ -44,7 +51,7 @@ services:
       - caddy-data:/data
       - caddy-config:/config
     networks: [edge]
-    depends_on: [web]
+    depends_on: [web, signaling]
     logging: *logging
 
   web:
@@ -98,6 +105,52 @@ services:
     depends_on:
       migrator:
         condition: service_completed_successfully
+    logging: *logging
+
+  # Signaling of the built-in classroom (services/signaling): WebSocket at /rtc/ws through Caddy. Rooms live in memory,
+  # so it runs as ONE replica; it reports joins/leaves to the API, which turns them into attendance.
+  signaling:
+    image: ${IMAGE_SIGNALING:-ghcr.io/OWNER/konnyaku-signaling}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      SIGNALING_SECRET: ${SIGNALING_SECRET:?}
+      API_URL: http://api:8080
+      # People per room. Mesh: everyone sends video to everyone; above ~6 upload bandwidth and CPU of each device suffer.
+      ROOM_CAPACITY: ${ROOM_CAPACITY:-6}
+    networks: [edge, app]
+    depends_on: [api]
+    logging: *logging
+
+  # TURN relay for participants behind strict NATs/firewalls (TURN REST API: the API hands out credentials signed
+  # with TURN_SECRET, valid a few hours). Host network: a container port range would mean one proxy per port.
+  coturn:
+    image: coturn/coturn:4.7.0
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      TURN_SECRET: ${TURN_SECRET:?}
+      TURN_REALM: ${BASE_DOMAIN:?}
+      TURN_MIN_PORT: ${TURN_MIN_PORT:-49160}
+      TURN_MAX_PORT: ${TURN_MAX_PORT:-49260}
+      # Public IP when the server only sees a private one (cloud NAT, e.g. AWS/GCP): public or public/private.
+      TURN_EXTERNAL_IP: ${TURN_EXTERNAL_IP:-}
+    # Relaying to private/loopback addresses is refused, so TURN cannot be used to reach internal services.
+    entrypoint:
+      - sh
+      - -c
+      - >-
+        exec turnserver -n --log-file=stdout --no-cli --no-tls --no-dtls --fingerprint
+        --listening-port=3478 --min-port=$$TURN_MIN_PORT --max-port=$$TURN_MAX_PORT
+        --use-auth-secret --static-auth-secret=$$TURN_SECRET --realm=$$TURN_REALM
+        $${TURN_EXTERNAL_IP:+--external-ip=$$TURN_EXTERNAL_IP}
+        --no-multicast-peers --no-loopback-peers
+        --denied-peer-ip=0.0.0.0-0.255.255.255 --denied-peer-ip=10.0.0.0-10.255.255.255
+        --denied-peer-ip=100.64.0.0-100.127.255.255 --denied-peer-ip=127.0.0.0-127.255.255.255
+        --denied-peer-ip=169.254.0.0-169.254.255.255 --denied-peer-ip=172.16.0.0-172.31.255.255
+        --denied-peer-ip=192.168.0.0-192.168.255.255 --denied-peer-ip=::1
+        --denied-peer-ip=fc00::-fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+        --denied-peer-ip=fe80::-febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+        --user-quota=12 --total-quota=1200
     logging: *logging
 
   # Runs on every `up`, applies pending EF migrations with the schema owner, then exits.

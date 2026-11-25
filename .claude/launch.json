@@ -34,6 +34,19 @@
         "dev"
       ],
       "port": 4000
+    },
+    {
+      "name": "signaling",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": [
+        "compose",
+        "-f",
+        "infra/docker/docker-compose.yml",
+        "up",
+        "--build",
+        "signaling"
+      ],
+      "port": 5100
     }
   ]
 }
