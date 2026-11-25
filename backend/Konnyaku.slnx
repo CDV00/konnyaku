@@ -61,6 +61,13 @@
     <Project Path="src/Modules/Learning/Konnyaku.Learning.Endpoints/Konnyaku.Learning.Endpoints.csproj" />
     <Project Path="src/Modules/Learning/Konnyaku.Learning.Infrastructure/Konnyaku.Learning.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Notification/">
+    <Project Path="src/Modules/Notification/Konnyaku.Notification.Application/Konnyaku.Notification.Application.csproj" />
+    <Project Path="src/Modules/Notification/Konnyaku.Notification.Contracts/Konnyaku.Notification.Contracts.csproj" />
+    <Project Path="src/Modules/Notification/Konnyaku.Notification.Domain/Konnyaku.Notification.Domain.csproj" />
+    <Project Path="src/Modules/Notification/Konnyaku.Notification.Endpoints/Konnyaku.Notification.Endpoints.csproj" />
+    <Project Path="src/Modules/Notification/Konnyaku.Notification.Infrastructure/Konnyaku.Notification.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Organization/">
     <Project Path="src/Modules/Organization/Konnyaku.Organization.Application/Konnyaku.Organization.Application.csproj" />
     <Project Path="src/Modules/Organization/Konnyaku.Organization.Contracts/Konnyaku.Organization.Contracts.csproj" />

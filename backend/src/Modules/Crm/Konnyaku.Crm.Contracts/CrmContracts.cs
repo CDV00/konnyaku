@@ -3,7 +3,7 @@ using Konnyaku.SharedKernel;
 namespace Konnyaku.Crm.Contracts;
 
 public sealed record StudentDto(
-    Guid Id, string FullName, int? BirthYear, Guid? HomeBranchId, Guid? UserId, string CommunicationLocale);
+    Guid Id, string FullName, int? BirthYear, Guid? HomeBranchId, Guid? UserId, string CommunicationLocale, bool IsActive);
 
 public interface ICrmApi
 {

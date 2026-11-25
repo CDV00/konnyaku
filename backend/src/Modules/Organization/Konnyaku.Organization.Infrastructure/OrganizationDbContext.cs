@@ -1,4 +1,5 @@
 using Konnyaku.Application.Tenancy;
+using Konnyaku.Infrastructure.Auditing;
 using Konnyaku.Infrastructure.Persistence;
 using Konnyaku.Infrastructure.Tenancy;
 using Konnyaku.Organization.Application;
@@ -51,6 +52,7 @@ public sealed class OrganizationDbContext(DbContextOptions<OrganizationDbContext
             b.Property(x => x.Code).HasMaxLength(20);
             b.HasIndex(x => new { x.TenantId, x.BranchId, x.Code }).IsUnique();
         });
+        modelBuilder.AddChangeLog();
     }
 }
 
@@ -65,7 +67,7 @@ internal sealed class InProcessOrganizationApi(OrganizationDbContext db) : IOrga
     public async Task<RoomDto?> GetRoomAsync(Guid roomId, CancellationToken cancellationToken)
     {
         var room = await db.Rooms.AsNoTracking().FirstOrDefaultAsync(x => x.Id == roomId, cancellationToken);
-        return room is null ? null : new RoomDto(room.Id, room.BranchId, room.Code, room.Capacity);
+        return room?.ToDto();
     }
 
     public async Task<IReadOnlySet<DateOnly>> ListHolidaysAsync(Guid branchId, DateOnly from, DateOnly to, CancellationToken cancellationToken)

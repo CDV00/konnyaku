@@ -340,6 +340,10 @@ namespace Konnyaku.Billing.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
 
+                    b.Property<DateTimeOffset?>("VoidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("voided_at");
+
                     b.HasKey("Id")
                         .HasName("pk_payment");
 
@@ -347,6 +351,67 @@ namespace Konnyaku.Billing.Infrastructure.Migrations
                         .HasDatabaseName("ix_payment_tenant_id_order_id");
 
                     b.ToTable("payment", "billing");
+                });
+
+            modelBuilder.Entity("Konnyaku.Infrastructure.Auditing.ChangeLogEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("action");
+
+                    b.Property<Guid?>("ActorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_id");
+
+                    b.Property<string>("ActorName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("actor_name");
+
+                    b.Property<string>("Changes")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("changes");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entity_id");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("entity_type");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_change_log");
+
+                    b.HasIndex("TenantId", "EntityId")
+                        .HasDatabaseName("ix_change_log_tenant_id_entity_id");
+
+                    b.HasIndex("TenantId", "SubjectId", "OccurredAt")
+                        .HasDatabaseName("ix_change_log_tenant_id_subject_id_occurred_at");
+
+                    b.ToTable("change_log", "billing");
                 });
 
             modelBuilder.Entity("Konnyaku.Infrastructure.Messaging.InboxMessage", b =>

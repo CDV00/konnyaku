@@ -1,0 +1,6 @@
+Hi {{recipientName}},
+
+Session {{sequenceNo}} of class {{classCode}} now takes place on:
+{{startsAt}} ({{timeZone}})
+
+See the schedule: {{siteUrl}}{{zonePath}}

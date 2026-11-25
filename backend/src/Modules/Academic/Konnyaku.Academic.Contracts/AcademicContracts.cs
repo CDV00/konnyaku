@@ -29,3 +29,9 @@ public sealed record EnrollmentActivatedV1(Guid EnrollmentId, Guid ClassId, Guid
 public sealed record EnrollmentRejectedV1(Guid OrderId, Guid ClassId, Guid StudentId, string Reason) : IIntegrationEvent;
 
 public sealed record EnrollmentDroppedV1(Guid EnrollmentId, Guid ClassId, Guid StudentId) : IIntegrationEvent;
+
+/// <summary>A class switched between online, offline and hybrid: Scheduling updates its future sessions (rooms follow).</summary>
+public sealed record ClassDeliveryModeChangedV1(Guid ClassId, string DeliveryMode) : IIntegrationEvent;
+
+/// <summary>A class was completed or cancelled (<see cref="Status"/>): Scheduling cancels its remaining planned sessions.</summary>
+public sealed record ClassClosedV1(Guid ClassId, string Status) : IIntegrationEvent;
