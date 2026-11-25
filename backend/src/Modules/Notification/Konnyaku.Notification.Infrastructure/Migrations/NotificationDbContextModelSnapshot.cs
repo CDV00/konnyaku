@@ -23,6 +23,8 @@ namespace Konnyaku.Notification.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.HasSequence("inbox_seq");
+
             modelBuilder.Entity("Konnyaku.Infrastructure.Messaging.InboxMessage", b =>
                 {
                     b.Property<Guid>("EventId")
@@ -135,6 +137,83 @@ namespace Konnyaku.Notification.Infrastructure.Migrations
                     b.ToTable("dispatch_item", "notification");
                 });
 
+            modelBuilder.Entity("Konnyaku.Notification.Domain.InboxItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DeduplicationKey")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("deduplication_key");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("link");
+
+                    b.Property<string>("Params")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("params");
+
+                    b.Property<DateTimeOffset?>("ReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at");
+
+                    b.Property<long>("Seq")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("seq")
+                        .HasDefaultValueSql("nextval('notification.inbox_seq')");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TitleKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("title_key");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTimeOffset>("VisibleAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("visible_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_inbox_item");
+
+                    b.HasIndex("TenantId", "DeduplicationKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_inbox_item_tenant_id_deduplication_key");
+
+                    b.HasIndex("TenantId", "UserId", "ReadAt")
+                        .HasDatabaseName("ix_inbox_item_tenant_id_user_id_read_at");
+
+                    b.HasIndex("TenantId", "UserId", "Seq")
+                        .HasDatabaseName("ix_inbox_item_tenant_id_user_id_seq");
+
+                    b.ToTable("inbox_item", "notification");
+                });
+
             modelBuilder.Entity("Konnyaku.Notification.Domain.NotificationMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -166,6 +245,11 @@ namespace Konnyaku.Notification.Infrastructure.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)")
                         .HasColumnName("deduplication_key");
+
+                    b.Property<string>("DigestKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("digest_key");
 
                     b.Property<string>("LastError")
                         .HasMaxLength(1000)
@@ -232,10 +316,110 @@ namespace Konnyaku.Notification.Infrastructure.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_notification_message_tenant_id_deduplication_key");
 
+                    b.HasIndex("TenantId", "DigestKey", "Status")
+                        .HasDatabaseName("ix_notification_message_tenant_id_digest_key_status");
+
                     b.HasIndex("TenantId", "Status", "CreatedAt")
                         .HasDatabaseName("ix_notification_message_tenant_id_status_created_at");
 
                     b.ToTable("notification_message", "notification");
+                });
+
+            modelBuilder.Entity("Konnyaku.Notification.Domain.NotificationPreference", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Email")
+                        .HasColumnType("boolean")
+                        .HasColumnName("email");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("kind");
+
+                    b.Property<bool>("Push")
+                        .HasColumnType("boolean")
+                        .HasColumnName("push");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notification_preference");
+
+                    b.HasIndex("TenantId", "UserId", "Kind")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notification_preference_tenant_id_user_id_kind");
+
+                    b.ToTable("notification_preference", "notification");
+                });
+
+            modelBuilder.Entity("Konnyaku.Notification.Domain.PushSubscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Auth")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("auth");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("endpoint");
+
+                    b.Property<DateTimeOffset?>("LastSuccessAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_success_at");
+
+                    b.Property<string>("P256dh")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("p256dh");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_push_subscription");
+
+                    b.HasIndex("TenantId", "Endpoint")
+                        .IsUnique()
+                        .HasDatabaseName("ix_push_subscription_tenant_id_endpoint");
+
+                    b.HasIndex("TenantId", "UserId")
+                        .HasDatabaseName("ix_push_subscription_tenant_id_user_id");
+
+                    b.ToTable("push_subscription", "notification");
                 });
 #pragma warning restore 612, 618
         }

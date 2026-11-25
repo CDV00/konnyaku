@@ -10,8 +10,8 @@ Hệ thống local gồm 3 phần: hạ tầng trong Docker, backend .NET (API +
 | API | 5080 | Tài liệu API: `http://localhost:5080/scalar` |
 | Worker | 5090 | Xử lý outbox (ghi danh sau thanh toán, tạo phòng học, trừ buổi, công) |
 | PostgreSQL | 5433 | User `konnyaku` / `konnyaku_dev`, DB `konnyaku` |
-| Signaling phòng học (`services/signaling`) | 5100 | WebSocket `ws://localhost:5100/rtc/ws`, sức khoẻ `/rtc/health`; container `signaling` trong docker compose |
-| Redis | 6380 | Không bắt buộc: dev đếm giới hạn tần suất trong RAM (xem [Giới hạn tần suất, giám sát, bắt lỗi](#giới-hạn-tần-suất-giám-sát-bắt-lỗi)) |
+| Realtime (`services/signaling`) | 5100 | Phòng học `ws://localhost:5100/rtc/ws`, chuông thông báo `ws://localhost:5100/rt`, sức khoẻ `/rtc/health`; container `signaling` trong docker compose |
+| Redis | 6380 | Tín hiệu realtime của chuông (API và Worker dev đã trỏ tới `localhost:6380`) và bộ đếm giới hạn tần suất. Không chạy Redis: chuông hỏi lại mỗi 30 giây, giới hạn tần suất đếm trong RAM ([Thông báo trong app](#thông-báo-trong-app-chuông-web-push)) |
 | Mailpit (xem email gửi đi) | 8025 (web), 1025 (SMTP) | `http://localhost:8025` |
 
 Frontend dùng 4000 để tránh trùng các dự án khác hay chạy ở 3000/3001. Cần đổi thì sửa đồng thời: `frontend/apps/site/package.json` (script `dev`, `start`), `.claude/launch.json` và tài liệu này.
@@ -142,6 +142,7 @@ Dùng Claude Code: các dịch vụ trên đã khai báo trong `.claude/launch.j
 | `password-reset` | Quên mật khẩu → email trong Mailpit → đặt lại → đăng nhập bằng mật khẩu mới; link chỉ dùng một lần |
 | `student-search` | Tìm "ngoc an" ra "Lê Ngọc Ân"; quản trị xem được liên hệ (có ghi nhật ký), kế toán chỉ thấy bản che |
 | `platform` | Super-admin đăng nhập bằng mã TOTP trên `admin.localhost`, tạo trung tâm; quản trị viên mới phải đổi mật khẩu tạm |
+| `inbox` | Đổi giờ buổi học → chuông của học viên đang mở trang tăng số **không cần tải lại** (Worker → Redis → realtime → trình duyệt); mở thông báo thì đánh dấu đã đọc; tắt email cho loại "buổi bị hủy" → buổi bị hủy vẫn vào hộp thông báo, không có email cho học viên |
 
 Lần đầu cài trình duyệt: `npx -y pnpm@10.34.9 --dir frontend/e2e exec playwright install chromium`. Sau đó một lệnh (cần Docker, .NET 10, Python 3; từ thư mục gốc repo):
 
@@ -149,7 +150,7 @@ Lần đầu cài trình duyệt: `npx -y pnpm@10.34.9 --dir frontend/e2e exec p
 npx -y pnpm@10.34.9 --dir frontend e2e
 ```
 
-Script `frontend/e2e/run.mjs` dựng PostgreSQL + Mailpit trong Docker (project `konnyaku-e2e`, database trống), build backend (Release) và web (`next build`) song song, chạy Migrator, bật Api/Worker/web, chạy `seed_review.py`, rồi `playwright test`; xong thì tắt và xoá hết. Khoảng 6–8 phút, phần lớn là build và seed. Tuỳ chọn:
+Script `frontend/e2e/run.mjs` dựng PostgreSQL + Mailpit + Redis + service realtime (build từ `services/signaling`, lần đầu vài phút) trong Docker (project `konnyaku-e2e`, database trống), build backend (Release) và web (`next build`) song song, chạy Migrator, bật Api/Worker/web, chạy `seed_review.py`, rồi `playwright test`; xong thì tắt và xoá hết. Khoảng 6–8 phút, phần lớn là build và seed. Tuỳ chọn:
 
 | Lệnh | Dùng khi |
 | --- | --- |
@@ -157,7 +158,7 @@ Script `frontend/e2e/run.mjs` dựng PostgreSQL + Mailpit trong Docker (project 
 | `node frontend/e2e/run.mjs -- --grep refund` | Sau `--` là tham số của `playwright test` (chỉ chạy một luồng, `--headed`, `--repeat-each 3`…) |
 | `node frontend/e2e/run.mjs --serve` | Dựng và seed rồi giữ nguyên để viết test: ở terminal khác `cd frontend/e2e && npx playwright test` (hoặc `--ui`); Ctrl+C để tắt |
 
-Cổng riêng, không trùng hệ thống dev: PostgreSQL 5450, Mailpit 1030/8030, API 5190, web 4950 (`http://review.localhost:4950`); đổi bằng biến `E2E_PG_PORT`, `E2E_SMTP_PORT`, `E2E_MAILPIT_PORT`, `E2E_API_PORT`, `E2E_WEB_PORT`. Python khác `python`/`python3`: đặt `PYTHON`. Môi trường test tắt captcha (`Captcha__Enabled=false`) và nới giới hạn tần suất form công khai / quên mật khẩu.
+Cổng riêng, không trùng hệ thống dev: PostgreSQL 5450, Mailpit 1030/8030, API 5190, web 4950 (`http://review.localhost:4950`), Redis 6390, realtime 5195; đổi bằng biến `E2E_PG_PORT`, `E2E_SMTP_PORT`, `E2E_MAILPIT_PORT`, `E2E_API_PORT`, `E2E_WEB_PORT`, `E2E_REDIS_PORT`, `E2E_RT_PORT`. Hai bộ e2e chạy song song trên một máy: đổi các cổng và đặt `COMPOSE_PROJECT_NAME` khác `konnyaku-e2e`, nếu không bộ này dọn mất container của bộ kia. CI (`--infra=external`) chạy Redis như service và tự build service realtime (`E2E_REALTIME_BIN`). Python khác `python`/`python3`: đặt `PYTHON`. Môi trường test tắt captcha (`Captcha__Enabled=false`) và nới giới hạn tần suất form công khai / quên mật khẩu.
 
 Khi test lỗi: `frontend/e2e/playwright-report` (mở bằng `npx playwright show-report` trong `frontend/e2e`) có trace, video, ảnh chụp; log server ở `frontend/e2e/logs/{api,worker,web}.log`. Trên CI các thư mục này là artifact `e2e-results` của job.
 
@@ -170,6 +171,15 @@ Thêm hoặc sửa luồng (bắt buộc với PR đổi điều người dùng 
 3. Thử nhiều người cùng lúc: mỗi realm một cookie, nên một trình duyệt giữ được một giáo viên và một học viên; người thứ ba dùng cửa sổ ẩn danh hoặc trình duyệt khác. `*.localhost` là ngữ cảnh an toàn nên camera/micro dùng được không cần HTTPS.
 4. Không cần TURN khi thử trên một máy. Secret dùng chung giữa API (`Rtc:SignalingSecret` trong `appsettings.Development.json`) và container (`SIGNALING_SECRET`) phải giống nhau.
 5. Test của service: cần Rust (hoặc chạy trong Docker), `cd services/signaling && cargo test && cargo clippy --all-targets -- -D warnings`.
+
+## Thông báo trong app (chuông, Web Push)
+
+1. Bước 1 đã bật `redis` và `signaling` (realtime). API và Worker dev đọc `Redis:ConnectionString` = `localhost:6380`; API trả cho trình duyệt địa chỉ socket `Realtime:Url` = `ws://localhost:5100/rt` (production: `/rt` qua Caddy).
+2. Đăng nhập `/learn` hoặc `/teach` hoặc `/ops`: chuông ở thanh trên. Thử: tài khoản quản trị đổi giờ một buổi của lớp có học viên đang mở trang → số trên chuông tăng sau 1–3 giây (Worker xử lý outbox rồi `PUBLISH`). Trang đầy đủ: `/learn/inbox`, cài đặt: `/learn/inbox/settings` (tương tự `/teach`, `/ops`).
+3. Xem tín hiệu đi qua Redis: `docker compose -f infra/docker/docker-compose.yml exec redis redis-cli psubscribe 'user:*'`. Sức khoẻ: `http://localhost:5100/rt/health` (`realtime.redis` = `true` khi đã subscribe).
+4. Không bật `signaling`: vé realtime vẫn cấp nhưng socket không nối được, chuông tự hỏi lại mỗi 30 giây.
+5. Web Push: `appsettings.Development.json` của API và Worker có sẵn một cặp khoá VAPID chỉ dùng cho dev. `localhost` / `*.localhost` là ngữ cảnh an toàn nên bật được thông báo đẩy ở trang cài đặt mà không cần HTTPS (Chrome, Edge, Firefox). Tin đẩy không mang nội dung: service worker `/sw.js` hỏi `/api/inbox/push-preview` rồi hiện thông báo.
+6. Gom email: email cùng loại cho cùng người trong 10 phút thành một thư (`Notification:DigestMinutes`, đặt `0` để tắt khi thử).
 
 ## Giới hạn tần suất, giám sát, bắt lỗi
 

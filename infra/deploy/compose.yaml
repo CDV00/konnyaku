@@ -1,7 +1,7 @@
 # Konnyaku production stack on one VPS (docker compose v2).
 #   cp .env.example .env && ./scripts/gen-secrets.sh >> .env   # once, then edit BASE_DOMAIN / ACME_EMAIL / IMAGE_*
 #   docker compose up -d
-# Caddy publishes 80/443 (web + classroom signaling under /rtc/*); coturn (TURN for the built-in classroom) uses the
+# Caddy publishes 80/443 (web, classroom signaling under /rtc/*, realtime socket /rt); coturn (TURN for the built-in classroom) uses the
 # host network: 3478 udp/tcp and the relay range TURN_MIN_PORT-TURN_MAX_PORT udp. Everything else stays internal.
 # Runbook: docs/trien-khai.md
 
@@ -47,8 +47,15 @@ x-backend-env: &backend-env
   Rtc__TurnUrls__0: turn:${TURN_HOST:-${BASE_DOMAIN}}:3478?transport=udp
   Rtc__TurnUrls__1: turn:${TURN_HOST:-${BASE_DOMAIN}}:3478?transport=tcp
   Rtc__TurnSecret: ${TURN_SECRET:?}
-  # Rate-limit counters shared by every API replica (falls back to per-process counting while Redis is down).
+  # Rate-limit counters shared by every API replica (falls back to per-process counting while Redis is down), and
+  # the realtime signals (PUBLISH user:{id}) the API and Worker send after their commits (browsers poll while it is down).
   Redis__ConnectionString: redis:6379,password=${REDIS_PASSWORD:?}
+  # Realtime socket of the browser tabs (same host, through Caddy to the signaling service).
+  Realtime__Url: /rt
+  # Web Push (VAPID keys from gen-secrets.sh). Empty keys: Web Push is off, the inbox and email still work.
+  Notification__Push__PublicKey: ${VAPID_PUBLIC_KEY:-}
+  Notification__Push__PrivateKey: ${VAPID_PRIVATE_KEY:-}
+  Notification__Push__Subject: ${VAPID_SUBJECT:-mailto:${ACME_EMAIL:-ops@example.com}}
   # Monitoring (docs/trien-khai.md#giám-sát-và-cảnh-báo). Empty = off: traces/metrics need OTEL_ENDPOINT
   # (http://alloy:4318 with the monitoring profile), error reports need SENTRY_DSN (Sentry or GlitchTip).
   OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_ENDPOINT:-}
@@ -212,8 +219,11 @@ services:
         condition: service_completed_successfully
     logging: *logging
 
-  # Signaling of the built-in classroom (services/signaling): WebSocket at /rtc/ws through Caddy. Rooms live in memory,
-  # so it runs as ONE replica; it reports joins/leaves to the API, which turns them into attendance.
+  # Realtime gateway (services/signaling, image konnyaku-signaling), through Caddy:
+  # - classroom signaling, WebSocket /rtc/ws. Rooms live in memory, so it runs as ONE replica; it reports joins/leaves to
+  #   the API, which turns them into attendance;
+  # - realtime socket /rt of every signed-in tab: signals published on Redis (user:{id}) by the API and the Worker are
+  #   forwarded to the sockets of that user. Stateless (every replica subscribes to user:*), ids only, never content.
   signaling:
     image: ${IMAGE_SIGNALING:-ghcr.io/OWNER/konnyaku-signaling}:${IMAGE_TAG:-latest}
     restart: unless-stopped
@@ -222,14 +232,17 @@ services:
       API_URL: http://api:8080
       # People per room. Mesh: everyone sends video to everyone; above ~6 upload bandwidth and CPU of each device suffer.
       ROOM_CAPACITY: ${ROOM_CAPACITY:-6}
-    # ~1 MiB idle, ~210 KiB per connected person (docs/toi-uu-tai-nguyen.md). Rooms live in memory: if this limit is
-    # hit every room drops, so size it for the busiest hour (256m: ~1 100 people).
+      REDIS_URL: redis://:${REDIS_PASSWORD:?}@redis:6379
+    # ~1 MiB idle, ~210 KiB per person in a room, ~40 KiB per open tab on /rt (docs/toi-uu-tai-nguyen.md). Rooms live
+    # in memory: if this limit is hit every room drops, so size it for the busiest hour (256m: ~1 100 people in rooms,
+    # or ~5 000 open tabs).
     deploy:
       resources:
         limits:
           memory: ${SIGNALING_MEM_LIMIT:-256m}
-    networks: [edge, app]
-    depends_on: [api]
+    # data: Redis.
+    networks: [edge, app, data]
+    depends_on: [api, redis]
     logging: *logging
 
   # TURN relay for participants behind strict NATs/firewalls (TURN REST API: the API hands out credentials signed
@@ -379,8 +392,9 @@ services:
         condition: service_healthy
     logging: *logging
 
-  # Shared rate-limit counters of the API replicas (public forms, password reset). Counters only, no persistence:
-  # a restart resets the current minute. Internal network, password from gen-secrets.sh.
+  # Shared rate-limit counters of the API replicas (public forms, password reset), and pub/sub of the realtime signals
+  # (API and Worker publish, signaling subscribes). Counters and signals only, no persistence: a restart resets the
+  # current minute and drops signals in flight (browsers resync). Internal network, password from gen-secrets.sh.
   redis:
     image: redis:8.2-alpine
     restart: unless-stopped

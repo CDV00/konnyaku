@@ -5,6 +5,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\BuildingBlocks\Konnyaku.Application\Konnyaku.Application.csproj" />
     <ProjectReference Include="..\..\Academic\Konnyaku.Academic.Contracts\Konnyaku.Academic.Contracts.csproj" />
+    <ProjectReference Include="..\..\Assessment\Konnyaku.Assessment.Contracts\Konnyaku.Assessment.Contracts.csproj" />
     <ProjectReference Include="..\..\Billing\Konnyaku.Billing.Contracts\Konnyaku.Billing.Contracts.csproj" />
     <ProjectReference Include="..\..\Catalog\Konnyaku.Catalog.Contracts\Konnyaku.Catalog.Contracts.csproj" />
     <ProjectReference Include="..\..\Crm\Konnyaku.Crm.Contracts\Konnyaku.Crm.Contracts.csproj" />

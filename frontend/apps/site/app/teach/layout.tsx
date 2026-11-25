@@ -14,6 +14,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <ZoneLayout
       realm="staff"
       zone={t("zone")}
+      home="/teach"
       accountHref="/teach/account"
       links={[
         { href: "/teach", label: t("nav.home"), icon: "home", exact: true },

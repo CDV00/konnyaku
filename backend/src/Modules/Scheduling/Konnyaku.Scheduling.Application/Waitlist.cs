@@ -44,6 +44,7 @@ public sealed class WaitlistOffers(ISchedulingDbContext db, SeatLedger seats, Bo
             }
 
             entry.Offer(now, expiresAt);
+            db.Publish(new WaitlistSeatOfferedV1(entry.Id, sessionId, entry.StudentId, expiresAt));
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
             offered++;

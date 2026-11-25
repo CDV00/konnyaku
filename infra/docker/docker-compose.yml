@@ -17,6 +17,7 @@ services:
       interval: 5s
       retries: 10
 
+  # Realtime signals (API/Worker publish, signaling subscribes) and, when set in the API, rate-limit counters.
   redis:
     image: redis:7
     ports:
@@ -28,14 +29,16 @@ services:
       - "8025:8025"
       - "1025:1025"
 
-  # Signaling of the built-in classroom (services/signaling, Rust). Built locally on the first `up`.
-  # The secret matches Rtc:SignalingSecret in the API's appsettings.Development.json.
+  # Realtime gateway (services/signaling, Rust): classroom signaling /rtc/ws and the realtime socket /rt of the bell.
+  # Built locally on the first `up`. The secret matches Rtc:SignalingSecret in the API's appsettings.Development.json.
   signaling:
     build: ../../services/signaling
     environment:
       SIGNALING_SECRET: dev-only-signaling-secret-0123456789abcdef
       API_URL: http://host.docker.internal:5080
       ROOM_CAPACITY: "6"
+      REDIS_URL: redis://redis:6379
+    depends_on: [redis]
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:

@@ -18,6 +18,13 @@ public interface INotificationDbContext
     /// <summary>Cross-tenant due-work queue (no tenant filter): always filter by tenant yourself when reading it here.</summary>
     DbSet<DispatchItem> DispatchItems { get; }
 
+    DbSet<InboxItem> InboxItems { get; }
+    DbSet<NotificationPreference> Preferences { get; }
+    DbSet<PushSubscription> PushSubscriptions { get; }
+
+    /// <summary>Gives an inbox item the next sequence number (it became visible now); returns the number.</summary>
+    Task<long> RenumberInboxItemAsync(Guid itemId, CancellationToken cancellationToken);
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
 
@@ -30,6 +37,12 @@ public sealed class NotificationOptions
     public int RetryBaseDelaySeconds { get; set; } = 60;
 
     public int ReminderLeadHours { get; set; } = 24;
+
+    /// <summary>Emails of the same kind to the same person within this many minutes go out as one digest (0: never grouped).</summary>
+    public int DigestMinutes { get; set; } = 10;
+
+    /// <summary>Reminder before an assignment's deadline, for learners who have not handed it in.</summary>
+    public int AssignmentDueLeadHours { get; set; } = 24;
 
     /// <summary>Links in messages: <c>{host}</c> is the tenant's first host (e.g. <c>http://{host}:4000</c> in dev).</summary>
     public string SiteUrlTemplate { get; set; } = "https://{host}";
@@ -51,6 +64,9 @@ public static class NotificationTemplates
     public const string SessionCancelled = "session.cancelled";
     public const string SessionReminder = "session.reminder";
     public const string PayrollLocked = "payroll.locked";
+
+    /// <summary>Several messages of one kind grouped into one email (see <see cref="SendJob"/>).</summary>
+    public const string Digest = "digest";
 }
 
 // ---- ports implemented in Infrastructure -------------------------------------------------------------------------
@@ -157,6 +173,9 @@ public static class NotificationFormat
 
     public static string Number(decimal value, string locale) => value.ToString("0.##", Culture(locale));
 
+    /// <summary>Round-trip UTC time for inbox parameters (the web app formats it).</summary>
+    public static string Iso(DateTimeOffset at) => at.UtcDateTime.ToString("O", CultureInfo.InvariantCulture);
+
     private static TimeZoneInfo? FindZone(string id)
     {
         try
@@ -170,7 +189,10 @@ public static class NotificationFormat
     }
 }
 
-/// <summary>A reachable recipient. <see cref="Key"/> identifies the person in deduplication keys.</summary>
+/// <summary>
+/// A reachable recipient. <see cref="Key"/> identifies the person in deduplication keys. <see cref="Address"/> is empty
+/// for someone with an account but no email: they still get in-app notifications.
+/// </summary>
 public sealed record Recipient(string Key, Guid? UserId, string Address, string? Name, string? Locale);
 
 /// <summary>Address, name and locale of people, read through other modules' contracts (no cross-schema reads).</summary>
@@ -179,9 +201,7 @@ public sealed class Recipients(IIdentityApi identity, ICrmContactsApi crm)
     public async Task<Recipient?> UserAsync(Guid userId, CancellationToken ct)
     {
         var member = await identity.GetMemberAsync(userId, ct);
-        return string.IsNullOrWhiteSpace(member?.Email)
-            ? null
-            : new Recipient($"u:{userId}", userId, member.Email, member.DisplayName, member.PreferredLocale);
+        return member is null ? null : new Recipient($"u:{userId}", userId, member.Email ?? string.Empty, member.DisplayName, member.PreferredLocale);
     }
 
     /// <summary>The student's contact email, else the email of the linked account. Locale: the student's communication locale.</summary>
@@ -199,9 +219,9 @@ public sealed class Recipients(IIdentityApi identity, ICrmContactsApi crm)
             address = (await identity.GetMemberAsync(userId, ct))?.Email;
         }
 
-        return string.IsNullOrWhiteSpace(address)
+        return string.IsNullOrWhiteSpace(address) && contact.UserId is null
             ? null
-            : new Recipient($"s:{contact.StudentId}", contact.UserId, address, contact.FullName, contact.CommunicationLocale);
+            : new Recipient($"s:{contact.StudentId}", contact.UserId, address ?? string.Empty, contact.FullName, contact.CommunicationLocale);
     }
 }
 
@@ -238,8 +258,13 @@ public sealed class NotificationQueue(
     /// <summary>Adds a message unless its deduplication key was already used. Returns false for a duplicate.</summary>
     public async Task<bool> AddAsync(
         string templateKey, Recipient recipient, IReadOnlyDictionary<string, string> data, string deduplicationKey, CancellationToken ct,
-        string channel = NotificationChannels.Email, bool sensitive = false, DateTimeOffset? notBefore = null)
+        string channel = NotificationChannels.Email, bool sensitive = false, DateTimeOffset? notBefore = null, string? digestKey = null)
     {
+        if (string.IsNullOrWhiteSpace(recipient.Address))
+        {
+            return false;
+        }
+
         if (db.Messages.Local.Any(m => m.DeduplicationKey == deduplicationKey) ||
             await db.Messages.AnyAsync(m => m.DeduplicationKey == deduplicationKey, ct))
         {
@@ -249,7 +274,7 @@ public sealed class NotificationQueue(
         var locale = NotificationFormat.NormalizeLocale(recipient.Locale) ?? await branding.DefaultLocaleAsync(ct);
         var now = clock.GetUtcNow();
         var created = NotificationMessage.Create(channel, templateKey, recipient.UserId, recipient.Address, recipient.Name, locale, data,
-            sensitive, deduplicationKey, now);
+            sensitive, deduplicationKey, now, digestKey);
         if (!created.IsSuccess)
         {
             return false;
@@ -324,7 +349,7 @@ public sealed class NotificationQueue(
             return new Recipient(key, requested.UserId, requested.Address, requested.DisplayName, requested.Locale);
         }
 
-        if (requested.UserId is not { } userId || await recipients.UserAsync(userId, ct) is not { } user)
+        if (requested.UserId is not { } userId || await recipients.UserAsync(userId, ct) is not { } user || string.IsNullOrWhiteSpace(user.Address))
         {
             return null;
         }
@@ -367,11 +392,19 @@ public sealed class DispatchSchedule(INotificationDbContext db, ITenantContext t
 
 // ---- delivery -----------------------------------------------------------------------------------------------------
 
-/// <summary>Renders and delivers one queued message; retries transient errors with backoff, stops on permanent ones.</summary>
+/// <summary>
+/// Renders and delivers one queued message; retries transient errors with backoff, stops on permanent ones.
+/// Messages with a <see cref="NotificationMessage.DigestKey"/> are grouped: when one of the same person and kind went out
+/// less than <see cref="NotificationOptions.DigestMinutes"/> ago, the message waits until that window ends, then every
+/// message still waiting goes out as one digest email (sent by the oldest, which always leads the group).
+/// </summary>
 public sealed class SendJob(
     INotificationDbContext db, ITemplateRenderer renderer, IEnumerable<INotificationChannel> channels, TenantBranding branding,
     NotificationOptions options, TimeProvider clock) : IDispatchJob
 {
+    /// <summary>Subjects listed in a digest; the rest is counted as "and N more".</summary>
+    public const int DigestListed = 5;
+
     public string Kind => DispatchKinds.Send;
 
     public async Task<DateTimeOffset?> RunAsync(Guid refId, CancellationToken cancellationToken)
@@ -382,51 +415,104 @@ public sealed class SendJob(
             return null;
         }
 
-        var info = await branding.InfoAsync(cancellationToken);
-        var values = new Dictionary<string, string>(message.Data)
+        var now = clock.GetUtcNow();
+        var group = new List<NotificationMessage> { message };
+        if (message.DigestKey is { } digestKey && options.DigestMinutes > 0)
         {
-            ["tenantName"] = info?.Name ?? string.Empty,
-            ["siteUrl"] = await branding.SiteUrlAsync(cancellationToken),
-            ["recipientName"] = message.RecipientName ?? string.Empty,
-        };
-        var locales = new[] { message.Locale, await branding.DefaultLocaleAsync(cancellationToken), "vi" }.Distinct().ToList();
-        var content = renderer.Render(message.Channel, message.TemplateKey, locales, values);
+            var window = TimeSpan.FromMinutes(options.DigestMinutes);
+            var lastSent = await db.Messages.Where(m => m.DigestKey == digestKey && m.Status == NotificationStatus.Sent)
+                .MaxAsync(m => m.SentAt, cancellationToken);
+            group = await db.Messages.Where(m => m.DigestKey == digestKey && m.Status == NotificationStatus.Pending)
+                .OrderBy(m => m.CreatedAt).ThenBy(m => m.Id).ToListAsync(cancellationToken);
+            if (group.Count == 0 || group[0].Id != message.Id)
+            {
+                // The oldest waiting message leads and will carry this one.
+                return null;
+            }
+
+            if (lastSent is { } last && now - last < window)
+            {
+                return last + window;
+            }
+        }
+
+        var info = await branding.InfoAsync(cancellationToken);
+        var siteUrl = await branding.SiteUrlAsync(cancellationToken);
+        var defaultLocale = await branding.DefaultLocaleAsync(cancellationToken);
+        var content = group.Count == 1
+            ? Render(message, info, siteUrl, defaultLocale)
+            : RenderDigest(group, info, siteUrl, defaultLocale);
         var channel = channels.FirstOrDefault(c => c.Name == message.Channel);
 
         DateTimeOffset? retryAt = null;
         if (content is null)
         {
-            message.MarkFailed($"template_missing: {message.Channel}/{message.TemplateKey}/{message.Locale}", null);
+            group.ForEach(m => m.MarkFailed($"template_missing: {m.Channel}/{m.TemplateKey}/{m.Locale}", null));
         }
         else if (channel is null)
         {
-            message.MarkFailed($"channel_unavailable: {message.Channel}", content.Subject);
+            group.ForEach(m => m.MarkFailed($"channel_unavailable: {m.Channel}", content.Subject));
         }
         else
         {
             var result = await channel.DeliverAsync(new OutgoingNotification(message.RecipientAddress, message.RecipientName,
                 info?.Name ?? string.Empty, content), cancellationToken);
-            switch (result.Status)
+            var sentAt = clock.GetUtcNow();
+            foreach (var m in group)
             {
-                case DeliveryStatus.Sent:
-                    message.MarkSent(content.Subject, clock.GetUtcNow());
-                    break;
-                case DeliveryStatus.Permanent:
-                    message.MarkFailed(result.Error ?? "permanent", content.Subject);
-                    break;
-                default:
-                    if (message.RecordTransientFailure(result.Error ?? "transient", content.Subject, options.MaxAttempts))
-                    {
-                        retryAt = clock.GetUtcNow() + options.RetryDelay(message.Attempts);
-                    }
+                switch (result.Status)
+                {
+                    case DeliveryStatus.Sent:
+                        m.MarkSent(content.Subject, sentAt);
+                        break;
+                    case DeliveryStatus.Permanent:
+                        m.MarkFailed(result.Error ?? "permanent", content.Subject);
+                        break;
+                    default:
+                        if (m.RecordTransientFailure(result.Error ?? "transient", content.Subject, options.MaxAttempts) && m.Id == message.Id)
+                        {
+                            retryAt = sentAt + options.RetryDelay(m.Attempts);
+                        }
 
-                    break;
+                        break;
+                }
             }
         }
 
         await db.SaveChangesAsync(cancellationToken);
         return retryAt;
     }
+
+    private RenderedContent? Render(NotificationMessage message, TenantInfo? info, string siteUrl, string defaultLocale) =>
+        renderer.Render(message.Channel, message.TemplateKey, Locales(message, defaultLocale), Values(message, info, siteUrl));
+
+    /// <summary>One email listing the subjects of the grouped messages, rendered in the language of the first.</summary>
+    private RenderedContent? RenderDigest(List<NotificationMessage> group, TenantInfo? info, string siteUrl, string defaultLocale)
+    {
+        var first = group[0];
+        var values = Values(first, info, siteUrl);
+        values["count"] = group.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        values["more"] = group.Count > DigestListed
+            ? (group.Count - DigestListed).ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : string.Empty;
+        values["inboxPath"] = group.Select(m => m.Data.GetValueOrDefault("inboxPath")).FirstOrDefault(p => !string.IsNullOrEmpty(p)) ?? string.Empty;
+        for (var i = 0; i < Math.Min(group.Count, DigestListed); i++)
+        {
+            values[$"item{i + 1}"] = Render(group[i], info, siteUrl, defaultLocale)?.Subject ?? string.Empty;
+        }
+
+        return renderer.Render(first.Channel, NotificationTemplates.Digest, Locales(first, defaultLocale), values);
+    }
+
+    private static List<string> Locales(NotificationMessage message, string defaultLocale) =>
+        new[] { message.Locale, defaultLocale, "vi" }.Distinct().ToList();
+
+    private static Dictionary<string, string> Values(NotificationMessage message, TenantInfo? info, string siteUrl) => new(message.Data)
+    {
+        ["tenantName"] = info?.Name ?? string.Empty,
+        ["siteUrl"] = siteUrl,
+        ["recipientName"] = message.RecipientName ?? string.Empty,
+    };
 }
 
 // ---- admin log ----------------------------------------------------------------------------------------------------

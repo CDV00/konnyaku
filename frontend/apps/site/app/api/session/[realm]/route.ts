@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { apiFetch, sessionCookie, sessionToken } from "@konnyaku/session";
+import { forgetPushSubscription, pushCookie } from "../../inbox/push";
 import { errorFrom, landing, withSessionCookie, type SignIn } from "../sign-in";
 
 const loginPath = { learn: "/api/identity/learn/login", staff: "/api/identity/staff/login" } as const;
@@ -32,14 +33,18 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ realm:
   return result;
 }
 
-/** Sign out of one realm only (the API revokes the session); the other realm's session is untouched. */
+/** Sign out of one realm only (push subscription of this browser deleted, session revoked); the other realm is untouched. */
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ realm: string }> }) {
   const { realm } = await params;
   const result = NextResponse.json({ redirect: "/login" });
   if (realm === "learn" || realm === "staff") {
     const token = await sessionToken(realm);
-    if (token) await apiFetch("/api/identity/logout", { method: "POST", token }).catch(() => null);
+    if (token) {
+      await forgetPushSubscription(realm, token);
+      await apiFetch("/api/identity/logout", { method: "POST", token }).catch(() => null);
+    }
     result.cookies.delete(sessionCookie[realm]);
+    result.cookies.delete(pushCookie[realm]);
   }
   return result;
 }

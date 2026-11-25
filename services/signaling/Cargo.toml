@@ -3,7 +3,7 @@ name = "konnyaku-signaling"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
-description = "WebSocket signaling for the Konnyaku built-in classroom (WebRTC mesh): relays SDP/ICE and room presence."
+description = "Realtime gateway of Konnyaku: classroom signaling (WebRTC mesh: SDP/ICE, room presence) and per-user realtime signals from Redis."
 license = "UNLICENSED"
 publish = false
 
@@ -12,6 +12,7 @@ axum = { version = "0.8", features = ["ws"] }
 futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 humantime = "2"
 jsonwebtoken = "9"
+redis = { version = "1", default-features = false, features = ["tokio-comp"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

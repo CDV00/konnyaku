@@ -33,3 +33,12 @@ public sealed record SessionCancelledV1(Guid SessionId, string Reason) : IIntegr
 
 /// <summary>A seat of a session became free (leave, cancellation, expired offer): the Worker offers it to the waitlist.</summary>
 public sealed record SessionSeatReleasedV1(Guid SessionId) : IIntegrationEvent;
+
+/// <summary>
+/// A waitlisted learner was offered a freed seat, held until <see cref="ExpiresAt"/> (accept it in the learner area).
+/// For notifications.
+/// </summary>
+public sealed record WaitlistSeatOfferedV1(Guid EntryId, Guid SessionId, Guid StudentId, DateTimeOffset ExpiresAt) : IIntegrationEvent;
+
+/// <summary>Staff placed a make-up for a learner (approved a request or an exception). For notifications.</summary>
+public sealed record MakeupApprovedV1(Guid BookingId, Guid EntitlementId, Guid SessionId, Guid StudentId) : IIntegrationEvent;

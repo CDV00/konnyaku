@@ -5,6 +5,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./inbox": "./src/inbox.tsx",
+    "./inbox-pages": "./src/inbox-pages.tsx",
+    "./inbox-text": "./src/inbox-text.ts",
     "./schedule": "./src/schedule.tsx",
     "./session-watch": "./src/session-watch.tsx",
     "./zone-layout": "./src/zone-layout.tsx"

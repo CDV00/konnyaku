@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { requireMe, tenantInfo } from "@konnyaku/session";
+import { InboxBell, InboxProvider } from "@konnyaku/session/inbox";
 import { SessionWatch } from "@konnyaku/session/session-watch";
 import { appFont } from "@konnyaku/ui/kk/font";
 import { Logo } from "@konnyaku/ui/kk/logo";
@@ -50,17 +51,20 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <body className="min-h-dvh font-sans">
         <AppProviders>
           <NextIntlClientProvider>
-            <SidebarShell
-              brand={<Logo name={tenant?.name ?? ""} suffix={t("zone")} />}
-              links={links}
-              user={{ name: me.displayName, detail: me.roles.map((r) => (roles.has(r) ? roles(r) : r)).join(", ") }}
-              logoutAction="/api/session/staff/logout"
-              accountHref="/ops/account"
-              labels={{ theme: shell("theme"), menu: shell("menu"), logout: shell("logout"), close: shell("close"), account: shell("account") }}
-            >
-              <SessionWatch realm="staff" />
-              {children}
-            </SidebarShell>
+            <InboxProvider realm="staff">
+              <SidebarShell
+                brand={<Logo name={tenant?.name ?? ""} suffix={t("zone")} />}
+                links={links}
+                user={{ name: me.displayName, detail: me.roles.map((r) => (roles.has(r) ? roles(r) : r)).join(", ") }}
+                logoutAction="/api/session/staff/logout"
+                accountHref="/ops/account"
+                labels={{ theme: shell("theme"), menu: shell("menu"), logout: shell("logout"), close: shell("close"), account: shell("account") }}
+                actions={<InboxBell href="/ops/inbox" settingsHref="/ops/inbox/settings" />}
+              >
+                <SessionWatch realm="staff" />
+                {children}
+              </SidebarShell>
+            </InboxProvider>
           </NextIntlClientProvider>
         </AppProviders>
       </body>

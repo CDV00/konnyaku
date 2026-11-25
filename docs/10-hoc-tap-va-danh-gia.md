@@ -331,7 +331,7 @@ Thay vì thêm SignalR vào API (tốn RAM, và nhiều bản sao thì phải c�
 | Đợt | Hạng mục | Module | Tuần công |
 | --- | --- | --- | --- |
 | **A** (song song) | A1 Kho file: module `Content`, `IObjectStorage`, Garage trong compose, URL ký, quota | Content (mới), BuildingBlocks, infra | 2 |
-| | A2 Thời gian thực và hộp thông báo: service `realtime`, Redis pub/sub, `inbox_item`, chuông, Web Push | Notification, services/realtime, frontend | 2,5 |
+| | A2 Thời gian thực và hộp thông báo: service `realtime`, Redis pub/sub, `inbox_item`, chuông, Web Push (**đã làm**: service giữ tên và image `signaling`, thêm `/rt`; xem [trien-khai.md](trien-khai.md#thông-báo-trong-app-và-thời-gian-thực)) | Notification, services/signaling, frontend | 2,5 |
 | | A3 Đặt buổi, dời buổi, học bù, chọn hình thức, danh sách chờ, lớp linh hoạt | Scheduling, Academic, Learning | 3,5 |
 | | A4 Lõi Assessment: ngân hàng, câu khách quan và tự luận dạng chữ, đề, giao bài, làm bài, tự chấm, hàng chờ chấm, công bố điểm | Assessment (mới) | 5 |
 | **B** (sau A) | B1 Tự điểm danh QR, xác nhận từng dòng, lịch sử điểm danh, ngưỡng theo trung tâm | Learning | 1,5 |

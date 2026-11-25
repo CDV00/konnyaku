@@ -6,15 +6,18 @@ import { Logo } from "@konnyaku/ui/kk/logo";
 import { AppProviders } from "@konnyaku/ui/kk/providers";
 import { TopBar, type NavLink } from "@konnyaku/ui/kk/shell";
 import { requireMe, tenantInfo, type Realm } from "./index";
+import { InboxBell, InboxProvider } from "./inbox";
 import { SessionWatch } from "./session-watch";
 
 /**
- * Root document of a signed-in zone (learn, teach): top bar with the center brand, the zone name,
- * the user menu (sign out of this realm only) and the theme switch.
+ * Root document of a signed-in zone (learn, teach): top bar with the center brand, the zone name, the notification
+ * bell (live through the realtime socket), the user menu (sign out of this realm only) and the theme switch.
  */
-export async function ZoneLayout({ realm, zone, links, accountHref, children }: {
+export async function ZoneLayout({ realm, zone, home, links, accountHref, children }: {
   realm: Realm;
   zone: string;
+  /** Root path of the zone (`/learn`, `/teach`): its inbox is `{home}/inbox`. */
+  home: string;
   links: NavLink[];
   /** The member's own account page (password, 2FA, devices), linked from the user menu. */
   accountHref?: string;
@@ -30,16 +33,19 @@ export async function ZoneLayout({ realm, zone, links, accountHref, children }: 
       <body className="min-h-dvh bg-muted/30 font-sans">
         <AppProviders>
           <NextIntlClientProvider>
-            <TopBar
-              brand={<Logo name={tenant?.name ?? ""} suffix={zone} />}
-              links={links}
-              user={{ name: me.displayName, detail: me.roles.map((r) => (roles.has(r) ? roles(r) : r)).join(", ") }}
-              logoutAction={`/api/session/${realm}/logout`}
-              accountHref={accountHref}
-              labels={{ theme: shell("theme"), menu: shell("menu"), logout: shell("logout"), close: shell("close"), account: shell("account") }}
-            />
-            <SessionWatch realm={realm} />
-            <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">{children}</main>
+            <InboxProvider realm={realm}>
+              <TopBar
+                brand={<Logo name={tenant?.name ?? ""} suffix={zone} />}
+                links={links}
+                user={{ name: me.displayName, detail: me.roles.map((r) => (roles.has(r) ? roles(r) : r)).join(", ") }}
+                logoutAction={`/api/session/${realm}/logout`}
+                accountHref={accountHref}
+                labels={{ theme: shell("theme"), menu: shell("menu"), logout: shell("logout"), close: shell("close"), account: shell("account") }}
+                actions={<InboxBell href={`${home}/inbox`} settingsHref={`${home}/inbox/settings`} />}
+              />
+              <SessionWatch realm={realm} />
+              <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">{children}</main>
+            </InboxProvider>
           </NextIntlClientProvider>
         </AppProviders>
       </body>

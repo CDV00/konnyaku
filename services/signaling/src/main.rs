@@ -1,4 +1,4 @@
-use konnyaku_signaling::{Config, Reporter, app, server};
+use konnyaku_signaling::{Config, Reporter, app, bus, server};
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -27,13 +27,20 @@ async fn main() {
     }
     let addr = config.listen_addr.clone();
     let capacity = config.capacity;
+    let redis_url = config.redis_url.clone();
     let (router, state) = app(config, reporter);
+    match redis_url {
+        Some(url) => {
+            tokio::spawn(bus::run(url, state.hub.clone(), state.redis_up.clone()));
+        }
+        None => tracing::warn!("REDIS_URL is not set: realtime sockets (/rt) get no signals (browsers poll instead)"),
+    }
     tokio::spawn(server::sweeper(state));
 
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
         .unwrap_or_else(|e| panic!("cannot listen on {addr}: {e}"));
-    tracing::info!(%addr, capacity, "signaling listening");
+    tracing::info!(%addr, capacity, "signaling and realtime listening");
     axum::serve(listener, router)
         .with_graceful_shutdown(shutdown())
         .await

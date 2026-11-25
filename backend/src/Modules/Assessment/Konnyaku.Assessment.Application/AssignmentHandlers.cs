@@ -1,4 +1,5 @@
 using Konnyaku.Academic.Contracts;
+using Konnyaku.Assessment.Contracts;
 using Konnyaku.Assessment.Domain;
 using Konnyaku.Crm.Contracts;
 using Konnyaku.Scheduling.Contracts;
@@ -134,6 +135,7 @@ public sealed class AssignmentHandlers(
         }
 
         db.Assignments.Add(created.Value);
+        db.Publish(new AssignmentPublishedV1(created.Value.Id, created.Value.ClassId, created.Value.OpensAt, created.Value.DueAt));
         await db.SaveChangesAsync(ct);
         return (await ViewsAsync([created.Value], ct))[0];
     }
@@ -147,11 +149,17 @@ public sealed class AssignmentHandlers(
             return error;
         }
 
-        var updated = assignment!.Update(c.Title, Settings(c.Kind, c.OpensAt, c.DueAt, c.LatePolicy, c.LatePenaltyPercent, c.MaxAttempts, c.ScoringRule,
+        var (opensAt, dueAt) = (assignment!.OpensAt, assignment.DueAt);
+        var updated = assignment.Update(c.Title, Settings(c.Kind, c.OpensAt, c.DueAt, c.LatePolicy, c.LatePenaltyPercent, c.MaxAttempts, c.ScoringRule,
             c.Grader, c.ScoreRelease, c.ReleaseAt, c.AnswerVisibility, c.TimeLimitMinutes), clock.GetUtcNow());
         if (!updated.IsSuccess)
         {
             return updated.Error!;
+        }
+
+        if (assignment.OpensAt != opensAt || assignment.DueAt != dueAt)
+        {
+            db.Publish(new AssignmentRescheduledV1(assignment.Id, assignment.OpensAt, assignment.DueAt));
         }
 
         await db.SaveChangesAsync(ct);

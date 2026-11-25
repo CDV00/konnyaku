@@ -38,8 +38,8 @@ Bảng dưới là **danh sách module chuẩn** của Konnyaku; các chương k
 | `Learning` | `learning` | Điểm danh, feedback, homework, skill score, chính sách quyền xem recording | `ILearningApi` |
 | `Billing` | `billing` | Bảng giá, gói học, đơn hàng, hóa đơn, thanh toán, **credit ledger & số dư buổi** | `IBillingApi` (số dư) |
 | `Hr` | `hr` | Hồ sơ GV, năng lực, availability, đơn giá, timesheet, kỳ lương | `IHrApi` (năng lực, availability) |
-| `Notification` | `notification` | Hàng đợi thông báo (chống trùng, retry), template theo kênh + locale, gửi email (SMTP), nhắc lịch, nhật ký | `INotificationApi` (yêu cầu gửi) + event `NotificationRequestedV1` |
-| `Assessment` | `assessment` | Một bộ máy đánh giá cho bài tập, kiểm tra, thi thử, xếp lớp: ngân hàng câu hỏi (phiên bản, rich text có ruby), đề theo phần có giờ riêng, câu cố định / rút ngẫu nhiên, giao bài, lượt làm (giờ theo server, tự nộp), tự chấm, hàng chờ chấm theo thang tiêu chí, công bố điểm | — (phát `AssessmentGradedV1`) |
+| `Notification` | `notification` | Hàng đợi thông báo (chống trùng, retry), template theo kênh + locale, gửi email (SMTP), nhắc lịch, nhật ký; hộp thông báo trong app (`inbox_item`), bộ định tuyến kênh theo cài đặt từng người, gom email, Web Push (VAPID), tín hiệu realtime qua Redis tới `services/signaling` (`/rt`) | `INotificationApi` (yêu cầu gửi) + event `NotificationRequestedV1` |
+| `Assessment` | `assessment` | Một bộ máy đánh giá cho bài tập, kiểm tra, thi thử, xếp lớp: ngân hàng câu hỏi (phiên bản, rich text có ruby), đề theo phần có giờ riêng, câu cố định / rút ngẫu nhiên, giao bài, lượt làm (giờ theo server, tự nộp), tự chấm, hàng chờ chấm theo thang tiêu chí, công bố điểm | `IAssessmentApi` (người được giao một bài, ai đã nộp) |
 | `Reporting` | `reporting` | Read model báo cáo, đọc replica | — |
 | `Ai` *(V3)* | `ai` | Pipeline tóm tắt, chấm điểm | — (chỉ qua event) |
 
@@ -79,7 +79,7 @@ Luật phụ thuộc:
 
 | Event | Phát bởi | Nghe bởi |
 |---|---|---|
-| `SessionScheduledV1` / `SessionRescheduledV1` / `SessionCancelledV1` | Scheduling | Workspace, Learning, Hr, Notification (nhắc lịch 24 giờ, báo đổi giờ / hủy), Academic (chỗ học bù) |
+| `SessionScheduledV1` / `SessionRescheduledV1` / `SessionCancelledV1` | Scheduling | Workspace, Learning, Hr, Notification (nhắc lịch 24 giờ, báo đổi giờ / hủy: hộp thông báo, email, Web Push), Academic (chỗ học bù) |
 | `MeetingProvisionedV1` | Workspace | Scheduling (trạng thái `Provisioned`), Notification |
 | `ParticipantsCollectedV1` | Workspace | Learning (điểm danh), Hr (giờ có mặt của GV) |
 | `RecordingAvailableV1` | Workspace | Learning (áp chính sách quyền xem) |
@@ -96,7 +96,9 @@ Luật phụ thuộc:
 | `LearnerAccountCreatedV1` | Identity | Notification (chào mừng) |
 | `PayrollPeriodLockedV1` | Hr | Notification (báo giáo viên) |
 | `NotificationRequestedV1` | mọi module | Notification (gửi theo yêu cầu, ví dụ email đặt lại mật khẩu) |
-| `AssessmentGradedV1` | Assessment | (sau) Sổ điểm, Notification báo điểm — mang `VisibleFrom` theo chính sách công bố |
+| `AssessmentGradedV1` | Assessment | Notification (báo điểm khi điểm hiện với học viên: `VisibleFrom` theo chính sách công bố), (sau) Sổ điểm |
+| `AssignmentPublishedV1` / `AssignmentRescheduledV1` | Assessment | Notification (báo bài mới lúc bài mở, nhắc trước hạn nộp 24 giờ cho người chưa nộp) |
+| `WaitlistSeatOfferedV1` / `MakeupApprovedV1` | Scheduling | Notification (chỗ trống từ danh sách chờ, học bù được giáo vụ xếp) |
 | `BranchCreatedV1`, `SettingChangedV1` | Organization, Platform | Mọi module giữ bản sao cục bộ |
 
 Mọi event có envelope chung: `event_id`, `tenant_id`, `occurred_at`, `correlation_id`, `actor_id`, `schema_version`.
