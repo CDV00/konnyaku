@@ -72,7 +72,8 @@ test("admin: new student with an account, order, full payment, Worker enrolls, l
     await expect(learner.getByRole("heading", { name: t("session.greeting", { name }) })).toBeVisible();
     await expect(statValue(learner, t("credits.title"))).toHaveText(String(pkg.paidCredits + pkg.bonusCredits));
     await expect(statValue(learner, t("credits.bonusLabel"))).toHaveText(String(pkg.bonusCredits));
-    await expect(learner.getByText(t("schedule.lesson", { number: 1 }), { exact: true }).first()).toBeVisible();
+    // Lessons are daily at 07:00 (Vietnam) and the list starts 12 hours back: lesson 1 drops off later in the day.
+    await expect(learner.getByText(new RegExp(`^${t("schedule.lesson", { number: "\\d+" })}$`)).first()).toBeVisible();
     await context.close();
   });
 });
