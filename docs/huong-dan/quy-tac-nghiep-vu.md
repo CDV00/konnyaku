@@ -108,7 +108,7 @@ Một người có thể giữ nhiều vai trò; quyền là hợp của các va
 | Học viên: xem danh sách (liên hệ che) | ✓ | ✓ | ✓ | ✓ | ✓ | |
 | Xuất CSV, in danh sách học viên / lead | ✓ | ✓ | | | | |
 | Lớp, lịch: mở, xếp, sửa, kết thúc | ✓ | ✓ (cơ sở mình) | ✓ (cơ sở mình) | | | |
-| Lớp: xem mọi lớp | ✓ | ✓ | ✓ | ✓ | ✓ | chỉ lớp mình dạy |
+| Lớp: xem mọi lớp | ✓ | ✓ | ✓ | ✓ | ✓ | |
 | Phòng học, ngày nghỉ cơ sở | ✓ | ✓ (cơ sở mình) | ✓ (cơ sở mình) | | | |
 | Cơ sở, ngày nghỉ toàn trung tâm | ✓ | | | | | |
 | Chương trình, cấp độ | ✓ | | | | | |
@@ -120,7 +120,9 @@ Một người có thể giữ nhiều vai trò; quyền là hợp của các va
 | Bảo mật tài khoản, nhật ký bảo mật | ✓ | | | | | |
 | Quyền riêng tư, nhật ký truy cập | ✓ | | | | | |
 | Nhật ký thông báo | ✓ | | | | | |
-| Điểm danh, vào lớp dạy | | | | | | ✓ (buổi mình dạy) |
+| Điểm danh, vào lớp dạy (trong `/teach`) | | | | | | ✓ (buổi mình dạy) |
+
+Giáo viên chỉ có vai trò Giáo viên không vào được khu vực Vận hành (được chuyển về `/teach`).
 
 "(cơ sở mình)": khi người đó được giới hạn theo cơ sở trong **Nhân sự**; không giới hạn thì là toàn trung tâm. Chỉ **Quản lý cơ sở**, **Điều phối**, **Kế toán** giới hạn được theo cơ sở.
 

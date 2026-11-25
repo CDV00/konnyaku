@@ -24,7 +24,8 @@ public sealed class IdentityPlatformApi(IIdentityDbContext db, ITenantContext te
         // had no digit about one time in nine and the provisioning then failed with identity.bootstrap_invalid.
         var temporaryPassword = hasPassword ? null : AccountAdminHandler.TemporaryPassword();
         var result = await bootstrap.HandleAsync(
-            new BootstrapTenantAdminCommand(tenant.RequiredTenantId, normalized, displayName, temporaryPassword ?? AccountAdminHandler.TemporaryPassword()),
+            new BootstrapTenantAdminCommand(tenant.RequiredTenantId, normalized, displayName, temporaryPassword ?? AccountAdminHandler.TemporaryPassword(),
+                Temporary: true),
             cancellationToken);
         return result.IsSuccess
             ? new TenantAdminProvisionedDto(result.Value, normalized, temporaryPassword)

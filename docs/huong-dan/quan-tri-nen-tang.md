@@ -33,7 +33,7 @@ Trang **Trung tâm** (mặc định sau đăng nhập): số trung tâm, số đ
 1. Bấm **Tạo trung tâm**.
 2. Phần **Trung tâm**: **Tên trung tâm**, **Mã trung tâm (tên miền con)** (chữ thường, số, dấu gạch ngang, 3–40 ký tự; thành địa chỉ `<mã>.<tên miền Konnyaku>`), **Ngôn ngữ mặc định**, **Ngôn ngữ giao diện bật cho trung tâm**, **Múi giờ** (IANA, ví dụ `Asia/Ho_Chi_Minh`).
 3. Phần **Quản trị viên đầu tiên**: **Họ tên quản trị viên**, **Email quản trị viên**.
-4. Bấm **Tạo trung tâm**. Màn hình hiện **mật khẩu tạm** của quản trị viên **một lần**: sao chép và gửi qua kênh an toàn, kèm địa chỉ trung tâm và link [Bắt đầu nhanh](bat-dau-nhanh.md). Nếu email đã là nhân viên ở trung tâm khác, người đó dùng mật khẩu hiện có.
+4. Bấm **Tạo trung tâm**. Màn hình hiện **mật khẩu tạm** của quản trị viên **một lần**: sao chép và gửi qua kênh an toàn (quản trị viên phải đổi mật khẩu này ở lần đăng nhập đầu), kèm địa chỉ trung tâm và link [Bắt đầu nhanh](bat-dau-nhanh.md). Nếu email đã là nhân viên ở trung tâm khác, người đó dùng mật khẩu hiện có.
 
 ![Tạo trung tâm](images/nen-tang-tao-trung-tam.webp)
 

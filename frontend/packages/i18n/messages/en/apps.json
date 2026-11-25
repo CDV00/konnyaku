@@ -766,6 +766,7 @@
       "notification_already_pending": "This notification is already waiting to be sent.",
       "notification_resend_not_allowed": "This notification held confidential data and was already sent; it cannot be resent.",
       "billing_order_already_refunded": "This order has already been refunded.",
+      "billing_order_changed": "The order's lessons changed just now (for example the student was just enrolled). Nothing was refunded; open it again and retry.",
       "billing_order_not_refundable": "This order cannot be refunded in its current state.",
       "billing_refund_amount_invalid": "The refund must be above 0 and at most what was received ({max}).",
       "billing_refund_reason_required": "A reason is required (at most {max} characters).",

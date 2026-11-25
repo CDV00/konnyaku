@@ -136,7 +136,7 @@ Nút **Hoàn tiền** có trên đơn **Cần hoàn tiền** (lớp đầy), đ�
 2. **Số tiền hoàn**: sửa được (ví dụ trừ phí theo chính sách trung tâm), nhưng không quá số đã thu.
 3. Chọn **Hình thức**, nhập **Mã giao dịch**.
 4. **Lý do**: luôn bắt buộc; được in trên phiếu chi và ghi vào sổ buổi học.
-5. Bấm **Xác nhận hoàn tiền**.
+5. Bấm **Xác nhận hoàn tiền**. Nếu báo **Số buổi của đơn vừa thay đổi**, chưa có gì được hoàn (thường do học viên vừa được xếp lớp hoặc vừa bị trừ buổi): đóng và mở lại ngăn kéo để xem số liệu mới rồi xác nhận lại.
 
 **Không hoàn tác được, mỗi đơn chỉ hoàn một lần.** Sau khi xác nhận:
 

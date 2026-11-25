@@ -24,7 +24,13 @@ description: Quy ước nhánh, commit, cập nhật README/docs và merge của
 2. Phase/tính năng lớn: cập nhật bảng **Trạng thái triển khai** trong `README.md` (cột "còn để sau" ghi rõ phần chưa làm).
 3. Đổi phạm vi, module hoặc event: cập nhật `docs/04-roadmap.md`, `docs/06-evolution-strategy.md` (đây là nguồn duy nhất).
 4. Đổi màn hình người dùng thấy: cập nhật trang tương ứng trong `docs/huong-dan/` (theo vai trò; chụp lại ảnh cùng tên trong `docs/huong-dan/images/` nếu giao diện đổi).
+   **Mỗi PR có thay đổi người dùng nhìn thấy (màn hình, luồng, quyền, email, kết quả việc Worker làm) phải thêm hoặc sửa luồng e2e trong `frontend/e2e/tests` và tài liệu nó ảnh hưởng, ngay trong PR đó** (cách viết: `frontend/e2e/README.md`). Sửa lỗi người dùng thấy được thì thêm bước kiểm tra chặn lỗi đó.
 5. Đổi cách chạy local (cổng, lệnh, biến môi trường): cập nhật `docs/chay-local.md` và `.claude/launch.json`.
+
+## Pull request
+
+- Mô tả theo mẫu `.github/pull_request_template.md`: đánh dấu từng mục (luồng e2e, tài liệu, i18n, migration); mục không áp dụng thì ghi lý do.
+- Job `e2e` của CI phải xanh như các job khác.
 
 ## Push và merge
 
