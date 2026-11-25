@@ -69,7 +69,32 @@ Mỗi lệnh chạy lâu (API, Worker, frontend) cần một cửa sổ terminal
 | Giáo viên | tab Giáo viên · Nhân viên: `teacher@demo.example.com` / `Teacher-Pass-123` | `/teach` |
 | Học viên | tab Học viên · Phụ huynh: `hv000001` / mật khẩu tạm từ bước 6 | `/learn` (đổi mật khẩu lần đầu) |
 
-Dùng Claude Code: các dịch vụ trên đã khai báo trong `.claude/launch.json` (`api`, `worker`, `site`, `learn`, `teach`, `ops`); bảo Claude "chạy dev server" là đủ. Hạ tầng Docker và migration vẫn phải chạy trước.
+### Dữ liệu đầy đủ để review (`seed_review.py`)
+
+`seed_demo.py` chỉ tạo vừa đủ để chạy thử một luồng. Để review mọi màn hình và mọi vai trò, chạy thêm (cùng database, tạo trung tâm thứ hai `review`; mất khoảng 1–2 phút vì chờ Worker xử lý event):
+
+```bash
+python infra/scripts/seed_review.py
+```
+
+Mở `http://review.localhost:4000/login`. Mật khẩu chung: nhân viên `Review-Pass-123`, học viên và phụ huynh `Learner-Pass-123` (không bị bắt đổi mật khẩu).
+
+| Vai trò | Tài khoản | Vào | Xem được gì |
+| --- | --- | --- | --- |
+| Quản trị trung tâm (TenantAdmin) | `admin@review.example.com` | `/ops` | Mọi màn vận hành, kỳ lương tháng trước đã chốt, tháng này đang mở |
+| Quản lý cơ sở (BranchManager) | `manager@review.example.com` | `/ops` | 3 cơ sở (Online, Quận 1, Cầu Giấy), phòng học, ngày nghỉ |
+| Điều phối (Coordinator) | `coordinator@review.example.com` | `/ops` | 5 lớp; lớp `KO-T1-ON3` chưa xếp lịch để thử xếp |
+| Tư vấn (Consultant) | `consultant@review.example.com` | `/ops` | Lead ở đủ trạng thái (mới, đã liên hệ, đã chuyển đổi, mất) |
+| Kế toán (Accountant) | `accountant@review.example.com` | `/ops` | Đơn đã trả, trả một nửa, chưa trả, và một đơn chờ hoàn tiền vì lớp đầy |
+| Giáo viên tiếng Nhật | `teacher.ja@review.example.com` | `/teach` | Lớp online `JP-N5-ON1` đã học khoảng 4 tuần, điểm danh đã xác nhận, công tháng này |
+| Giáo viên tiếng Anh | `teacher.en@review.example.com` | `/teach` | Lớp offline `EN-A2-Q1` (phòng P101), điểm danh tay |
+| Giáo viên tiếng Trung | `teacher.zh@review.example.com` | `/teach` | Lớp `ZH-HSK1-HN` khai giảng tuần sau |
+| Học viên | `hv-review01` … `hv-review12` | `/learn` | `hv-review01`–`05`: lớp tiếng Nhật, số buổi đã trừ, video xem lại; `06`–`09`: lớp tiếng Anh offline; `10`: lớp tiếng Trung; `11`: đơn mới trả một nửa; `12`: đơn chưa trả |
+| Phụ huynh | `ph-review01` | `/learn` | Chưa gắn với học viên nào (tính năng liên kết phụ huynh chưa có) |
+
+Biến môi trường `KONNYAKU_API` và `KONNYAKU_PLATFORM_KEY` cho phép chạy script vào API khác (ví dụ stack staging); tham số `--base-domain` khớp với `Platform:BaseDomain` của API đó.
+
+Dùng Claude Code: các dịch vụ trên đã khai báo trong `.claude/launch.json` (`api`, `worker`, `site`); bảo Claude "chạy dev server" là đủ. Hạ tầng Docker và migration vẫn phải chạy trước.
 
 ## Tắt hệ thống
 
