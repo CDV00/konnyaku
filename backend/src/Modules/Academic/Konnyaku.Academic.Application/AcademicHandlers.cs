@@ -118,7 +118,8 @@ public sealed class AddCourseLevelHandler(IAcademicDbContext db, ICatalogApi cat
     }
 }
 
-public sealed record CreateClassCommand(string Code, Guid CourseLevelId, Guid BranchId, DeliveryMode DeliveryMode, int Capacity, DateOnly StartsOn);
+public sealed record CreateClassCommand(
+    string Code, Guid CourseLevelId, Guid BranchId, DeliveryMode DeliveryMode, int Capacity, DateOnly StartsOn, BookingMode BookingMode = BookingMode.Fixed);
 
 public sealed class CreateClassHandler(IAcademicDbContext db, IOrganizationApi organization, IAcademicApi academic, IAccessControl access)
 {
@@ -156,7 +157,7 @@ public sealed class CreateClassHandler(IAcademicDbContext db, IOrganizationApi o
         }
 
         var created = Class.Create(command.Code, command.CourseLevelId, branch.Id, command.DeliveryMode, command.Capacity,
-            command.StartsOn, branch.TimeZone);
+            command.StartsOn, branch.TimeZone, command.BookingMode);
         if (!created.IsSuccess)
         {
             return created.Error!;
@@ -173,7 +174,8 @@ public sealed class CreateClassHandler(IAcademicDbContext db, IOrganizationApi o
     }
 }
 
-public sealed record EnrollCommand(Guid StudentId, EnrollmentType Type, Guid? OrderId = null);
+/// <param name="Mode">Hybrid classes: the learner's default seat, Online or Offline (null: offline while the room has space).</param>
+public sealed record EnrollCommand(Guid StudentId, EnrollmentType Type, Guid? OrderId = null, string? Mode = null);
 
 public sealed class EnrollHandler(IAcademicDbContext db, ICrmApi crm, TimeProvider clock)
 {
@@ -201,6 +203,11 @@ public sealed class EnrollHandler(IAcademicDbContext db, ICrmApi crm, TimeProvid
             return Error.Conflict("academic.student_inactive");
         }
 
+        if (command.Mode is not (null or "Online" or "Offline"))
+        {
+            return Error.Validation("academic.mode_invalid");
+        }
+
         if (await db.Enrollments.AnyAsync(e => e.ClassId == classId && e.StudentId == command.StudentId &&
                 (e.Status == EnrollmentStatus.Active || e.Status == EnrollmentStatus.Frozen), cancellationToken))
         {
@@ -218,7 +225,8 @@ public sealed class EnrollHandler(IAcademicDbContext db, ICrmApi crm, TimeProvid
             return Error.Conflict("academic.class_full", new Dictionary<string, object?> { ["capacity"] = cls.Capacity });
         }
 
-        var enrollment = new Enrollment(classId, command.StudentId, command.Type, cls.StartsOn, clock.GetUtcNow(), command.OrderId);
+        var enrollment = new Enrollment(classId, command.StudentId, command.Type, cls.StartsOn, clock.GetUtcNow(), command.OrderId,
+            cls.DeliveryMode == DeliveryMode.Hybrid ? command.Mode : null);
         db.Enrollments.Add(enrollment);
         db.Publish(new EnrollmentActivatedV1(enrollment.Id, classId, command.StudentId, command.Type.ToString(), command.OrderId));
         await db.SaveChangesAsync(cancellationToken);
@@ -232,10 +240,28 @@ public sealed record FreezeCommand(DateOnly From, DateOnly To);
 public sealed class EnrollmentLifecycleHandler(IAcademicDbContext db)
 {
     public Task<Result<RosterEntryDto>> FreezeAsync(Guid enrollmentId, FreezeCommand command, CancellationToken ct) =>
-        ChangeAsync(enrollmentId, e => e.Freeze(command.From, command.To), ct);
+        ChangeAsync(enrollmentId, e =>
+        {
+            var frozen = e.Freeze(command.From, command.To);
+            if (frozen.IsSuccess)
+            {
+                db.Publish(new EnrollmentFrozenV1(e.Id, e.ClassId, e.StudentId, command.From, command.To));
+            }
+
+            return frozen;
+        }, ct);
 
     public Task<Result<RosterEntryDto>> UnfreezeAsync(Guid enrollmentId, CancellationToken ct) =>
-        ChangeAsync(enrollmentId, e => e.Unfreeze(), ct);
+        ChangeAsync(enrollmentId, e =>
+        {
+            var active = e.Unfreeze();
+            if (active.IsSuccess)
+            {
+                db.Publish(new EnrollmentUnfrozenV1(e.Id, e.ClassId, e.StudentId));
+            }
+
+            return active;
+        }, ct);
 
     public async Task<Result<RosterEntryDto>> DropAsync(Guid enrollmentId, CancellationToken ct)
     {
@@ -301,8 +327,26 @@ public sealed class AcademicQueries(IAcademicDbContext db) : IAcademicApi
                join p in db.Programs on l.ProgramId equals p.Id
                where c.Id == classId
                select new ClassDto(c.Id, c.Code, c.CourseLevelId, c.BranchId, c.DeliveryMode.ToString(), c.Capacity,
-                   c.EnrolledCount, c.StartsOn, c.TimeZone, c.Status.ToString(), l.SessionMinutes, p.LanguageCode))
+                   c.EnrolledCount, c.StartsOn, c.TimeZone, c.Status.ToString(), l.SessionMinutes, p.LanguageCode, c.BookingMode.ToString()))
             .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<EnrollmentDto?> GetEnrollmentAsync(Guid enrollmentId, CancellationToken cancellationToken) =>
+        (await db.Enrollments.AsNoTracking().FirstOrDefaultAsync(e => e.Id == enrollmentId, cancellationToken))?.ToDto();
+
+    public async Task<IReadOnlyList<EnrollmentDto>> ListEnrollmentsAsync(Guid classId, CancellationToken cancellationToken) =>
+        (await db.Enrollments.AsNoTracking()
+            .Where(e => e.ClassId == classId && (e.Status == EnrollmentStatus.Active || e.Status == EnrollmentStatus.Frozen))
+            .OrderBy(e => e.CreatedAt).ToListAsync(cancellationToken))
+        .Select(e => e.ToDto()).ToList();
+
+    public async Task<IReadOnlyList<EnrollmentDto>> ListEnrollmentsOfStudentsAsync(IReadOnlyCollection<Guid> studentIds, CancellationToken cancellationToken)
+    {
+        var ids = studentIds.ToArray();
+        return (await db.Enrollments.AsNoTracking()
+                .Where(e => ids.Contains(e.StudentId) && (e.Status == EnrollmentStatus.Active || e.Status == EnrollmentStatus.Frozen))
+                .OrderBy(e => e.CreatedAt).ToListAsync(cancellationToken))
+            .Select(e => e.ToDto()).ToList();
+    }
 
     public async Task<IReadOnlyList<LessonDto>> GetLessonsAsync(Guid classId, CancellationToken cancellationToken)
     {
@@ -332,6 +376,9 @@ public sealed class AcademicQueries(IAcademicDbContext db) : IAcademicApi
 
 public static class AcademicMapping
 {
+    public static EnrollmentDto ToDto(this Enrollment e) => new(
+        e.Id, e.ClassId, e.StudentId, e.Type.ToString(), e.Status.ToString(), e.FrozenFrom, e.FrozenTo, e.PreferredMode, e.OrderId);
+
     public static ProgramView ToView(this StudyProgram p) => new(
         p.Id, p.Code, p.Name.Values, p.LanguageCode, p.FrameworkCode, p.AgeGroup, p.Goal, p.IsPublic,
         p.Levels.OrderBy(l => l.Ordinal).Select(l => l.ToView()).ToList(), p.IsActive);

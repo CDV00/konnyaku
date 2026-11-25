@@ -24,7 +24,7 @@ public sealed record ReplanResult(int Replanned, IReadOnlyList<SessionDto> Sessi
 /// </summary>
 public sealed class ReplanScheduleHandler(
     ISchedulingDbContext db, IAcademicApi academic, IOrganizationApi organization, ResourceValidator validator,
-    IDbErrorClassifier errors, TimeProvider clock, IAccessControl access)
+    IDbErrorClassifier errors, TimeProvider clock, IAccessControl access, BookingSync bookings)
 {
     public async Task<Result<ReplanResult>> HandleAsync(Guid classId, ReplanScheduleCommand command, CancellationToken ct)
     {
@@ -136,6 +136,9 @@ public sealed class ReplanScheduleHandler(
             return Error.Conflict("scheduling.resource_conflict");
         }
 
+        // Rooms may have changed (offline seats follow the room) and bookings follow every coming session.
+        await bookings.ResizeSeatsAsync(replanned, ct);
+        await bookings.SyncClassAsync(classId, ct);
         return new ReplanResult(replanned.Count, sessions.Select(s => s.ToDto()).ToList());
     }
 
@@ -157,7 +160,8 @@ public sealed class ReplanScheduleHandler(
 /// The class changed delivery mode: its future planned sessions follow, and Workspace re-evaluates their meeting rooms
 /// (an offline session returns its host; an online one gets one). Idempotent: only sessions still on another mode change.
 /// </summary>
-public sealed class ClassDeliveryModeChangedConsumer(ISchedulingDbContext db, TimeProvider clock) : IIntegrationEventHandler<ClassDeliveryModeChangedV1>
+public sealed class ClassDeliveryModeChangedConsumer(ISchedulingDbContext db, TimeProvider clock, BookingSync bookings, SeatLedger seats)
+    : IIntegrationEventHandler<ClassDeliveryModeChangedV1>
 {
     public async Task HandleAsync(ClassDeliveryModeChangedV1 @event, IntegrationEventContext context, CancellationToken ct)
     {
@@ -172,12 +176,22 @@ public sealed class ClassDeliveryModeChangedConsumer(ISchedulingDbContext db, Ti
             db.Publish(new SessionRescheduledV1(session.Id, session.StartsAt, session.EndsAt));
         }
 
+        // Seats follow the new mode: an online class has no classroom seats, an offline one no meeting seats.
+        var ids = sessions.Select(s => s.Id).ToArray();
+        var modes = SeatLedger.ModesOf(@event.DeliveryMode);
+        foreach (var booking in await db.SessionBookings.Where(b => ids.Contains(b.SessionId) && !modes.Contains(b.Mode)).ToListAsync(ct))
+        {
+            booking.SwitchMode(modes[0], now);
+        }
+
         await db.SaveChangesAsync(ct);
+        await bookings.ResizeSeatsAsync(sessions, ct);
+        await seats.RecountAsync(ids, ct);
     }
 }
 
 /// <summary>A class was completed or cancelled: its remaining planned sessions are cancelled and their resources freed.</summary>
-public sealed class ClassClosedConsumer(ISchedulingDbContext db, TimeProvider clock) : IIntegrationEventHandler<ClassClosedV1>
+public sealed class ClassClosedConsumer(ISchedulingDbContext db, TimeProvider clock, BookingSync bookings) : IIntegrationEventHandler<ClassClosedV1>
 {
     public async Task HandleAsync(ClassClosedV1 @event, IntegrationEventContext context, CancellationToken ct)
     {
@@ -192,6 +206,7 @@ public sealed class ClassClosedConsumer(ISchedulingDbContext db, TimeProvider cl
             booking.Release();
         }
 
+        await bookings.ReleaseSessionsAsync(ids, ct);
         var reason = $"class_{@event.Status.ToLowerInvariant()}";
         foreach (var session in sessions)
         {

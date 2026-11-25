@@ -93,6 +93,23 @@ Trang **Tổng quan** của học viên cho biết còn bao nhiêu buổi, buổ
 
 Nếu số buổi âm, trang hiện dòng cảnh báo màu đỏ **Đang nợ … buổi**. Khi đó học viên vẫn học được, nhưng cần liên hệ trung tâm để gia hạn gói.
 
+### Lịch học: xin nghỉ, học bù, đổi hình thức
+
+Mục **Lịch học** liệt kê các buổi trong 60 ngày tới mà học viên có chỗ: buổi của lớp mình, buổi học bù và buổi đã đặt ở lớp linh hoạt (phụ huynh thấy của các con, có ghi tên). Mỗi buổi ghi lớp, số buổi, giờ, hình thức (Trực tuyến / Tại cơ sở) và trạng thái (**Đã đặt**, **Đã xin nghỉ**, **Đã học**, **Vắng**).
+
+| Thao tác | Khi nào làm được | Kết quả |
+| --- | --- | --- |
+| **Xin nghỉ** | Buổi của lớp mình, trước giờ học ít nhất 12 giờ, tối đa 3 lần mỗi khoá | Buổi chuyển **Đã xin nghỉ**, không bị trừ, nhận một **quyền học bù** dùng trong 30 ngày. Quá hạn thì nút ẩn đi: nếu vắng, buổi vẫn bị trừ như bình thường |
+| **Đặt buổi bù** | Có quyền học bù chưa dùng | Mở danh sách các buổi **cùng bài** ở lớp khác (cùng chương trình, cùng cấp độ) trước khi quyền hết hạn, kèm số chỗ còn. Bấm **Đặt buổi này** (lớp kết hợp: chọn Online hoặc Tại cơ sở) |
+| **Vào hàng chờ** | Buổi bù hoặc buổi lớp linh hoạt đã hết chỗ | Khi có người huỷ, hệ thống giữ chỗ cho người đầu hàng 2 giờ. Chỗ giữ hiện ở đầu trang **Lịch học** với nút **Nhận chỗ** / **Bỏ qua** |
+| **Nhờ giáo vụ xếp** | Không có buổi cùng bài nào phù hợp | Giáo vụ thấy yêu cầu ở màn **Học bù** và xếp tay |
+| **Huỷ đặt** | Buổi học bù hoặc buổi lớp linh hoạt, trước hạn xin nghỉ | Chỗ được trả; quyền học bù quay lại để đặt buổi khác |
+| **Chuyển sang Trực tuyến / Tại cơ sở** | Lớp kết hợp, trước giờ học 2 giờ, khi hình thức kia còn chỗ | Đổi hình thức cho riêng buổi đó |
+
+Buổi học bù trừ một buổi trong gói của lớp mình khi giáo viên điểm danh có mặt. Các mốc 12 giờ, 3 lần, 30 ngày, 2 giờ là mặc định; trung tâm đổi được (xem **Học bù** trong phần vận hành).
+
+**Lớp linh hoạt** (câu lạc bộ nói, lớp giao tiếp) không có lịch cố định. Học viên mua gói, rồi bấm **Đặt buổi lớp linh hoạt** trên trang **Lịch học** để chọn từng buổi trong 4 tuần tới. Số buổi đặt trước không vượt số buổi còn trong gói.
+
 ### Lịch sử thanh toán
 
 Mục **Thanh toán** liệt kê mọi lần đóng học phí và hoàn tiền của học viên (phụ huynh thấy của các con): số phiếu, ngày, gói học, số tiền. Bấm **Tải phiếu** để tải phiếu thu (hoặc phiếu chi khi được hoàn tiền) dạng PDF. Mỗi lần tải đều được trung tâm ghi lại.
@@ -160,8 +177,10 @@ Quên bấm kết thúc: phòng tự đóng khi không còn ai sau giờ kết t
 2. Với lớp online, hệ thống đã đề xuất sẵn trạng thái từ thời gian có mặt trong phòng:
     - có mặt từ 70% thời lượng trở lên → **Có mặt**; vào muộn hơn 10 phút → **Đi muộn**;
     - dưới 30% → **Vắng**; học viên đang bảo lưu → **Vắng có phép**.
-3. Chỉnh lại nếu cần bằng nhóm nút cạnh tên mỗi học viên: Có mặt, Đi muộn, Về sớm, Vắng, Vắng có phép, Học bù. Dòng tóm tắt “… học viên có mặt” cập nhật ngay.
+3. Chỉnh lại nếu cần bằng nhóm nút cạnh tên mỗi học viên: Có mặt, Đi muộn, Về sớm, Vắng, Vắng có phép. Dòng tóm tắt “… học viên có mặt” cập nhật ngay.
 4. Bấm **Xác nhận điểm danh**.
+
+Danh sách lấy từ chỗ đã đặt của buổi: học viên đã xin nghỉ hoặc đang bảo lưu không có trong danh sách (không bị trừ buổi), học viên lớp khác đến **học bù** có nhãn **Học bù**, và mỗi người có biểu tượng hình thức học (Online / Tại lớp). Với học viên học bù, chọn **Học bù** nếu có mặt hoặc **Vắng**.
 
 Lớp tại cơ sở không có dữ liệu phòng học, nên mặc định mọi học viên là Vắng; giáo viên chọn tay từng người rồi xác nhận.
 
@@ -261,7 +280,7 @@ Sửa và điều chỉnh (Kế toán, Quản trị):
 
 ### Lớp học
 
-1. Bấm **Mở lớp**: Mã, Cấp độ, Cơ sở, Hình thức (Online / Tại lớp / Kết hợp), Sĩ số tối đa, Khai giảng.
+1. Bấm **Mở lớp**: Mã, Cấp độ, Cơ sở, Hình thức (Online / Tại lớp / Kết hợp), Sĩ số tối đa, Khai giảng, Cách đặt buổi (**Lịch cố định** hoặc **Linh hoạt**: học viên mua gói rồi tự đặt từng buổi).
 2. Bấm vào mã lớp để mở chi tiết.
 3. Ở phần **Lịch học**, chọn Ngày học trong tuần, Giờ bắt đầu, Giáo viên, rồi bấm **Xếp lịch**. Hệ thống sinh đủ số buổi của cấp độ, bỏ ngày lễ, và báo lỗi nếu giáo viên bị trùng lịch.
 
@@ -272,6 +291,16 @@ Sửa lớp trên trang chi tiết:
 - **Sửa**: mã, hình thức và sĩ số đổi lúc nào cũng được (sĩ số không nhỏ hơn số học viên đang giữ chỗ). Cấp độ, cơ sở và ngày khai giảng chỉ đổi được trước khi xếp lịch; cấp độ còn cần lớp chưa có học viên. Đổi hình thức (ví dụ Online → Tại lớp) áp cho mọi buổi chưa diễn ra.
 - **Sửa lịch tuần**: chọn lại ngày, giờ, giáo viên, phòng và ngày áp dụng (để trống = hôm nay). Các buổi chưa diễn ra từ ngày đó được xếp lại theo đúng thứ tự bài học, bỏ ngày nghỉ; buổi đã học hoặc đã huỷ giữ nguyên. Nếu giáo viên hoặc phòng bị trùng với lớp khác, không buổi nào bị đổi và hệ thống báo trùng lịch.
 - **Kết thúc lớp** hoặc **Huỷ lớp**: các buổi còn lại bị huỷ, giáo viên và phòng được trả. **Mở lại lớp** cho phép ghi danh và sửa tiếp (buổi đã huỷ không tự khôi phục: dùng Sửa lịch tuần).
+
+Chỗ ngồi theo từng buổi: lớp online có số chỗ bằng sĩ số cộng chỗ học bù; lớp tại cơ sở không vượt sức chứa phòng; lớp kết hợp có cả hai. Học viên lớp kết hợp ngồi tại lớp khi phòng còn chỗ, hết chỗ thì học online.
+
+### Học bù
+
+Màn **Học bù** (quản lý cơ sở, giáo vụ) gồm:
+
+- **Yêu cầu học bù cần xếp**: học viên không tìm được buổi cùng bài. Bấm **Xếp buổi bù**, chọn buổi sắp tới cùng cấp độ (buổi cùng bài có ghi “cùng bài”) và hình thức. Xếp tay được vượt chỗ học bù và hạn quyền, nhưng buổi phải còn chỗ ngồi. **Từ chối** khi không xếp được: học viên không dùng quyền đó nữa.
+- **Học viên xin nghỉ nhiều**: từ 2 lần trong 60 ngày qua, dấu hiệu sắp bỏ học để giáo vụ gọi hỏi thăm.
+- **Quy tắc đặt buổi** (quản trị sửa được): hạn xin nghỉ, số lần xin nghỉ mỗi khoá, hạn dùng quyền học bù, hạn đổi hình thức, số chỗ học bù mỗi buổi, thời gian giữ chỗ cho hàng chờ.
 
 ### Chương trình
 
@@ -403,4 +432,4 @@ Mỗi mã chỉ dùng một lần; nhập sai mật khẩu hoặc mã 5 lần li
 | Trang trung tâm báo “Trung tâm tạm ngừng hoạt động” | Trung tâm đang bị tạm khóa trên Konnyaku; quản trị viên trung tâm liên hệ Konnyaku. |
 | Người vận hành mất điện thoại và hết mã khôi phục | Chưa tự đặt lại được trên giao diện; liên hệ quản trị kỹ thuật để đặt lại. |
 
-Chưa có trên giao diện ở bản này: đổi lịch từng buổi, bảo lưu, học bù, thanh toán online, đăng nhập bằng Google.
+Chưa có trên giao diện ở bản này: đổi lịch từng buổi, bảo lưu, thanh toán online, đăng nhập bằng Google.

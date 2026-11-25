@@ -36,7 +36,8 @@
     "zone": "Học viên",
     "nav": {
       "home": "Tổng quan",
-      "payments": "Thanh toán"
+      "payments": "Thanh toán",
+      "schedule": "Lịch học"
     },
     "subtitle": "Lịch học, số buổi còn lại và video xem lại của bạn.",
     "nextLesson": "Buổi học kế tiếp",
@@ -87,7 +88,8 @@
       "home": "Tổng quan",
       "notifications": "Thông báo",
       "security": "Bảo mật",
-      "privacy": "Quyền riêng tư"
+      "privacy": "Quyền riêng tư",
+      "makeups": "Học bù"
     },
     "hint": {
       "leads": "Gọi lại, chuyển trạng thái khách đăng ký",
@@ -100,7 +102,8 @@
       "payroll": "Tạo và chốt kỳ lương",
       "notifications": "Email đã gửi, lỗi và gửi lại",
       "security": "Khoá tài khoản, đặt lại mật khẩu, nhật ký đăng nhập",
-      "privacy": "Yêu cầu về dữ liệu cá nhân, nhật ký truy cập"
+      "privacy": "Yêu cầu về dữ liệu cá nhân, nhật ký truy cập",
+      "makeups": "Duyệt học bù ngoại lệ, học viên xin nghỉ nhiều"
     },
     "zone": "Vận hành",
     "subtitle": "Tình hình trung tâm hôm nay và lối tắt tới các việc thường làm.",
@@ -282,7 +285,7 @@
     "status": "Trạng thái",
     "confirm": "Xác nhận điểm danh",
     "confirmed": "Đã xác nhận — buổi học đã được trừ theo điểm danh.",
-    "empty": "Chưa có dữ liệu từ phòng học. Bạn có thể xác nhận để điểm danh thủ công (mặc định vắng).",
+    "empty": "Chưa có học viên nào đặt chỗ trong buổi này.",
     "back": "Về lịch dạy",
     "statuses": {
       "Present": "Có mặt",
@@ -298,7 +301,17 @@
     },
     "summary": "{present, number}/{total, number} học viên có mặt",
     "presentMinutes": "{minutes, number} phút trong phòng",
-    "intro": "Hệ thống đã đề xuất trạng thái từ dữ liệu phòng học — chỉnh lại nếu cần rồi xác nhận."
+    "intro": "Hệ thống đã đề xuất trạng thái từ dữ liệu phòng học — chỉnh lại nếu cần rồi xác nhận.",
+    "kinds": {
+      "Regular": "Lớp",
+      "Makeup": "Học bù",
+      "Flexible": "Đặt buổi",
+      "Trial": "Học thử"
+    },
+    "modes": {
+      "Online": "Online",
+      "Offline": "Tại lớp"
+    }
   },
   "replay": {
     "title": "Xem lại buổi học",
@@ -538,7 +551,9 @@
       "room": "Phòng",
       "noRoom": "Không chọn phòng",
       "search": "Tìm theo mã lớp",
-      "current": "Đang diễn ra"
+      "current": "Đang diễn ra",
+      "bookingMode": "Cách đặt buổi",
+      "bookingModeHint": "Linh hoạt: học viên mua gói rồi tự đặt từng buổi. Chỉ đổi được khi lớp chưa có học viên."
     },
     "students": {
       "title": "Học viên",
@@ -790,7 +805,19 @@
       "crm_request_status_invalid": "Trạng thái không hợp lệ.",
       "crm_request_reason_required": "Từ chối cần ghi lý do.",
       "crm_subject_type_invalid": "Loại đối tượng không hợp lệ.",
-      "crm_received_in_future": "Thời điểm nhận không thể ở tương lai."
+      "crm_received_in_future": "Thời điểm nhận không thể ở tương lai.",
+      "academic_class_booking_mode_locked": "Lớp đã có học viên nên không đổi được cách đặt buổi.",
+      "academic_mode_invalid": "Hình thức học không hợp lệ.",
+      "scheduling_entitlement_not_found": "Không tìm thấy quyền học bù.",
+      "scheduling_entitlement_used": "Quyền học bù này đã được dùng.",
+      "scheduling_session_full": "Buổi này đã hết chỗ.",
+      "scheduling_session_started": "Buổi học đã bắt đầu hoặc không còn nhận đặt chỗ.",
+      "scheduling_session_not_found": "Không tìm thấy buổi học.",
+      "scheduling_mode_invalid": "Hãy chọn hình thức mà buổi học có.",
+      "scheduling_makeup_lesson_mismatch": "Không xếp học bù vào chính lớp của học viên.",
+      "scheduling_already_booked": "Học viên đã có chỗ trong buổi này.",
+      "scheduling_settings_invalid": "Giá trị quy tắc không hợp lệ.",
+      "scheduling_booking_changed_concurrently": "Dữ liệu vừa thay đổi, hãy tải lại trang."
     },
     "classStatus": {
       "Planned": "Dự kiến",
@@ -1157,6 +1184,10 @@
       },
       "retention": "quá hạn lưu giữ {period}",
       "rows": "{count, plural, other {# dòng}}"
+    },
+    "bookingModes": {
+      "Fixed": "Lịch cố định",
+      "Flexible": "Linh hoạt (tự đặt buổi)"
     }
   },
   "shell": {

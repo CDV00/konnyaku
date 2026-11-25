@@ -227,6 +227,13 @@ public enum DeliveryMode
     Hybrid,
 }
 
+/// <summary>Fixed: a roster attends every session. Flexible: learners buy a package and book sessions one by one.</summary>
+public enum BookingMode
+{
+    Fixed,
+    Flexible,
+}
+
 public enum ClassStatus
 {
     Planned,
@@ -248,6 +255,7 @@ public sealed class Class : Entity, ITenantOwned, IAuditable
     public Guid CourseLevelId { get; private set; }
     public Guid BranchId { get; private set; }
     public DeliveryMode DeliveryMode { get; private set; }
+    public BookingMode BookingMode { get; private set; }
     public int Capacity { get; private set; }
     public int EnrolledCount { get; private set; }
     public DateOnly StartsOn { get; private set; }
@@ -300,6 +308,11 @@ public sealed class Class : Entity, ITenantOwned, IAuditable
             return Error.Conflict("academic.class_start_locked");
         }
 
+        if (change.BookingMode is { } bookingMode && bookingMode != BookingMode && EnrolledCount > 0)
+        {
+            return Error.Conflict("academic.class_booking_mode_locked");
+        }
+
         Code = normalized;
         CourseLevelId = change.CourseLevelId;
         BranchId = change.BranchId;
@@ -307,6 +320,7 @@ public sealed class Class : Entity, ITenantOwned, IAuditable
         DeliveryMode = change.DeliveryMode;
         Capacity = change.Capacity;
         StartsOn = change.StartsOn;
+        BookingMode = change.BookingMode ?? BookingMode;
         return this;
     }
 
@@ -340,7 +354,7 @@ public sealed class Class : Entity, ITenantOwned, IAuditable
     }
 
     public static Result<Class> Create(string code, Guid courseLevelId, Guid branchId, DeliveryMode mode, int capacity,
-        DateOnly startsOn, string timeZone)
+        DateOnly startsOn, string timeZone, BookingMode bookingMode = BookingMode.Fixed)
     {
         var normalized = StudyProgram.NormalizeCode(code);
         if (normalized is null)
@@ -363,11 +377,14 @@ public sealed class Class : Entity, ITenantOwned, IAuditable
             StartsOn = startsOn,
             TimeZone = timeZone,
             Status = ClassStatus.Open,
+            BookingMode = bookingMode,
         };
     }
 }
 
-public sealed record ClassChange(string Code, Guid CourseLevelId, Guid BranchId, string TimeZone, DeliveryMode DeliveryMode, int Capacity, DateOnly StartsOn);
+public sealed record ClassChange(
+    string Code, Guid CourseLevelId, Guid BranchId, string TimeZone, DeliveryMode DeliveryMode, int Capacity, DateOnly StartsOn,
+    BookingMode? BookingMode = null);
 
 public enum EnrollmentType
 {
@@ -393,8 +410,10 @@ public sealed class Enrollment : Entity, ITenantOwned
     {
     }
 
-    public Enrollment(Guid classId, Guid studentId, EnrollmentType type, DateOnly startsOn, DateTimeOffset now, Guid? orderId = null)
+    public Enrollment(Guid classId, Guid studentId, EnrollmentType type, DateOnly startsOn, DateTimeOffset now, Guid? orderId = null,
+        string? preferredMode = null)
     {
+        PreferredMode = preferredMode;
         OrderId = orderId;
         ClassId = classId;
         StudentId = studentId;
@@ -417,6 +436,9 @@ public sealed class Enrollment : Entity, ITenantOwned
     public DateOnly? FrozenFrom { get; private set; }
     public DateOnly? FrozenTo { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
+
+    /// <summary>Hybrid classes: Online or Offline, the learner's default seat for every session (null: decided per session).</summary>
+    public string? PreferredMode { get; private set; }
 
     public bool HoldsSeat => Status is EnrollmentStatus.Active or EnrollmentStatus.Frozen;
 

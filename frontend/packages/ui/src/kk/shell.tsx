@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
+  CalendarCheck,
+  CalendarClock,
   CalendarDays,
   EyeOff,
   ClipboardList,
@@ -58,6 +60,8 @@ const icons = {
   audit: ScrollText,
   operators: ShieldCheck,
   account: KeyRound,
+  schedule: CalendarCheck,
+  makeups: CalendarClock,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof icons;

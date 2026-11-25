@@ -192,15 +192,18 @@ public sealed class JoinHandler(IWorkspaceDbContext db, ISchedulingApi schedulin
         }
 
         var allowed = isLearner
-            ? await HoldsSeatAsync(session.ClassId, userId, ct)
+            ? await HoldsSeatAsync(session, userId, ct)
             : session.TeacherId == userId || roles.Any(CoordinatorRoles.Contains);
         return allowed ? session : null;
     }
 
-    private async Task<bool> HoldsSeatAsync(Guid classId, Guid userId, CancellationToken ct)
+    /// <summary>Booked into the session (own class, make-up or flexible), or enrolled in its class.</summary>
+    private async Task<bool> HoldsSeatAsync(SessionDto session, Guid userId, CancellationToken ct)
     {
         var students = (await crm.ListStudentsOfUserAsync(userId, ct)).Select(s => s.Id).ToHashSet();
-        return students.Count > 0 && (await academic.GetRosterAsync(classId, ct)).Any(r => students.Contains(r.StudentId));
+        return students.Count > 0
+               && ((await scheduling.GetSessionRosterAsync(session.Id, ct)).Any(r => students.Contains(r.StudentId))
+                   || (await academic.GetRosterAsync(session.ClassId, ct)).Any(r => students.Contains(r.StudentId)));
     }
 }
 

@@ -12,6 +12,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <ZoneLayout accountHref="/learn/change-password" realm="learn" zone={t("zone")} links={[
         { href: "/learn", label: t("nav.home"), icon: "home", exact: true },
+        { href: "/learn/schedule", label: t("nav.schedule"), icon: "schedule" },
         { href: "/learn/payments", label: t("nav.payments"), icon: "billing" },
       ]}>
       {children}

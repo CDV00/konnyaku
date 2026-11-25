@@ -36,7 +36,8 @@
     "zone": "Learner",
     "nav": {
       "home": "Overview",
-      "payments": "Payments"
+      "payments": "Payments",
+      "schedule": "Schedule"
     },
     "subtitle": "Your schedule, remaining lessons and replays.",
     "nextLesson": "Next lesson",
@@ -87,7 +88,8 @@
       "home": "Overview",
       "notifications": "Notifications",
       "security": "Security",
-      "privacy": "Privacy"
+      "privacy": "Privacy",
+      "makeups": "Make-ups"
     },
     "hint": {
       "leads": "Follow up and move leads along",
@@ -100,7 +102,8 @@
       "payroll": "Create and lock pay periods",
       "notifications": "Sent emails, failures and resending",
       "security": "Lock accounts, reset passwords, sign-in log",
-      "privacy": "Personal data requests, access log"
+      "privacy": "Personal data requests, access log",
+      "makeups": "Exceptional make-ups, learners who often ask for leave"
     },
     "zone": "Operations",
     "subtitle": "How the center is doing today, with shortcuts to everyday tasks.",
@@ -282,7 +285,7 @@
     "status": "Status",
     "confirm": "Confirm attendance",
     "confirmed": "Confirmed — lessons were spent according to attendance.",
-    "empty": "No data from the classroom yet. Confirming marks everyone by hand (absent by default).",
+    "empty": "No learner has a seat in this session.",
     "back": "Back to schedule",
     "statuses": {
       "Present": "Present",
@@ -298,7 +301,17 @@
     },
     "summary": "{present, number}/{total, number} students present",
     "presentMinutes": "{minutes, number} min in the room",
-    "intro": "Statuses are suggested from the meeting log — adjust if needed, then confirm."
+    "intro": "Statuses are suggested from the meeting log — adjust if needed, then confirm.",
+    "kinds": {
+      "Regular": "Class",
+      "Makeup": "Make-up",
+      "Flexible": "Booked",
+      "Trial": "Trial"
+    },
+    "modes": {
+      "Online": "Online",
+      "Offline": "On-site"
+    }
   },
   "replay": {
     "title": "Lesson replays",
@@ -538,7 +551,9 @@
       "room": "Room",
       "noRoom": "No room",
       "search": "Search class code",
-      "current": "Ongoing"
+      "current": "Ongoing",
+      "bookingMode": "Booking",
+      "bookingModeHint": "Flexible: learners buy a package and book each lesson. Changes only while the class has no learners."
     },
     "students": {
       "title": "Students",
@@ -790,7 +805,19 @@
       "crm_request_status_invalid": "Invalid status.",
       "crm_request_reason_required": "A rejection needs a reason.",
       "crm_subject_type_invalid": "Invalid subject type.",
-      "crm_received_in_future": "The received time cannot be in the future."
+      "crm_received_in_future": "The received time cannot be in the future.",
+      "academic_class_booking_mode_locked": "The class has learners, so its booking mode cannot change.",
+      "academic_mode_invalid": "Invalid mode.",
+      "scheduling_entitlement_not_found": "Make-up right not found.",
+      "scheduling_entitlement_used": "This make-up right is already used.",
+      "scheduling_session_full": "This session is full.",
+      "scheduling_session_started": "The session has started or no longer takes bookings.",
+      "scheduling_session_not_found": "Session not found.",
+      "scheduling_mode_invalid": "Choose a mode the session offers.",
+      "scheduling_makeup_lesson_mismatch": "A make-up cannot be placed in the learner's own class.",
+      "scheduling_already_booked": "The learner already has a seat in this session.",
+      "scheduling_settings_invalid": "Invalid rule values.",
+      "scheduling_booking_changed_concurrently": "The data just changed, reload the page."
     },
     "classStatus": {
       "Planned": "Planned",
@@ -1157,6 +1184,10 @@
       },
       "retention": "past retention ({period})",
       "rows": "{count, plural, one {# row} other {# rows}}"
+    },
+    "bookingModes": {
+      "Fixed": "Fixed schedule",
+      "Flexible": "Flexible (book each lesson)"
     }
   },
   "shell": {

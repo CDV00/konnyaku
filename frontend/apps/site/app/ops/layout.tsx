@@ -26,7 +26,13 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const roles = await getTranslations("roles");
   const links: NavLink[] = [
     { href: "/ops", label: t("nav.home"), icon: "home", exact: true },
-    ...sections.map((section) => ({ href: `/ops/${section}`, label: t(`nav.${section}`), icon: section })),
+    ...sections.flatMap((section): NavLink[] => [
+      { href: `/ops/${section}`, label: t(`nav.${section}`), icon: section },
+      // Make-ups and leave sit under classes, for whoever schedules them.
+      ...(section === "classes" && access.any("scheduling.schedules")
+        ? [{ href: "/ops/makeups", label: t("nav.makeups"), icon: "makeups" as const }]
+        : []),
+    ]),
     // Data subject requests and the personal data access log: the tenant admin only.
     ...(access.can("crm.privacy") ? [{ href: "/ops/privacy", label: t("nav.privacy"), icon: "privacy" as const }] : []),
     ...(access.can("identity.accounts") ? [{ href: "/ops/security", label: t("nav.security"), icon: "security" as const }] : []),
