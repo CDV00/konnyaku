@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Konnyaku.Academic.Application;
 using Konnyaku.Academic.Infrastructure;
 using Konnyaku.Application.Authorization;
@@ -6,6 +7,7 @@ using Konnyaku.Infrastructure.Auth;
 using Konnyaku.Infrastructure.Http;
 using Konnyaku.Infrastructure.Messaging;
 using Konnyaku.Infrastructure.Modules;
+using Konnyaku.SharedKernel;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -30,6 +32,7 @@ public sealed class AcademicModule : IModule
         services.AddScoped<EnrollmentLifecycleHandler>();
         services.AddScoped<ProgramAdminHandler>();
         services.AddScoped<ClassAdminHandler>();
+        services.AddScoped<ClassAccess>();
         services.AddScoped<Konnyaku.Application.Messaging.IIntegrationEventHandler<Konnyaku.Billing.Contracts.OrderPaidV1>, OrderPaidConsumer>();
     }
 
@@ -44,21 +47,28 @@ public sealed class AcademicModule : IModule
         var staff = group.MapGroup("").RequireAuthorization(Policies.Staff);
         staff.MapGet("/programs", async (string? language, AcademicQueries queries, CancellationToken ct) =>
             Results.Ok(await queries.ListProgramsAsync(publicOnly: false, language, ct)));
-        staff.MapGet("/classes", async (AcademicQueries queries, CancellationToken ct) =>
-            Results.Ok(await queries.ListClassesAsync(ct)));
-        staff.MapGet("/classes/{id:guid}/roster", async (Guid id, AcademicQueries queries, CancellationToken ct) =>
-            Results.Ok(await queries.GetRosterAsync(id, ct)));
-        staff.MapPost("/classes/{id:guid}/enrollments", async (Guid id, EnrollCommand command, EnrollHandler handler, CancellationToken ct) =>
-            ApiResults.From(await handler.HandleAsync(id, command, ct), e => Results.Created($"enrollments/{e.EnrollmentId}", e)))
+        // Every class for members who run or sell them; a teacher sees the classes they teach.
+        staff.MapGet("/classes", async (ClaimsPrincipal user, ClassAccess classes, CancellationToken ct) =>
+            Results.Ok(await classes.VisibleClassesAsync(user.UserId()!.Value, ct)));
+        staff.MapGet("/classes/{id:guid}/roster", async (Guid id, ClaimsPrincipal user, ClassAccess classes, AcademicQueries queries, CancellationToken ct) =>
+            await classes.CanSeeAsync(id, user.UserId()!.Value, ct)
+                ? Results.Ok(await queries.GetRosterAsync(id, ct))
+                : ApiResults.Error(Error.Forbidden("access.forbidden")));
+
+        // Hand-made enrollments: the class's branch must be one the member runs.
+        staff.MapPost("/classes/{id:guid}/enrollments", async (Guid id, EnrollCommand command, ClassAccess classes, EnrollHandler handler, CancellationToken ct) =>
+                await classes.EnsureEnrollmentBranchAsync(id, null, ct) is { } denied
+                    ? ApiResults.Error(denied)
+                    : ApiResults.From(await handler.HandleAsync(id, command, ct), e => Results.Created($"enrollments/{e.EnrollmentId}", e)))
             .RequirePermission(Permissions.Classes);
-        staff.MapPost("/enrollments/{id:guid}/freeze", async (Guid id, FreezeCommand command, EnrollmentLifecycleHandler handler, CancellationToken ct) =>
-            ApiResults.From(await handler.FreezeAsync(id, command, ct), Results.Ok))
+        staff.MapPost("/enrollments/{id:guid}/freeze", async (Guid id, FreezeCommand command, ClassAccess classes, EnrollmentLifecycleHandler handler, CancellationToken ct) =>
+                await classes.EnsureEnrollmentBranchAsync(null, id, ct) is { } denied ? ApiResults.Error(denied) : ApiResults.From(await handler.FreezeAsync(id, command, ct), Results.Ok))
             .RequirePermission(Permissions.Classes);
-        staff.MapPost("/enrollments/{id:guid}/unfreeze", async (Guid id, EnrollmentLifecycleHandler handler, CancellationToken ct) =>
-            ApiResults.From(await handler.UnfreezeAsync(id, ct), Results.Ok))
+        staff.MapPost("/enrollments/{id:guid}/unfreeze", async (Guid id, ClassAccess classes, EnrollmentLifecycleHandler handler, CancellationToken ct) =>
+                await classes.EnsureEnrollmentBranchAsync(null, id, ct) is { } denied ? ApiResults.Error(denied) : ApiResults.From(await handler.UnfreezeAsync(id, ct), Results.Ok))
             .RequirePermission(Permissions.Classes);
-        staff.MapPost("/enrollments/{id:guid}/drop", async (Guid id, EnrollmentLifecycleHandler handler, CancellationToken ct) =>
-            ApiResults.From(await handler.DropAsync(id, ct), Results.Ok))
+        staff.MapPost("/enrollments/{id:guid}/drop", async (Guid id, ClassAccess classes, EnrollmentLifecycleHandler handler, CancellationToken ct) =>
+                await classes.EnsureEnrollmentBranchAsync(null, id, ct) is { } denied ? ApiResults.Error(denied) : ApiResults.From(await handler.DropAsync(id, ct), Results.Ok))
             .RequirePermission(Permissions.Classes);
 
         var programs = group.MapGroup("").RequirePermission(Permissions.Programs);

@@ -64,6 +64,20 @@ public sealed class PermissionMatrixTests(PostgresFixture db) : IAsyncDisposable
         await (await member.PostAsJsonAsync("/api/organization/holidays", new { date = "2027-02-01", name = new { vi = "Nghỉ" }, branchId = c.BranchB }, Ct))
             .ShouldFailWith(HttpStatusCode.Forbidden, "access.branch_forbidden");
 
+        // Hand-made enrollments follow the class's branch.
+        var studentId = await c.PostIdAsync("/api/crm/students", new { fullName = "HV" });
+        (await member.PostAsJsonAsync($"/api/academic/classes/{classA}/enrollments", new { studentId, type = "Regular" }, Ct))
+            .StatusCode.ShouldBe(HttpStatusCode.Created);
+        await (await member.PostAsJsonAsync($"/api/academic/classes/{classB}/enrollments", new { studentId, type = "Regular" }, Ct))
+            .ShouldFailWith(HttpStatusCode.Forbidden, "access.branch_forbidden");
+        var enrollmentB = (await (await c.Admin.PostAsJsonAsync($"/api/academic/classes/{classB}/enrollments", new { studentId, type = "Regular" }, Ct))
+            .Content.ReadFromJsonAsync<EnrollmentView>(Ct))!.EnrollmentId;
+        await (await member.PostAsJsonAsync($"/api/academic/enrollments/{enrollmentB}/drop", new { }, Ct))
+            .ShouldFailWith(HttpStatusCode.Forbidden, "access.branch_forbidden");
+
+        // Student records are center-wide: branch roles keep them.
+        await (await member.PutAsJsonAsync($"/api/crm/students/{studentId}", new { fullName = "Học viên A" }, Ct)).ShouldSucceed();
+
         // Nothing outside the role
         (await member.PutAsJsonAsync($"/api/organization/branches/{c.BranchA}", new { code = "CS-A", name = new { vi = "A" }, timeZone = "Asia/Ho_Chi_Minh", isVirtual = false }, Ct))
             .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
@@ -88,15 +102,19 @@ public sealed class PermissionMatrixTests(PostgresFixture db) : IAsyncDisposable
         var c = await EditCenter.CreateAsync(_api, "permfin");
         var (_, accountant) = await c.AddStaffAsync("Accountant");
         var (_, consultant) = await c.AddStaffAsync("Consultant");
-        var (_, teacher) = await c.AddStaffAsync("Teacher");
+        var (teacherId, teacher) = await c.AddStaffAsync("Teacher");
         var classA = await c.CreateClassAsync("CLS-A", c.BranchA);
+        var classB = await c.CreateClassAsync("CLS-B", c.BranchB);
+        await c.ScheduleAsync(classA, [1], "18:00", teacherId);
         var studentId = await c.PostIdAsync("/api/crm/students", new { fullName = "HV" });
         var package = await c.PostIdAsync("/api/billing/packages", Package());
         var order = await c.PostIdAsync("/api/billing/orders", new { studentId, packageId = package });
         var classEdit = new { code = "CLS-A", courseLevelId = c.LevelId, branchId = c.BranchA, deliveryMode = "Online", capacity = 20, startsOn = "2027-01-04" };
         var studentEdit = new { fullName = "Học viên" };
 
-        // Accountant: packages, orders, payments, pay rates.
+        // Accountant: packages, orders, payments, pay rates; reads the student list.
+        (await accountant.GetAsync("/api/crm/students", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await accountant.GetAsync("/api/crm/leads", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         await (await accountant.PutAsJsonAsync($"/api/billing/packages/{package}", Package(price: 900000), Ct)).ShouldSucceed();
         await (await accountant.PutAsJsonAsync($"/api/billing/orders/{order}", new { amount = 800000 }, Ct)).ShouldSucceed();
         await (await accountant.PostAsJsonAsync($"/api/billing/orders/{order}/payments", new { amount = 100000, method = "cash" }, Ct)).ShouldSucceed();
@@ -108,7 +126,13 @@ public sealed class PermissionMatrixTests(PostgresFixture db) : IAsyncDisposable
         (await consultant.PutAsJsonAsync($"/api/billing/packages/{package}", Package(), Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         (await consultant.PutAsJsonAsync($"/api/academic/classes/{classA}", classEdit, Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
-        // Teacher: reads (but not the staff list), changes nothing.
+        // Teacher: sees only the classes they teach, no student list, no leads, changes nothing.
+        (await teacher.GetFromJsonAsync<IdView[]>("/api/academic/classes", Ct))!.Select(x => x.Id).ShouldBe([classA]);
+        (await teacher.GetAsync($"/api/academic/classes/{classA}/roster", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await teacher.GetAsync($"/api/academic/classes/{classB}/roster", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await teacher.GetAsync("/api/crm/students", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await teacher.GetAsync("/api/crm/leads", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await c.Admin.GetFromJsonAsync<IdView[]>("/api/academic/classes", Ct))!.Length.ShouldBe(2);
         (await teacher.GetAsync($"/api/academic/history/{classA}", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
         (await teacher.GetAsync("/api/identity/staff", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         (await accountant.GetAsync("/api/identity/staff", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -144,6 +168,44 @@ public sealed class PermissionMatrixTests(PostgresFixture db) : IAsyncDisposable
         (await theirs.HistoryAsync("academic", classId)).ShouldBeEmpty();
         (await mine.HistoryAsync("academic", classId)).ShouldNotBeEmpty();
     }
+
+    [Fact]
+    public async Task A_branch_manager_follows_up_the_leads_of_their_branches_only()
+    {
+        var c = await EditCenter.CreateAsync(_api, "permlead");
+        var (_, manager) = await c.AddStaffAsync("BranchManager", c.BranchA);
+        var (_, coordinator) = await c.AddStaffAsync("Coordinator", c.BranchA);
+        var visitor = _api.ClientFor(c.Slug);
+        foreach (var (phone, branch) in new[] { ("0911000001", c.BranchA), ("0911000002", c.BranchB) })
+        {
+            (await visitor.PostAsJsonAsync("/api/crm/public/leads", new
+            {
+                studentName = $"Lead {phone}", phone, languageCode = "en", preferredBranchId = branch, consentVersion = "v1", consentGiven = true,
+            }, Ct)).StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        }
+
+        var all = (await c.Admin.GetFromJsonAsync<LeadView[]>("/api/crm/leads", Ct))!;
+        all.Length.ShouldBe(2);
+        var mine = (await manager.GetFromJsonAsync<LeadView[]>("/api/crm/leads", Ct))!;
+        mine.Select(l => l.PreferredBranchId).ShouldBe([c.BranchA]);
+
+        var leadA = all.Single(l => l.PreferredBranchId == c.BranchA).Id;
+        var leadB = all.Single(l => l.PreferredBranchId == c.BranchB).Id;
+        await (await manager.PostAsJsonAsync($"/api/crm/leads/{leadA}/status", new { status = "Contacted" }, Ct)).ShouldSucceed();
+        await (await manager.PostAsJsonAsync($"/api/crm/leads/{leadB}/status", new { status = "Contacted" }, Ct))
+            .ShouldFailWith(HttpStatusCode.Forbidden, "access.branch_forbidden");
+        await (await manager.PutAsJsonAsync($"/api/crm/leads/{leadA}",
+                new { studentName = "Lead A", phone = "0911000001", languageCode = "en", preferredBranchId = c.BranchB }, Ct))
+            .ShouldFailWith(HttpStatusCode.Forbidden, "access.branch_forbidden");
+
+        // Coordinators keep student records but do not handle leads.
+        (await coordinator.GetAsync("/api/crm/leads", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await coordinator.PostAsJsonAsync("/api/crm/students", new { fullName = "HV mới" }, Ct)).StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
+    private sealed record LeadView(Guid Id, Guid? PreferredBranchId);
+
+    private sealed record EnrollmentView(Guid EnrollmentId);
 
     private static object Package(decimal price = 1000000) =>
         new { code = "P10", name = new { vi = "10 buổi" }, paidCredits = 10, bonusCredits = 0, price, currency = "VND" };

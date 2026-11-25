@@ -197,6 +197,7 @@ Konnyaku.Platform.Contracts.TenantInfo
 Konnyaku.Scheduling.Contracts.ISchedulingApi
   Task`1 CountClassSessionsAsync(Guid, CancellationToken)
   Task`1 GetSessionAsync(Guid, CancellationToken)
+  Task`1 ListClassIdsOfTeacherAsync(Guid, CancellationToken)
 Konnyaku.Scheduling.Contracts.SessionCancelledV1
   Guid SessionId
   String Reason

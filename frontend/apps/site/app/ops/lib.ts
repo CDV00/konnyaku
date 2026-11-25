@@ -87,6 +87,7 @@ export type Holiday = { id: string; date: string; name: Localized; branchId: str
 export type Permission =
   | "academic.programs"
   | "academic.classes"
+  | "academic.classes.view"
   | "scheduling.schedules"
   | "organization.branches"
   | "organization.rooms"
@@ -97,7 +98,8 @@ export type Permission =
   | "billing.orders"
   | "billing.payments"
   | "crm.leads"
-  | "crm.students";
+  | "crm.students"
+  | "crm.students.view";
 
 type PermissionScope = { permission: Permission; tenantWide: boolean; branchIds: string[] };
 

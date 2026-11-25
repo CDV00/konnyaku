@@ -12,6 +12,9 @@ public interface ISchedulingApi
 
     /// <summary>Sessions of a class that are not cancelled (0 = the class is not scheduled).</summary>
     Task<int> CountClassSessionsAsync(Guid classId, CancellationToken cancellationToken);
+
+    /// <summary>Classes in which the teacher is planned or actual teacher of at least one session.</summary>
+    Task<IReadOnlyList<Guid>> ListClassIdsOfTeacherAsync(Guid teacherId, CancellationToken cancellationToken);
 }
 
 public sealed record SessionScheduledV1(

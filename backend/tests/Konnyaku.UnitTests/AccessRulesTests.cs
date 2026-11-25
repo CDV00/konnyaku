@@ -21,6 +21,13 @@ public class AccessRulesTests
     [InlineData("Consultant", Permissions.Rooms, false)]
     [InlineData("Teacher", Permissions.Classes, false)]
     [InlineData("Teacher", Permissions.Leads, false)]
+    [InlineData("Teacher", Permissions.ClassesView, false)]
+    [InlineData("Teacher", Permissions.StudentsView, false)]
+    [InlineData("Accountant", Permissions.StudentsView, true)]
+    [InlineData("Accountant", Permissions.Students, false)]
+    [InlineData("BranchManager", Permissions.Leads, true)]
+    [InlineData("Coordinator", Permissions.Leads, false)]
+    [InlineData("Coordinator", Permissions.Students, true)]
     public void Role_matrix(string role, string permission, bool granted) =>
         RolePermissions.Grants(role, permission).ShouldBe(granted);
 

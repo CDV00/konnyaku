@@ -32,7 +32,7 @@ export default async function BillingPage() {
   const canPackages = access.can("billing.packages");
   const canOrders = access.can("billing.orders");
   const canPayments = access.can("billing.payments");
-  const canSell = canOrders || access.can("crm.students");
+  const canSell = canOrders || access.any("crm.students");
   const [packages, orders, students, classes] = await Promise.all([
     getJson<Package[]>(`/api/billing/packages${canPackages ? "?includeInactive=true" : ""}`, token, []),
     getJson<Order[]>("/api/billing/orders", token, []),

@@ -35,7 +35,8 @@ export default async function LeadsPage() {
   const format = await getFormatter();
   const locale = await getLocale();
   const access = await getAccess(token);
-  const canEdit = access.can("crm.leads");
+  // A branch manager follows up the leads of their branches (the list holds only those).
+  const canEdit = access.any("crm.leads");
   const [leads, languages, branches, staff] = await Promise.all([
     getJson<Lead[]>("/api/crm/leads", token, []),
     getJson<Language[]>("/api/catalog/languages", token, []),
@@ -93,7 +94,7 @@ export default async function LeadsPage() {
                     {lead.followUpDueAt ? format.dateTime(new Date(lead.followUpDueAt), { dateStyle: "short", timeStyle: "short" }) : null}
                   </TableCell>
                   <TableCell className="pr-5">
-                    {canEdit && (
+                    {canEdit && access.can("crm.leads", lead.preferredBranchId) && (
                       <div className="flex flex-wrap justify-end gap-1.5">
                         {nextStatuses
                           .filter((status) => status !== lead.status)
@@ -124,7 +125,9 @@ export default async function LeadsPage() {
                             <Field label={admin("leads.preferredBranch")}>
                               <NativeSelect name="preferredBranchId" defaultValue={lead.preferredBranchId ?? ""}>
                                 <option value="">{admin("students.noBranch")}</option>
-                                {branches.map((b) => <option key={b.id} value={b.id}>{localized(b.name, locale)}</option>)}
+                                {branches
+                                  .filter((b) => b.id === lead.preferredBranchId || access.can("crm.leads", b.id))
+                                  .map((b) => <option key={b.id} value={b.id}>{localized(b.name, locale)}</option>)}
                               </NativeSelect>
                             </Field>
                             <Field label={admin("leads.preferredSchedule")}><Input name="preferredSchedule" defaultValue={lead.preferredSchedule ?? undefined} /></Field>

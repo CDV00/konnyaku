@@ -120,13 +120,14 @@ Ngăn kéo sửa có mục **Lịch sử thay đổi**: ai sửa, lúc nào, tr�
 
 **Ai sửa được gì.** Bạn chỉ thấy nút cho việc mình được làm; hệ thống cũng kiểm tra lại mỗi lần lưu (thiếu quyền sẽ báo "Bạn không có quyền…" hoặc "Bạn không phụ trách cơ sở này").
 
-| Vai trò | Được sửa |
-| --- | --- |
-| Quản trị | Mọi thứ, kể cả nhân sự, cơ sở, chương trình |
-| Quản lý cơ sở, Điều phối | Lớp, lịch học, phòng, ngày nghỉ của các cơ sở mình phụ trách (không chọn cơ sở nào = toàn trung tâm) |
-| Kế toán | Gói học, đơn hàng, thanh toán, đơn giá giáo viên |
-| Tư vấn | Lead, hồ sơ học viên |
-| Giáo viên | Chỉ xem |
+| Vai trò | Được sửa | Được xem thêm |
+| --- | --- | --- |
+| Quản trị | Mọi thứ, kể cả nhân sự, cơ sở, chương trình | Mọi thứ |
+| Quản lý cơ sở | Lớp, lịch học, phòng, ngày nghỉ, ghi danh của các cơ sở mình phụ trách (không chọn cơ sở nào = toàn trung tâm); lead của các cơ sở đó; hồ sơ học viên | Mọi lớp, danh sách học viên |
+| Điều phối | Lớp, lịch học, phòng, ngày nghỉ, ghi danh của các cơ sở mình phụ trách; hồ sơ học viên | Mọi lớp, danh sách học viên |
+| Kế toán | Gói học, đơn hàng, thanh toán, đơn giá giáo viên | Mọi lớp, danh sách học viên (không có số điện thoại, email) |
+| Tư vấn | Lead, hồ sơ học viên | Mọi lớp |
+| Giáo viên | Không sửa gì trong `ops` | Chỉ các lớp mình dạy; không xem danh sách học viên, lead hay nhân sự (điểm danh trong `teach` vẫn có tên học viên của buổi) |
 
 ### Lead
 

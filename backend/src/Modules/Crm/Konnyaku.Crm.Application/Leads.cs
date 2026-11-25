@@ -1,3 +1,4 @@
+using Konnyaku.Application.Authorization;
 using Konnyaku.Application.Tenancy;
 using Konnyaku.Crm.Contracts;
 using Konnyaku.Crm.Domain;
@@ -106,7 +107,11 @@ public sealed record LeadView(
     string? Goal, string Status, Guid? AssignedConsultantId, DateTimeOffset? FollowUpDueAt, DateTimeOffset CreatedAt,
     Guid? PreferredBranchId, string? PreferredSchedule);
 
-public sealed class LeadQueries(ICrmDbContext db)
+/// <summary>
+/// Leads of the member's scope: everything with a center-wide lead permission; for a branch manager, the leads that
+/// prefer one of their branches.
+/// </summary>
+public sealed class LeadQueries(ICrmDbContext db, IAccessControl access)
 {
     public async Task<IReadOnlyList<LeadView>> ListAsync(bool openOnly, CancellationToken cancellationToken)
     {
@@ -114,6 +119,18 @@ public sealed class LeadQueries(ICrmDbContext db)
         if (openOnly)
         {
             query = query.Where(l => l.Status == LeadStatus.New || l.Status == LeadStatus.Contacted);
+        }
+
+        var scope = (await access.ListAsync(cancellationToken)).FirstOrDefault(s => s.Permission == Permissions.Leads);
+        if (scope is null)
+        {
+            return [];
+        }
+
+        if (!scope.TenantWide)
+        {
+            var branchIds = scope.BranchIds.ToArray();
+            query = query.Where(l => l.PreferredBranchId != null && branchIds.Contains(l.PreferredBranchId.Value));
         }
 
         return await query.OrderBy(l => l.FollowUpDueAt ?? l.CreatedAt)
@@ -126,7 +143,7 @@ public sealed class LeadQueries(ICrmDbContext db)
 
 public sealed record ChangeLeadStatusCommand(LeadStatus Status);
 
-public sealed class ChangeLeadStatusHandler(ICrmDbContext db, TimeProvider clock)
+public sealed class ChangeLeadStatusHandler(ICrmDbContext db, TimeProvider clock, IAccessControl access)
 {
     public async Task<Result<bool>> HandleAsync(Guid leadId, ChangeLeadStatusCommand command, CancellationToken cancellationToken)
     {
@@ -134,6 +151,11 @@ public sealed class ChangeLeadStatusHandler(ICrmDbContext db, TimeProvider clock
         if (lead is null)
         {
             return Error.NotFound("crm.lead_not_found");
+        }
+
+        if (await access.EnsureAsync(Permissions.Leads, cancellationToken, lead.PreferredBranchId) is { } forbidden)
+        {
+            return forbidden;
         }
 
         var result = lead.ChangeStatus(command.Status, clock.GetUtcNow());
@@ -189,14 +211,20 @@ public sealed record UpdateStudentCommand(
     string FullName, int? BirthYear, string? GuardianName, string? Phone, string? Email, Guid? HomeBranchId, string? CommunicationLocale);
 
 /// <summary>Consultants (and the tenant admin) correct leads and student records; a student who left is deactivated, never deleted.</summary>
-public sealed class CrmEditHandlers(ICrmDbContext db, IIdentityApi identity, TimeProvider clock)
+public sealed class CrmEditHandlers(ICrmDbContext db, IIdentityApi identity, TimeProvider clock, IAccessControl access)
 {
+    /// <summary>A branch manager edits leads of their branches and cannot move one to a branch outside them.</summary>
     public async Task<Result<bool>> EditLeadAsync(Guid leadId, EditLeadCommand command, CancellationToken ct)
     {
         var lead = await db.Leads.FirstOrDefaultAsync(l => l.Id == leadId, ct);
         if (lead is null)
         {
             return Error.NotFound("crm.lead_not_found");
+        }
+
+        if (await access.EnsureAsync(Permissions.Leads, ct, lead.PreferredBranchId, command.PreferredBranchId) is { } forbidden)
+        {
+            return forbidden;
         }
 
         if (command.AssignedConsultantId is { } consultantId &&

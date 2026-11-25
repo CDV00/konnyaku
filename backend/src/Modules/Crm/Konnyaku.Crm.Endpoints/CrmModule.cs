@@ -41,7 +41,7 @@ public sealed class CrmModule : IModule
 
         group.MapGet("/leads", async (bool? openOnly, LeadQueries queries, CancellationToken ct) =>
                 Results.Ok(await queries.ListAsync(openOnly ?? true, ct)))
-            .RequireAuthorization(Policies.Staff);
+            .RequirePermission(Permissions.Leads);
 
         group.MapPost("/leads/{id:guid}/status", async (Guid id, ChangeLeadStatusCommand command, ChangeLeadStatusHandler handler, CancellationToken ct) =>
                 ApiResults.From(await handler.HandleAsync(id, command, ct), _ => Results.NoContent()))
@@ -50,9 +50,10 @@ public sealed class CrmModule : IModule
                 ApiResults.From(await handlers.EditLeadAsync(id, command, ct), _ => Results.NoContent()))
             .RequirePermission(Permissions.Leads);
 
+        // Teachers do not list students: their class rosters and attendance carry the names they need.
         group.MapGet("/students", async (CrmQueries queries, CancellationToken ct) =>
                 Results.Ok(await queries.ListStudentsAsync(ct)))
-            .RequireAuthorization(Policies.Staff);
+            .RequirePermission(Permissions.StudentsView);
 
         group.MapPost("/students", async (RegisterStudentCommand command, RegisterStudentHandler handler, CancellationToken ct) =>
                 ApiResults.From(await handler.HandleAsync(command, ct), s => Results.Created($"students/{s.Id}", s)))

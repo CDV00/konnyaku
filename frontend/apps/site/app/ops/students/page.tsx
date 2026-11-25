@@ -19,7 +19,8 @@ export default async function StudentsPage() {
   const t = await getTranslations("admin");
   const locale = await getLocale();
   const access = await getAccess(token);
-  const canEdit = access.can("crm.students");
+  // Student records are center-wide: any grant of the permission (a branch manager's too) covers them.
+  const canEdit = access.any("crm.students");
   const [students, branches] = await Promise.all([
     canEdit
       ? getJson<StudentDetail[]>("/api/crm/students/details", token, [])

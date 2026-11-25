@@ -118,6 +118,37 @@ public sealed class ProgramAdminHandler(IAcademicDbContext db, ICatalogApi catal
     }
 }
 
+/// <summary>
+/// Who sees which classes, and the branch rule for hand-made enrollments. Members with <see cref="Permissions.ClassesView"/>
+/// see every class; a teacher sees the classes they teach. Enrolling, freezing and dropping need
+/// <see cref="Permissions.Classes"/> for the class's branch (paid orders enroll through the Worker, without this check).
+/// </summary>
+public sealed class ClassAccess(IAcademicDbContext db, AcademicQueries queries, ISchedulingApi scheduling, IAccessControl access)
+{
+    public async Task<IReadOnlyList<ClassDto>> VisibleClassesAsync(Guid userId, CancellationToken ct)
+    {
+        var all = await queries.ListClassesAsync(ct);
+        if (await access.HasAsync(Permissions.ClassesView, ct))
+        {
+            return all;
+        }
+
+        var mine = (await scheduling.ListClassIdsOfTeacherAsync(userId, ct)).ToHashSet();
+        return all.Where(c => mine.Contains(c.Id)).ToList();
+    }
+
+    public async Task<bool> CanSeeAsync(Guid classId, Guid userId, CancellationToken ct) =>
+        await access.HasAsync(Permissions.ClassesView, ct) || (await scheduling.ListClassIdsOfTeacherAsync(userId, ct)).Contains(classId);
+
+    /// <summary>Null when allowed or when the class does not exist (the handler then answers not found).</summary>
+    public async Task<Error?> EnsureEnrollmentBranchAsync(Guid? classId, Guid? enrollmentId, CancellationToken ct)
+    {
+        var id = classId ?? await db.Enrollments.Where(e => e.Id == enrollmentId).Select(e => (Guid?)e.ClassId).FirstOrDefaultAsync(ct);
+        var branchId = id is null ? null : await db.Classes.Where(c => c.Id == id).Select(c => (Guid?)c.BranchId).FirstOrDefaultAsync(ct);
+        return branchId is null ? null : await access.EnsureAsync(Permissions.Classes, ct, branchId);
+    }
+}
+
 public sealed record UpdateClassCommand(string Code, Guid CourseLevelId, Guid BranchId, DeliveryMode DeliveryMode, int Capacity, DateOnly StartsOn);
 
 public sealed record CloseClassCommand(ClassStatus Status);

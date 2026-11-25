@@ -1,13 +1,16 @@
 namespace Konnyaku.Application.Authorization;
 
 /// <summary>
-/// What a staff member may change. Reading stays open to every staff member; writing is checked here, at the API, per
-/// permission and — for branch-owned records — per branch.
+/// What a staff member may change (and, for the <c>.view</c> permissions, read beyond their own teaching), checked at
+/// the API per permission and — for branch-owned records — per branch.
 /// </summary>
 public static class Permissions
 {
     public const string Programs = "academic.programs";
     public const string Classes = "academic.classes";
+
+    /// <summary>Every class and roster of the center (a teacher without it sees only the classes they teach).</summary>
+    public const string ClassesView = "academic.classes.view";
     public const string Schedules = "scheduling.schedules";
     public const string Branches = "organization.branches";
     public const string Rooms = "organization.rooms";
@@ -20,9 +23,13 @@ public static class Permissions
     public const string Leads = "crm.leads";
     public const string Students = "crm.students";
 
+    /// <summary>The student list (names, branch, account; contact details need <see cref="Students"/>).</summary>
+    public const string StudentsView = "crm.students.view";
+
     public static readonly IReadOnlyList<string> All =
     [
-        Programs, Classes, Schedules, Branches, Rooms, Holidays, Staff, PayRates, Packages, Orders, Payments, Leads, Students,
+        Programs, Classes, ClassesView, Schedules, Branches, Rooms, Holidays, Staff, PayRates, Packages, Orders, Payments, Leads,
+        Students, StudentsView,
     ];
 }
 
@@ -42,18 +49,30 @@ public static class StaffRoles
 
 /// <summary>
 /// The role → permission matrix. TenantAdmin changes everything; branch managers and coordinators run classes, schedules,
-/// rooms and days off of their branches; accountants handle packages, orders, payments and pay rates; consultants handle
-/// leads and student records; teachers only read.
+/// rooms and days off of their branches and keep student records (branch managers also follow up the leads of their
+/// branches); accountants handle packages, orders, payments and pay rates and read the student list; consultants handle
+/// leads and student records; teachers change nothing and see only the classes they teach.
 /// </summary>
 public static class RolePermissions
 {
     private static readonly IReadOnlyDictionary<string, IReadOnlySet<string>> Matrix = new Dictionary<string, IReadOnlySet<string>>
     {
         [StaffRoles.TenantAdmin] = Permissions.All.ToHashSet(),
-        [StaffRoles.BranchManager] = new HashSet<string> { Permissions.Classes, Permissions.Schedules, Permissions.Rooms, Permissions.Holidays },
-        [StaffRoles.Coordinator] = new HashSet<string> { Permissions.Classes, Permissions.Schedules, Permissions.Rooms, Permissions.Holidays },
-        [StaffRoles.Accountant] = new HashSet<string> { Permissions.Packages, Permissions.Orders, Permissions.Payments, Permissions.PayRates },
-        [StaffRoles.Consultant] = new HashSet<string> { Permissions.Leads, Permissions.Students },
+        [StaffRoles.BranchManager] = new HashSet<string>
+        {
+            Permissions.Classes, Permissions.ClassesView, Permissions.Schedules, Permissions.Rooms, Permissions.Holidays, Permissions.Leads,
+            Permissions.Students, Permissions.StudentsView,
+        },
+        [StaffRoles.Coordinator] = new HashSet<string>
+        {
+            Permissions.Classes, Permissions.ClassesView, Permissions.Schedules, Permissions.Rooms, Permissions.Holidays,
+            Permissions.Students, Permissions.StudentsView,
+        },
+        [StaffRoles.Accountant] = new HashSet<string>
+        {
+            Permissions.Packages, Permissions.Orders, Permissions.Payments, Permissions.PayRates, Permissions.ClassesView, Permissions.StudentsView,
+        },
+        [StaffRoles.Consultant] = new HashSet<string> { Permissions.Leads, Permissions.Students, Permissions.StudentsView, Permissions.ClassesView },
         [StaffRoles.Teacher] = new HashSet<string>(),
     };
 

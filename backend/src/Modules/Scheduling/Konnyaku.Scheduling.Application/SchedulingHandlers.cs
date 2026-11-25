@@ -280,6 +280,11 @@ public sealed class SchedulingQueries(ISchedulingDbContext db, ICrmApi crm, IAca
             .Select(p => new PatternView(p.Id, p.ClassId, p.IsoDays, p.StartTime, p.DurationMinutes, p.TimeZone, p.EffectiveFrom, p.TeacherId, p.RoomId))
             .FirstOrDefaultAsync(ct);
 
+    public async Task<IReadOnlyList<Guid>> ListClassIdsOfTeacherAsync(Guid teacherId, CancellationToken cancellationToken) =>
+        await db.Sessions.AsNoTracking()
+            .Where(s => s.PlannedTeacherId == teacherId || s.ActualTeacherId == teacherId)
+            .Select(s => s.ClassId).Distinct().ToListAsync(cancellationToken);
+
     public Task<int> CountClassSessionsAsync(Guid classId, CancellationToken cancellationToken) =>
         db.Sessions.CountAsync(s => s.ClassId == classId && s.Status != SessionStatus.Cancelled, cancellationToken);
 
