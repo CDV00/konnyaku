@@ -6,13 +6,15 @@ import { appFont } from "@konnyaku/ui/kk/font";
 import { Logo } from "@konnyaku/ui/kk/logo";
 import { AppProviders } from "@konnyaku/ui/kk/providers";
 import { SidebarShell, type NavLink } from "@konnyaku/ui/kk/shell";
+import { getAccess } from "./lib";
 import "../globals.css";
 
 const sections = ["leads", "students", "billing", "classes", "programs", "staff", "branches", "payroll"] as const;
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale();
-  const { me } = await requireMe("staff");
+  const { me, token } = await requireMe("staff");
+  const access = await getAccess(token);
   const tenant = await tenantInfo();
   const t = await getTranslations("ops");
   const shell = await getTranslations("shell");
@@ -20,7 +22,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const links: NavLink[] = [
     { href: "/ops", label: t("nav.home"), icon: "home", exact: true },
     ...sections.map((section) => ({ href: `/ops/${section}`, label: t(`nav.${section}`), icon: section })),
-    ...(me.roles.includes("TenantAdmin")
+    ...(access.any("notification.messages")
       ? [{ href: "/ops/notifications", label: t("nav.notifications"), icon: "notifications" as const }]
       : []),
   ];

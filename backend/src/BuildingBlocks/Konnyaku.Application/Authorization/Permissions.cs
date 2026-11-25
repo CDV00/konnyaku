@@ -26,10 +26,13 @@ public static class Permissions
     /// <summary>The student list (names, branch, account; contact details need <see cref="Students"/>).</summary>
     public const string StudentsView = "crm.students.view";
 
+    /// <summary>The notification log of the center: read who was emailed, resend (center-wide; TenantAdmin only).</summary>
+    public const string Notifications = "notification.messages";
+
     public static readonly IReadOnlyList<string> All =
     [
         Programs, Classes, ClassesView, Schedules, Branches, Rooms, Holidays, Staff, PayRates, Packages, Orders, Payments, Leads,
-        Students, StudentsView,
+        Students, StudentsView, Notifications,
     ];
 }
 

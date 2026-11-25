@@ -99,7 +99,8 @@ export type Permission =
   | "billing.payments"
   | "crm.leads"
   | "crm.students"
-  | "crm.students.view";
+  | "crm.students.view"
+  | "notification.messages";
 
 type PermissionScope = { permission: Permission; tenantWide: boolean; branchIds: string[] };
 
