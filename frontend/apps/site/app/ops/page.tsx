@@ -4,7 +4,7 @@ import { ArrowUpRight, CalendarDays, GraduationCap, PhoneCall, Receipt } from "l
 import { requireMe } from "@konnyaku/session";
 import { Fade } from "@konnyaku/ui/components/animate-ui/primitives/effects/fade";
 import { PageHeader, StatCard } from "@konnyaku/ui/kk/blocks";
-import { getJson, type ClassRow, type Student } from "./lib";
+import { emptyPage, getJson, type Page } from "./lib";
 import { OpsOnboarding } from "./ops-onboarding";
 
 const sections = ["leads", "students", "billing", "classes", "programs", "staff", "branches", "payroll"] as const;
@@ -13,22 +13,27 @@ export default async function HomePage() {
   const { me, token } = await requireMe("staff");
   const t = await getTranslations("ops");
   const session = await getTranslations("session");
-  const [leads, students, classes, orders] = await Promise.all([
-    getJson<unknown[]>("/api/crm/leads", token, []),
-    getJson<Student[]>("/api/crm/students", token, []),
-    getJson<ClassRow[]>("/api/academic/classes", token, []),
-    getJson<{ status: string }[]>("/api/billing/orders", token, []),
+  // Counts only: one row per list, the total comes with the page.
+  const count = (path: string) => getJson<Page<unknown>>(path, token, emptyPage()).then((page) => page.total);
+  const [openLeads, activeStudents, openClasses, runningClasses, unpaidOrders, partialOrders] = await Promise.all([
+    count("/api/crm/leads?pageSize=1"),
+    count("/api/crm/students?status=active&pageSize=1"),
+    count("/api/academic/classes?status=Open&pageSize=1"),
+    count("/api/academic/classes?status=Running&pageSize=1"),
+    count("/api/billing/orders?status=unpaid&pageSize=1"),
+    count("/api/billing/orders?status=partial&pageSize=1"),
   ]);
-  const running = classes.filter((c) => c.status === "Open" || c.status === "Running").length;
-  const unpaid = orders.filter((o) => o.status === "PendingPayment").length;
+  const running = openClasses + runningClasses;
+  // Awaiting payment: nothing received yet, or part of it.
+  const unpaid = unpaidOrders + partialOrders;
 
   return (
     <div className="space-y-8">
       <PageHeader title={session("greeting", { name: me.displayName })} description={t("subtitle")} />
       <OpsOnboarding />
       <Fade inView className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label={t("stats.leads")} count={leads.length} icon={PhoneCall} tone="highlight" hint={t("stats.leadsHint")} />
-        <StatCard label={t("stats.students")} count={students.length} icon={GraduationCap} hint={t("stats.studentsHint")} />
+        <StatCard label={t("stats.leads")} count={openLeads} icon={PhoneCall} tone="highlight" hint={t("stats.leadsHint")} />
+        <StatCard label={t("stats.students")} count={activeStudents} icon={GraduationCap} hint={t("stats.studentsHint")} />
         <StatCard label={t("stats.classes")} count={running} icon={CalendarDays} tone="success" hint={t("stats.classesHint")} />
         <StatCard label={t("stats.unpaid")} count={unpaid} icon={Receipt} tone={unpaid > 0 ? "warning" : "muted"} hint={t("stats.unpaidHint")} />
       </Fade>

@@ -112,7 +112,13 @@ public sealed class RefundHandlers(
         {
             await db.SaveChangesAsync(ct);
         }
-        catch (DbUpdateException ex) when (errors.IsUniqueViolation(ex) || ex is DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException)
+        {
+            // The balance changed meanwhile (the Worker linking the new enrollment, a lesson being deducted): nothing was
+            // refunded, the accountant tries again on fresh figures.
+            return Error.Conflict("billing.order_changed");
+        }
+        catch (DbUpdateException ex) when (errors.IsUniqueViolation(ex))
         {
             return Error.Conflict("billing.order_already_refunded");
         }

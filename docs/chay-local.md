@@ -11,7 +11,7 @@ Hệ thống local gồm 3 phần: hạ tầng trong Docker, backend .NET (API +
 | Worker | 5090 | Xử lý outbox (ghi danh sau thanh toán, tạo phòng học, trừ buổi, công) |
 | PostgreSQL | 5433 | User `konnyaku` / `konnyaku_dev`, DB `konnyaku` |
 | Signaling phòng học (`services/signaling`) | 5100 | WebSocket `ws://localhost:5100/rtc/ws`, sức khoẻ `/rtc/health`; container `signaling` trong docker compose |
-| Redis | 6380 | |
+| Redis | 6380 | Không bắt buộc: dev đếm giới hạn tần suất trong RAM (xem [Giới hạn tần suất, giám sát, bắt lỗi](#giới-hạn-tần-suất-giám-sát-bắt-lỗi)) |
 | Mailpit (xem email gửi đi) | 8025 (web), 1025 (SMTP) | `http://localhost:8025` |
 
 Frontend dùng 4000 để tránh trùng các dự án khác hay chạy ở 3000/3001. Cần đổi thì sửa đồng thời: `frontend/apps/site/package.json` (script `dev`, `start`), `.claude/launch.json` và tài liệu này.
@@ -94,6 +94,12 @@ Mở `http://review.localhost:4000/login`. Mật khẩu chung: nhân viên `Revi
 | Học viên | `hv-review01` … `hv-review12` | `/learn` | `hv-review01`–`05`: lớp tiếng Nhật, số buổi đã trừ, video xem lại; `06`–`09`: lớp tiếng Anh offline; `10`: lớp tiếng Trung; `11`: đơn mới trả một nửa; `12`: đơn chưa trả |
 | Phụ huynh | `ph-review01` | `/learn` | Chưa gắn với học viên nào (tính năng liên kết phụ huynh chưa có) |
 
+Thử danh sách lớn (phân trang, tìm kiếm không dấu, giới hạn xuất CSV): thêm học viên giả vào trung tâm `review` (tên tiếng Việt ngẫu nhiên, SĐT ngẫu nhiên, email `hv.<n>@example.com`, khoảng 1 phút cho 1.000 người):
+
+```bash
+python infra/scripts/seed_students.py --count 1000
+```
+
 Bảo mật tài khoản khi chạy local (`appsettings.Development.json` của Api):
 
 - `Auth:TwoFactor:Enforce` là `false`: Quản trị và Kế toán đăng nhập được bằng mật khẩu (để seed chạy). Muốn thử bắt buộc 2FA như production: chạy API với `Auth__TwoFactor__Enforce=true`.
@@ -122,6 +128,41 @@ Link trong email dùng `Notification:SiteUrlTemplate` (dev: `http://{host}:4000`
 
 Dùng Claude Code: các dịch vụ trên đã khai báo trong `.claude/launch.json` (`api`, `worker`, `site`); bảo Claude "chạy dev server" là đủ. Hạ tầng Docker và migration vẫn phải chạy trước.
 
+## Test giao diện tự động (Playwright)
+
+`frontend/e2e` chạy các luồng chính trên Chromium thật, với một hệ thống riêng dựng từ đầu (không đụng database dev). CI chạy cùng script này trong job `e2e` của mỗi PR.
+
+| Luồng (`frontend/e2e/tests`) | Kiểm tra |
+| --- | --- |
+| `public-lead` | Trang công khai `vi`/`en`, gửi form đăng ký → tư vấn viên thấy lead ở `/ops/leads` (SĐT bị che) |
+| `realms` | Học viên và giáo viên đăng nhập cùng lúc một trình duyệt; đăng xuất một bên không ảnh hưởng bên kia, về đúng host trung tâm |
+| `enrollment` | Quản trị tạo học viên + tài khoản → đơn → thu đủ tiền → Worker xếp lớp → học viên đăng nhập lần đầu, đổi mật khẩu, thấy lịch và số buổi |
+| `attendance` | Giáo viên xác nhận điểm danh buổi đã học (phòng Fake) → số buổi của học viên giảm; giáo viên không vào được lead (giao diện, relay, API) |
+| `refund` | Kế toán đăng nhập 2 bước, hoàn tiền đơn chờ hoàn (lớp đầy), tải phiếu thu PDF |
+| `password-reset` | Quên mật khẩu → email trong Mailpit → đặt lại → đăng nhập bằng mật khẩu mới; link chỉ dùng một lần |
+| `student-search` | Tìm "ngoc an" ra "Lê Ngọc Ân"; quản trị xem được liên hệ (có ghi nhật ký), kế toán chỉ thấy bản che |
+| `platform` | Super-admin đăng nhập bằng mã TOTP trên `admin.localhost`, tạo trung tâm; quản trị viên mới phải đổi mật khẩu tạm |
+
+Lần đầu cài trình duyệt: `npx -y pnpm@10.34.9 --dir frontend/e2e exec playwright install chromium`. Sau đó một lệnh (cần Docker, .NET 10, Python 3; từ thư mục gốc repo):
+
+```bash
+npx -y pnpm@10.34.9 --dir frontend e2e
+```
+
+Script `frontend/e2e/run.mjs` dựng PostgreSQL + Mailpit trong Docker (project `konnyaku-e2e`, database trống), build backend (Release) và web (`next build`) song song, chạy Migrator, bật Api/Worker/web, chạy `seed_review.py`, rồi `playwright test`; xong thì tắt và xoá hết. Khoảng 6–8 phút, phần lớn là build và seed. Tuỳ chọn:
+
+| Lệnh | Dùng khi |
+| --- | --- |
+| `node frontend/e2e/run.mjs --no-build` | Chạy lại, giữ bản build lần trước |
+| `node frontend/e2e/run.mjs -- --grep refund` | Sau `--` là tham số của `playwright test` (chỉ chạy một luồng, `--headed`, `--repeat-each 3`…) |
+| `node frontend/e2e/run.mjs --serve` | Dựng và seed rồi giữ nguyên để viết test: ở terminal khác `cd frontend/e2e && npx playwright test` (hoặc `--ui`); Ctrl+C để tắt |
+
+Cổng riêng, không trùng hệ thống dev: PostgreSQL 5450, Mailpit 1030/8030, API 5190, web 4950 (`http://review.localhost:4950`); đổi bằng biến `E2E_PG_PORT`, `E2E_SMTP_PORT`, `E2E_MAILPIT_PORT`, `E2E_API_PORT`, `E2E_WEB_PORT`. Python khác `python`/`python3`: đặt `PYTHON`. Môi trường test tắt captcha (`Captcha__Enabled=false`) và nới giới hạn tần suất form công khai / quên mật khẩu.
+
+Khi test lỗi: `frontend/e2e/playwright-report` (mở bằng `npx playwright show-report` trong `frontend/e2e`) có trace, video, ảnh chụp; log server ở `frontend/e2e/logs/{api,worker,web}.log`. Trên CI các thư mục này là artifact `e2e-results` của job.
+
+Thêm hoặc sửa luồng (bắt buộc với PR đổi điều người dùng thấy): đọc [frontend/e2e/README.md](../frontend/e2e/README.md) — chỗ đặt spec và fixture, đăng nhập theo vai trò, tạo dữ liệu, chạy một spec.
+
 ## Phòng học có sẵn (WebRTC)
 
 1. Bước 1 ở trên đã bật container `signaling` (lần đầu build image Rust mất vài phút). Chạy riêng: `docker compose -f infra/docker/docker-compose.yml up -d --build signaling`. Container gọi API dev ở `http://host.docker.internal:5080` để báo vào/ra phòng.
@@ -129,6 +170,36 @@ Dùng Claude Code: các dịch vụ trên đã khai báo trong `.claude/launch.j
 3. Thử nhiều người cùng lúc: mỗi realm một cookie, nên một trình duyệt giữ được một giáo viên và một học viên; người thứ ba dùng cửa sổ ẩn danh hoặc trình duyệt khác. `*.localhost` là ngữ cảnh an toàn nên camera/micro dùng được không cần HTTPS.
 4. Không cần TURN khi thử trên một máy. Secret dùng chung giữa API (`Rtc:SignalingSecret` trong `appsettings.Development.json`) và container (`SIGNALING_SECRET`) phải giống nhau.
 5. Test của service: cần Rust (hoặc chạy trong Docker), `cd services/signaling && cargo test && cargo clippy --all-targets -- -D warnings`.
+
+## Giới hạn tần suất, giám sát, bắt lỗi
+
+Ở dev cả ba đều **tắt hoặc chạy chế độ đơn giản**, không cần cấu hình gì:
+
+| Phần | Dev mặc định | Thử như production |
+| --- | --- | --- |
+| Giới hạn tần suất (form công khai 10/phút/IP, quên/đặt lại mật khẩu 5/phút/IP) | Đếm trong RAM của process API | Chạy API với `Redis__ConnectionString=localhost:6380` (Redis của `docker-compose.yml`): bộ đếm dùng chung, khoá `kk:rl:*`. Tắt Redis giữa chừng: API tự đếm trong RAM, không lỗi. Vượt hạn mức: API trả `429` kèm `Retry-After` |
+| Trace và metric (OpenTelemetry) | Tắt (không có `OTEL_EXPORTER_OTLP_ENDPOINT`) | Dùng stack production local bên dưới |
+| Bắt lỗi (Sentry / GlitchTip) | Tắt (không có DSN) | `Sentry__Dsn=<dsn>` cho API/Worker, `SENTRY_DSN=<dsn>` cho web |
+
+**Stack production local có giám sát** (đúng như server: Caddy → web ×2 → api ×2, worker, Redis, profile `monitoring`). Cách dựng stack production trên máy dev ở [toi-uu-tai-nguyen.md](toi-uu-tai-nguyen.md#cách-đo); thêm vào `.env` của stack thử:
+
+```bash
+COMPOSE_PROFILES=monitoring
+OTEL_ENDPOINT=http://alloy:4318
+GRAFANA_LOCAL_PORT=3301                      # Grafana: http://localhost:3301/grafana/ (admin / GRAFANA_ADMIN_PASSWORD)
+GRAFANA_ROOT_URL=http://localhost:3301/grafana/
+GRAFANA_COOKIE_SECURE=false                  # stack thử chạy HTTP
+PROBE_PUBLIC_URL=http://caddy:80/api/health  # thay cho https://admin.BASE_DOMAIN khi Caddy chạy HTTP
+SMTP_HOST=mailpit                            # cảnh báo và email ứng dụng vào một Mailpit trong cùng stack
+SMTP_PORT=1025
+SMTP_SECURITY=None
+```
+
+và một file override (`-f compose.yaml -f override.yaml`) đổi cổng Caddy (ví dụ `8091:80`), tắt `coturn` (`profiles: [disabled]`) và thêm service `mailpit` (`axllent/mailpit`, mạng `app` + `monitoring`, cổng web tuỳ chọn). Đặt tên project riêng (`docker compose -p konnyaku-obs …`) để không đụng stack khác. Thử nhanh:
+
+- Trace: mở vài trang của trung tâm qua Caddy, rồi Grafana → Explore → Tempo → Search, service `konnyaku-web`: một trace gồm trang Next.js, `fetch` sang API, API và câu SQL.
+- Cảnh báo: `docker stop <project>-api-2` → sau ~3 phút Mailpit nhận "FIRING ApiReplicaMissing"; `docker start` lại → "RESOLVED".
+- Lần `up` đầu tiên trên volume mới, `migrator` và `postgres-monitor-role` có thể lỗi vì PostgreSQL còn đang khởi tạo: chạy `up -d` lần nữa.
 
 ## Tắt hệ thống
 
@@ -168,6 +239,7 @@ for p in 4000 5080 5090; do lsof -ti tcp:$p | xargs -r kill; done
 | Đã thanh toán nhưng học viên chưa vào lớp, không có phòng học | Worker chưa chạy (bước 4) |
 | Trang báo không xác định được trung tâm | Đang mở `localhost:4000` thay vì `demo.localhost:4000`, hoặc chưa chạy seed |
 | Build frontend lỗi `require() of ES Module` | Tailwind bị nâng khỏi 4.1.18; trả về đúng bản đó |
+| `429 Too Many Requests` khi thử form công khai / quên mật khẩu nhiều lần | Đúng giới hạn tần suất; chờ hết phút (header `Retry-After`) hoặc nâng `RateLimits__PublicFormsPerMinute` / `RateLimits__PasswordResetPerMinute` cho API dev |
 | Seed báo tenant đã tồn tại | Database đã có dữ liệu demo; dùng tài khoản cũ hoặc `down -v` để làm lại |
 | Bảng điều khiển nền tảng báo mã không đúng | Mã vừa dùng rồi (chờ mã mới sau 30 giây) hoặc đồng hồ máy lệch quá 30 giây |
 | Trang trung tâm báo "tạm ngừng hoạt động" | Trung tâm bị tạm khóa trong bảng điều khiển nền tảng; mở lại ở `/platform` |

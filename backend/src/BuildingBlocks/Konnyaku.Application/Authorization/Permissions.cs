@@ -41,13 +41,19 @@ public static class Permissions
     /// <summary>The student list (names, branch, account; contact details need <see cref="Students"/>).</summary>
     public const string StudentsView = "crm.students.view";
 
+    /// <summary>CSV export and printing of the student and lead lists (personal data leaving the system: logged, limited).</summary>
+    public const string PersonalDataExport = "crm.export";
+
+    /// <summary>Data subject requests (access, correction, erasure, consent withdrawal) and the personal data access log.</summary>
+    public const string Privacy = "crm.privacy";
+
     /// <summary>The notification log of the center: read who was emailed, resend (center-wide; TenantAdmin only).</summary>
     public const string Notifications = "notification.messages";
 
     public static readonly IReadOnlyList<string> All =
     [
         Programs, Classes, ClassesView, Schedules, Branches, Rooms, Holidays, Staff, Accounts, PayRates, Payroll, Packages, Orders, Payments,
-        Refunds, Sales, Finance, Leads, Students, StudentsView, Notifications,
+        Refunds, Sales, Finance, Leads, Students, StudentsView, PersonalDataExport, Privacy, Notifications,
     ];
 }
 
@@ -74,6 +80,9 @@ public static class StaffRoles
 /// branches); accountants handle packages, orders, payments, refunds, pay rates and payroll and read the student list;
 /// consultants handle leads and student records and place orders; teachers change nothing and see only the classes they
 /// teach. Account security (locking, password and 2FA resets, security log) is the administrator's alone.
+/// Personal data: lists show contact details masked; members who keep the records (<see cref="Permissions.Students"/>,
+/// <see cref="Permissions.Leads"/>) reveal one record at a time (logged); only the tenant admin and branch managers export
+/// or print lists; only the tenant admin handles data subject requests and reads the personal data access log.
 /// </summary>
 public static class RolePermissions
 {
@@ -83,7 +92,7 @@ public static class RolePermissions
         [StaffRoles.BranchManager] = new HashSet<string>
         {
             Permissions.Classes, Permissions.ClassesView, Permissions.Schedules, Permissions.Rooms, Permissions.Holidays, Permissions.Leads,
-            Permissions.Students, Permissions.StudentsView,
+            Permissions.Students, Permissions.StudentsView, Permissions.PersonalDataExport,
         },
         [StaffRoles.Coordinator] = new HashSet<string>
         {

@@ -28,7 +28,7 @@ public sealed class AdminListTests(PostgresFixture db) : IAsyncDisposable
         var teacherId = (await added.Content.ReadFromJsonAsync<Dictionary<string, Guid>>(Ct))!["userId"];
         (await admin.PostAsJsonAsync("/api/identity/learners", new { displayName = "Learner", role = "Student" }, Ct)).StatusCode.ShouldBe(HttpStatusCode.Created);
 
-        var staff = (await admin.GetFromJsonAsync<StaffView[]>("/api/identity/staff", Ct))!;
+        var staff = (await admin.GetItemsAsync<StaffView>("/api/identity/staff", Ct))!;
         staff.Select(s => s.DisplayName).ShouldBe(["An Teacher", "Admin Test"], ignoreOrder: true);
         staff.Single(s => s.UserId == teacherId).Roles.ShouldBe(["Coordinator", "Teacher"]);
 
@@ -56,7 +56,7 @@ public sealed class AdminListTests(PostgresFixture db) : IAsyncDisposable
         var otherEmail = $"admin-{Guid.NewGuid():N}@example.com";
         var other = await _api.CreateTenantWithAdminAsync("adm2", otherEmail, Password);
         var otherAdmin = _api.ClientFor(other.Slug, (await _api.StaffLoginAsync(other.Slug, otherEmail, Password)).AccessToken);
-        (await otherAdmin.GetFromJsonAsync<StaffView[]>("/api/identity/staff", Ct))!.Length.ShouldBe(1);
+        (await otherAdmin.GetItemsAsync<StaffView>("/api/identity/staff", Ct))!.Length.ShouldBe(1);
         (await otherAdmin.GetFromJsonAsync<RateView[]>("/api/hr/rates", Ct))!.ShouldBeEmpty();
         (await otherAdmin.GetFromJsonAsync<PackageView[]>("/api/billing/packages", Ct))!.ShouldBeEmpty();
     }

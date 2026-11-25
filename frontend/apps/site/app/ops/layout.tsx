@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
+import { redirect } from "next/navigation";
 import { requireMe, tenantInfo } from "@konnyaku/session";
 import { SessionWatch } from "@konnyaku/session/session-watch";
 import { appFont } from "@konnyaku/ui/kk/font";
@@ -19,6 +20,8 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale();
   const { me, token } = await requireMe("staff");
+  // Teaching-only accounts have nothing to operate: their area is /teach (the sign-in sends them there too).
+  if (me.roles.every((role) => role === "Teacher")) redirect("/teach");
   const access = await getAccess(token);
   const tenant = await tenantInfo();
   const t = await getTranslations("ops");
@@ -27,6 +30,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const links: NavLink[] = [
     { href: "/ops", label: t("nav.home"), icon: "home", exact: true },
     ...sections.map((section) => ({ href: `/ops/${section}`, label: t(`nav.${section}`), icon: section })),
+    // Data subject requests and the personal data access log: the tenant admin only.
+    ...(access.can("crm.privacy") ? [{ href: "/ops/privacy", label: t("nav.privacy"), icon: "privacy" as const }] : []),
     ...(access.can("identity.accounts") ? [{ href: "/ops/security", label: t("nav.security"), icon: "security" as const }] : []),
     ...(access.any("notification.messages")
       ? [{ href: "/ops/notifications", label: t("nav.notifications"), icon: "notifications" as const }]

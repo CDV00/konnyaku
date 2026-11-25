@@ -30,9 +30,12 @@ Trình duyệt ◄────── hình/tiếng trực tiếp giữa các má
 | `postgres` | 1 | Image `konnyaku-postgres:17` (postgres:17 + pgBackRest, build trên server từ `postgres/Dockerfile`, tag riêng nên deploy không khởi động lại DB). Mạng `data` không có đường ra Internet; mạng `backup` chỉ để đẩy WAL ra object storage (không mở cổng nào). Mỗi module một role `kk_<module>` với mật khẩu riêng |
 | `backup` | 1 | pgBackRest: full hằng tuần, diff hằng ngày, WAL liên tục, diễn tập khôi phục hằng tháng, ghi file trạng thái cho giám sát ([Backup](#backup)) |
 | `signaling` | **1** | Phòng học có sẵn (`services/signaling`, Rust): WebSocket `/rtc/ws` qua Caddy, chỉ nhận vé ngắn hạn do API ký (`SIGNALING_SECRET`), giữ ai đang ở phòng nào **trong bộ nhớ** nên chỉ chạy một bản. Báo vào/ra/kết thúc về API qua mạng nội bộ |
+| `redis` | 1 | Bộ đếm giới hạn tần suất dùng chung cho mọi bản sao API (mạng `data`, cổng 6379 chỉ trong mạng nội bộ, mật khẩu `REDIS_PASSWORD`, không lưu xuống đĩa). Redis dừng thì mỗi bản sao tạm đếm riêng trong RAM, không lỗi request |
 | `coturn` | 1 | TURN cho người dùng sau NAT/tường lửa chặt. Dùng mạng host (`network_mode: host`). Mật khẩu tạm theo TURN REST API (`TURN_SECRET`, hạn 6 giờ); không chuyển tiếp tới địa chỉ nội bộ/loopback |
 
-Giới hạn khi chạy nhiều bản sao: giới hạn tần suất form đăng ký công khai được đếm **riêng từng bản sao API** (2 bản sao ≈ gấp đôi hạn mức). Khi cần chính xác, chuyển bộ đếm sang Redis.
+Giới hạn tần suất (form công khai `RateLimits:PublicFormsPerMinute`, quên/đặt lại mật khẩu `RateLimits:PasswordResetPerMinute`, theo IP mỗi phút) đếm trong **Redis**, nên đúng với mọi số bản sao API; khoá trong Redis chỉ chứa mã băm của IP. Không cấu hình `Redis:ConnectionString` (dev, test) thì mỗi process đếm trong RAM như trước.
+
+Cache "phiên đăng nhập còn hiệu lực" (`SessionValidationMiddleware`, `Auth:SessionCacheSeconds` = 30 s) **vẫn ở RAM từng bản sao**, có chủ ý: chuyển sang Redis chỉ rút thời gian một phiên bị thu hồi còn dùng được trên bản sao khác từ ≤ 30 s xuống 0, nhưng thêm một lượt gọi Redis vào **mọi** request đã đăng nhập và biến Redis thành phụ thuộc của việc đăng nhập (Redis dừng = phải chọn giữa từ chối hết hoặc bỏ qua kiểm tra). Số truy vấn DB không đổi (cả hai cách đều hỏi DB một lần mỗi 30 s mỗi phiên). Xem lại khi cần thu hồi tức thì (ví dụ khóa tài khoản bị chiếm) hoặc khi có ≥ 4 bản sao. Các thành phần giám sát (profile `monitoring`) ở mục [Giám sát và cảnh báo](#giám-sát-và-cảnh-báo).
 
 ### Phòng học có sẵn (WebRTC mesh)
 
@@ -76,6 +79,8 @@ Thay cho Google Meet khi trung tâm chưa có Google Workspace. Trung tâm chọ
    cp .env.example .env && ./scripts/gen-secrets.sh >> .env && chmod 600 .env
    ```
 
+   Server đã chạy từ trước bản có Redis và giám sát: thêm `REDIS_PASSWORD`, `GRAFANA_ADMIN_PASSWORD`, `DB_PASSWORD_MONITOR` (chạy lại `gen-secrets.sh` rồi chỉ chép ba dòng đó), nếu không `docker compose up` báo thiếu biến.
+
    Sửa trong `.env`: `BASE_DOMAIN`, `ACME_EMAIL`, `IMAGE_*` (thay `OWNER` bằng tên GitHub org/user viết **chữ thường**, ví dụ `ghcr.io/cdv00/konnyaku-web`). Server đã chạy từ trước bản có phòng học: thêm `SIGNALING_SECRET` và `TURN_SECRET` (chạy lại `gen-secrets.sh` rồi chỉ chép hai dòng đó) và `IMAGE_SIGNALING`. Lưu một bản `.env` vào trình quản lý mật khẩu của nhóm: mất file này là mất mật khẩu DB và khóa ký JWT. `gen-secrets.sh` cũng sinh `CAPTCHA_KEY` (xem mục [Captcha của form công khai](#captcha-của-form-công-khai)); `.env` có sẵn từ trước thì thêm tay một dòng `CAPTCHA_KEY=$(openssl rand -hex 32)`, nếu không `docker compose up` báo thiếu biến. Tương tự `BACKUP_CIPHER_PASS` (khoá mã hoá backup, xem [Backup](#backup)) — khoá này phải có một bản **ngoài server**.
 
 5. **GitHub**: Settings → Environments, tạo `staging` và `production`. Mỗi environment có secrets `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` (khóa riêng của một user chỉ dùng để deploy, thuộc nhóm `docker`), `DEPLOY_KNOWN_HOSTS` (kết quả `ssh-keyscan -H <host>`), và biến `DEPLOY_PATH` nếu khác `/opt/konnyaku`. Nên bật *Required reviewers* cho `production`.
@@ -85,7 +90,7 @@ Thay cho Google Meet khi trung tâm chưa có Google Workspace. Trung tâm chọ
 - Mỗi PR: CI build 5 image (api, worker, migrator, web, signaling) trên máy amd64 và máy arm64 thật của GitHub rồi chạy thử (`infra/deploy/scripts/smoke-test.sh`, kể cả web dừng êm khi nhận SIGTERM), build image PostgreSQL + pgBackRest và kiểm tra cú pháp các script, không đẩy lên registry.
 - Merge vào `main` → CI xanh → workflow **Deploy** build lại trên từng kiến trúc, chạy thử, đẩy `<sha>-amd64` / `<sha>-arm64`, gộp thành tag đa kiến trúc `<sha>` và `latest`, rồi deploy lên **staging**.
 - Lên **production**: Actions → Deploy → Run workflow → `production`.
-- Workflow chép `compose.yaml`, `Caddyfile`, `caddy/`, `postgres/`, `scripts/` lên server rồi chạy **`./scripts/deploy.sh <sha>`** (deploy cuốn chiếu, bên dưới). Deploy tay trên server cũng chỉ là lệnh đó.
+- Workflow chép `compose.yaml`, `Caddyfile`, `caddy/`, `postgres/`, `scripts/`, `monitoring/` lên server rồi chạy **`./scripts/deploy.sh <sha>`** (deploy cuốn chiếu, bên dưới). Deploy tay trên server cũng chỉ là lệnh đó.
 
 ### Deploy cuốn chiếu (không gián đoạn)
 
@@ -249,15 +254,7 @@ Ghi vào `BACKUP_DIR/status/` trên host (mặc định `/opt/konnyaku/backups/s
 | `drill.json` | Sau mỗi lần diễn tập | thời điểm, đạt/không, mốc khôi phục, thời gian, số dòng từng bảng (khôi phục / live), ghi chú |
 | `dump.prom`, `dump.json` | `scripts/backup.sh`, khi dump thành công | `konnyaku_dump_last_success_timestamp_seconds`, `konnyaku_dump_last_size_bytes` |
 
-Timestamp là giây Unix UTC, `0` = chưa từng. Ngưỡng cảnh báo đề xuất:
-
-| Cảnh báo | Điều kiện |
-| --- | --- |
-| Backup quá hạn | `time() - max(konnyaku_backup_last_success_timestamp_seconds) > 26 giờ`, hoặc `konnyaku_backup_configured == 0` |
-| Đẩy WAL lỗi | `konnyaku_backup_wal_pending_segments > 10`, hoặc `konnyaku_backup_wal_last_failed_timestamp_seconds > konnyaku_backup_wal_last_archived_timestamp_seconds` kéo dài 10 phút |
-| Service backup chết | `time() - konnyaku_backup_heartbeat_timestamp_seconds > 5 phút` (hoặc file không còn được cập nhật) |
-| Diễn tập | Lần gần nhất trượt (`konnyaku_backup_drill_last_run_timestamp_seconds > 0` và `konnyaku_backup_drill_last_success == 0`), hoặc `time() - konnyaku_backup_drill_last_success_timestamp_seconds > 35 ngày` (sau tháng đầu) |
-| Dump đêm | `time() - konnyaku_dump_last_success_timestamp_seconds > 26 giờ` |
+Timestamp là giây Unix UTC, `0` = chưa từng. Khi bật giám sát, node-exporter đọc thư mục này và các cảnh báo `BackupOverdue`, `DumpOverdue`, `BackupSidecarStalled`, `WalArchivingFailing`, `BackupNotConfigured`, `RestoreDrillOverdue`, `BackupStatusMissing` dùng các chỉ số trên ([Cảnh báo](#cảnh-báo)).
 
 `konnyaku_backup_wal_last_archived_timestamp_seconds` cũ **không** có nghĩa là lỗi: DB không có ghi thì không đóng đoạn WAL mới.
 
@@ -309,6 +306,127 @@ Tự động ngày `BACKUP_DRILL_DAY` mỗi tháng, sau backup; chạy tay bất
 
 Cần đĩa trống ≈ dung lượng DB. Mỗi quý nên diễn tập thêm một lần đầy đủ trên **staging hoặc server mới** bằng `restore.sh` (đo thời gian khôi phục thật, kiểm tra đăng nhập và vài màn hình).
 
+## Giám sát và cảnh báo
+
+Mục tiêu: biết ngay khi hệ thống hỏng hoặc chậm, và từ một request lỗi lần ra nguyên nhân (trace qua web → API → PostgreSQL, log cùng trace, lỗi kèm stack trace). Mọi phần đều **tắt mặc định**; bật bằng `.env`.
+
+```
+api ×2, worker, web ×2 ──OTLP──► alloy ──► tempo (trace)
+         │                         │  └──► prometheus (metric) ──► alertmanager ──► email (SMTP), Telegram
+         │                         └─ log mọi container (Docker API) ──► loki
+         └── lỗi ──► Sentry / GlitchTip (SENTRY_DSN)
+prometheus ◄── node-exporter (máy), cadvisor (container), postgres-exporter, caddy :2020, signaling /metrics, blackbox (health, chứng chỉ)
+grafana (dashboard, Explore) ◄── prometheus, loki, tempo, alertmanager      ⟵ Caddy: https://admin.BASE_DOMAIN/grafana
+```
+
+### Bật
+
+Thêm vào `.env` (mẫu trong `.env.example`, khối *Monitoring*), rồi `docker compose up -d`:
+
+```bash
+COMPOSE_PROFILES=monitoring
+OTEL_ENDPOINT=http://alloy:4318
+ALERT_EMAIL_TO=ops@congty.vn          # nhận cảnh báo; gửi qua SMTP_* như email của ứng dụng
+```
+
+- `COMPOSE_PROFILES=monitoring` chạy 11 container giám sát (RAM thêm: [toi-uu-tai-nguyen.md](toi-uu-tai-nguyen.md#bộ-giám-sát)). Máy 2 GB nên đặt bộ giám sát trên VPS riêng (cùng mục đó).
+- Cổng: không mở thêm cổng nào ra Internet. Grafana `127.0.0.1:GRAFANA_LOCAL_PORT` (3000) trên server; trong mạng nội bộ: Alloy OTLP 4318/4317, Prometheus 9090, Alertmanager 9093, Loki 3100, Tempo 3200, Caddy metrics 2020, signaling `/metrics` 5100.
+- `OTEL_ENDPOINT` bật trace và metric của api/worker/web. Để trống thì ứng dụng không xuất gì (dev, test, máy không bật profile).
+- Lấy một phần trace khi tải lớn: `OTEL_TRACES_RATIO=0.2` (20 % request; metric vẫn đủ 100 %).
+- Tắt: xoá hai dòng trên rồi `docker compose up -d --remove-orphans`; dữ liệu giám sát nằm trong volume `prometheus-data`, `loki-data`, `tempo-data`, `grafana-data` (xoá bằng `docker volume rm` nếu không cần).
+
+### Xem dashboard
+
+- **Qua Caddy**: `https://admin.BASE_DOMAIN/grafana/`, đăng nhập `admin` / `GRAFANA_ADMIN_PASSWORD`. Chỉ host quản trị phục vụ đường dẫn này; Grafana có giới hạn đăng nhập sai, không cho đăng ký, không cho xem ẩn danh. Muốn chặn thêm theo IP: khối `@grafana` trong `Caddyfile` + `remote_ip`.
+- **Qua SSH tunnel** (không qua Internet): `ssh -L 3000:127.0.0.1:3000 <server>` rồi mở `http://localhost:3000/grafana/`. Grafana chỉ lắng nghe `127.0.0.1` của server (`GRAFANA_LOCAL_PORT`).
+- Dashboard **Konnyaku → Konnyaku — Tổng quan**: số bản sao đang chạy, request/s và lỗi 5xx (Caddy và API), p95 theo endpoint, RAM/CPU từng container và so với trần, máy chủ (RAM, CPU, đĩa), kết nối PostgreSQL theo role, outbox chờ theo module và event cũ nhất, hàng đợi thông báo và email đã gửi, số người và phòng học đang mở, log lỗi.
+- **Từ một request tới nguyên nhân**: Explore → Tempo → *Search* (service `konnyaku-web` hoặc `konnyaku-api`, lọc theo route, thời gian, lỗi) → một trace cho thấy trang Next.js, lời gọi `fetch` sang API, xử lý ở API và từng câu SQL (Npgsql), rồi các event outbox mà request đó phát ra (xử lý ở worker vài giây sau, cùng trace). Nút *Logs for this span* mở log của trace trong Loki; ngược lại, dòng log API có `trace_id=…` (worker: `TraceId:…`) có nút mở trace.
+- Prometheus và Alertmanager không mở ra ngoài; xem cảnh báo đang bật trong Grafana (*Alerting → Alert rules*, nguồn Prometheus) hoặc `docker compose exec prometheus wget -qO- localhost:9090/api/v1/alerts`.
+
+Dữ liệu cá nhân: span không có query string, IP, user agent; câu SQL chỉ có tham số (`$1`), không có giá trị; event lỗi gửi Sentry bị xoá cookie, header, query, body, thông tin người dùng, và che email / số điện thoại / token / mật khẩu trong thông điệp. Alloy xoá thêm một lần các thuộc tính đó trước khi lưu. Log ứng dụng vốn không ghi dữ liệu cá nhân.
+
+Giữ lại: metric `PROMETHEUS_RETENTION` (15 ngày, tối đa `PROMETHEUS_RETENTION_SIZE`), log `LOKI_RETENTION` (7 ngày), trace `TEMPO_RETENTION` (3 ngày).
+
+### Cảnh báo
+
+Rule trong `monitoring/prometheus/rules.yml.tmpl` (số bản sao và ngưỡng lấy từ `.env` khi container khởi động). **critical** gửi lại mỗi 4 giờ khi chưa hết, **warning** mỗi 24 giờ; khi hết lỗi có thư "RESOLVED". Cảnh báo critical của một service ẩn các warning cùng service.
+
+| Cảnh báo | Mức | Khi nào |
+| --- | --- | --- |
+| `ServiceDown` | critical | Health check nội bộ của api / web / signaling lỗi 1 phút (mọi bản sao hỏng) |
+| `PublicSiteDown` | critical | `PROBE_PUBLIC_URL` (mặc định `https://admin.BASE_DOMAIN/api/health`, qua DNS + Caddy) lỗi 2 phút |
+| `ApiReplicaMissing`, `WebReplicaMissing`, `WorkerMissing` | critical | Số container đang chạy ít hơn `API_REPLICAS` / `WEB_REPLICAS` / `WORKER_REPLICAS` trong 2 phút (5 phút với worker) |
+| `ContainerRestarting` | warning | Một service khởi động lại > 2 lần trong 15 phút (thường do chạm trần RAM) |
+| `PostgresDown` | critical | postgres-exporter không kết nối được |
+| `ApiHigh5xxRate`, `SiteHigh5xxRate` | critical | > 5 % request lỗi 5xx trong 5 phút (API; toàn trang đo ở Caddy) |
+| `ApiSlowP95`, `SiteSlowP95` | warning | p95 > `ALERT_API_P95_SECONDS` (1,5 s) / `ALERT_SITE_P95_SECONDS` (3 s) trong 10 phút |
+| `ContainerMemoryNearLimit` | warning | Container dùng > 90 % trần RAM 10 phút |
+| `PostgresConnectionsHigh` | warning | > 85 % `max_connections` |
+| `OutboxBacklog` | critical | Event cũ nhất trong outbox một module chờ > 5 phút (worker dừng, handler lỗi liên tục) |
+| `OutboxDeadMessages` | warning | Có event đã hết 10 lần thử (cần người xử lý) |
+| `NotificationsOverdue` | warning | Việc trong hàng đợi thông báo trễ > 15 phút |
+| `ClassroomPresenceDropped` | warning | Signaling bỏ sự kiện vào/ra phòng sau khi thử lại (điểm danh có thể thiếu) |
+| `DiskAlmostFull` / `DiskFillsWithin24h` | critical / warning | Ổ `/` còn < 10 % / sẽ đầy trong 24 giờ |
+| `BackupOverdue`, `DumpOverdue` | critical / warning | Backup đầy đủ/khác biệt (pgBackRest) / pg_dump thành công gần nhất cũ hơn `BACKUP_MAX_AGE_HOURS` (26) |
+| `BackupSidecarStalled`, `WalArchivingFailing` | critical | Container backup không cập nhật trạng thái 5 phút / WAL không được đẩy lên kho backup 10 phút |
+| `BackupNotConfigured`, `RestoreDrillOverdue`, `BackupStatusMissing` | warning | Chưa có kho backup / diễn tập khôi phục thành công cũ hơn 35 ngày / không có file trạng thái backup nào trong 26 giờ |
+| `CertificateExpiresSoon` / `VerySoon` | warning / critical | Chứng chỉ của `PROBE_PUBLIC_URL` hết hạn sau < 14 / < 3 ngày (Caddy tự gia hạn trước 30 ngày) |
+| `MonitoringTargetDown` | warning | Không thu được số liệu từ một exporter 5 phút |
+
+#### Khi nhận cảnh báo
+
+Mỗi thư có `summary` (chuyện gì) và `description` (lệnh nên chạy đầu tiên). Các bước chung, trong `/opt/konnyaku`:
+
+| Cảnh báo | Làm gì |
+| --- | --- |
+| `ServiceDown`, `*ReplicaMissing`, `ContainerRestarting` | `docker compose ps` (container nào `exited`/`restarting`/`unhealthy`), `docker compose logs --tail 200 <service>`. Hết RAM (`OOMKilled` trong `docker inspect`) → xem `ContainerMemoryNearLimit` và [toi-uu-tai-nguyen.md](toi-uu-tai-nguyen.md) trước khi nâng trần. Lỗi sau deploy → quay lại bản trước (mục [Deploy](#deploy)). Không rõ lỗi → `docker compose up -d <service>` rồi theo dõi |
+| `PublicSiteDown` khi `ServiceDown` không báo | Caddy hoặc DNS/chứng chỉ: `docker compose logs --tail 200 caddy`, `dig admin.BASE_DOMAIN`, thử `curl -I https://admin.BASE_DOMAIN/api/health` từ máy khác |
+| `PostgresDown`, `PostgresConnectionsHigh` | `docker compose logs postgres`; đĩa đầy là nguyên nhân thường gặp. Nhiều kết nối → công thức pool ở [toi-uu-tai-nguyen.md](toi-uu-tai-nguyen.md) mục 1 |
+| `ApiHigh5xxRate`, `SiteHigh5xxRate` | Dashboard → *Lỗi 5xx theo endpoint*; Grafana Explore → Tempo, lọc `status = error` để xem trace lỗi; issue mới trong Sentry/GlitchTip (có `trace_id`). 502/503 ở Caddy mà API không lỗi → web hoặc api đang khởi động lại |
+| `ApiSlowP95`, `SiteSlowP95` | Dashboard → *p95 theo endpoint*; mở trace chậm trong Tempo, xem câu SQL nào lâu; CPU web gần 100 % → thêm vCPU / bản sao web |
+| `OutboxBacklog`, `OutboxDeadMessages`, `NotificationsOverdue` | `docker compose logs --tail 200 worker` (máy 2 GB: `api`), tìm `Outbox message … failed`. Event hết lượt thử: đọc `last_error` (câu SQL trong thư), sửa nguyên nhân rồi đặt lại `attempts = 0` cho dòng đó để worker chạy lại |
+| `DiskAlmostFull`, `DiskFillsWithin24h` | `df -h`, `docker system df`; dọn `docker image prune -a`, backup cũ, giảm `PROMETHEUS_RETENTION` / `LOKI_RETENTION` / `TEMPO_RETENTION` |
+| `Backup*`, `WalArchivingFailing`, `DumpOverdue` | Mục [Backup](#backup); WAL lỗi kéo dài làm đầy đĩa PostgreSQL, xử lý trong ngày |
+| `Certificate*` | `docker compose logs caddy \| grep -i acme`; cổng 80 phải mở và DNS đúng để gia hạn HTTP-01 |
+| `ClassroomPresenceDropped` | `docker compose logs signaling`; buổi liên quan có thể thiếu điểm danh → giáo viên xác nhận điểm danh tay |
+| `MonitoringTargetDown` | `docker compose --profile monitoring ps`; khởi động lại exporter đó |
+
+Tạm im một cảnh báo đã biết (bảo trì): `docker compose exec alertmanager amtool silence add alertname=<tên> --duration=2h --comment="bảo trì" --alertmanager.url=http://localhost:9093`.
+
+**Trạng thái backup**: node-exporter đọc các file `*.prom` trong `METRICS_TEXTFILE_DIR` (mặc định `BACKUP_DIR/status`), nơi các job backup ghi `konnyaku_backup_*` và `konnyaku_dump_*` (tên và ý nghĩa ở mục [Backup](#backup)). Chưa có file nào thì `BackupStatusMissing` báo sau 26 giờ.
+
+**Kênh gửi**:
+
+- **Email**: dùng `SMTP_*` của ứng dụng; người nhận `ALERT_EMAIL_TO`, người gửi `ALERT_EMAIL_FROM` (mặc định `SMTP_FROM_ADDRESS`). Tiêu đề `[Konnyaku <ALERT_ENVIRONMENT>] FIRING <tên cảnh báo> <service>`.
+- **Telegram** (tuỳ chọn): tạo bot với @BotFather, thêm bot vào nhóm vận hành, lấy chat id (`https://api.telegram.org/bot<token>/getUpdates` sau khi nhắn một tin trong nhóm; nhóm là số âm), đặt `TELEGRAM_BOT_TOKEN` và `TELEGRAM_CHAT_ID`.
+- **Thử**: `docker compose stop api` → sau ~2–3 phút có thư `ApiReplicaMissing` (và `ServiceDown`); `docker compose start api` → thư RESOLVED. Đổi ngưỡng hoặc thêm rule: sửa `rules.yml.tmpl` rồi `docker compose restart prometheus`.
+
+### Theo dõi từ bên ngoài (uptime)
+
+Bộ giám sát chạy trên chính server nên không báo được khi **cả server** mất điện hay mất mạng. Thêm một kiểm tra từ bên ngoài, ở nơi khác:
+
+- **Dịch vụ miễn phí**: UptimeRobot (50 monitor, mỗi 5 phút), Better Stack, Healthchecks.io… Tạo monitor HTTP tới `https://admin.BASE_DOMAIN/api/health` (trả 200 khi web chạy) và một monitor cho trang của một trung tâm thật; bật cảnh báo email/Telegram và kiểm tra hạn chứng chỉ nếu dịch vụ có.
+- **Uptime Kuma tự host** trên một máy khác (VPS nhỏ nhất, hoặc chung với bộ giám sát tách riêng): `docker run -d --restart=unless-stopped -p 127.0.0.1:3001:3001 -v uptime-kuma:/app/data louislam/uptime-kuma:1`, mở qua SSH tunnel, thêm monitor HTTP(s) như trên (60 giây) và *Certificate Expiry Notification*.
+- Có thể dùng chính monitor đó làm trang trạng thái công khai cho khách hàng.
+
+### Bắt lỗi ứng dụng (Sentry / GlitchTip)
+
+Đặt `SENTRY_DSN` (và tuỳ chọn `SENTRY_WEB_DSN` cho một project riêng của web), rồi `docker compose up -d`. API và worker gửi lỗi chưa bắt và mọi log mức Error (outbox lỗi, job lỗi) kèm stack trace; web gửi lỗi khi render trang, route handler và server action (chỉ phía server; lỗi trong trình duyệt chưa gửi). Mỗi lỗi có thẻ `trace_id` để mở trace trong Grafana, phiên bản (`IMAGE_TAG`) và môi trường (`SENTRY_ENVIRONMENT`).
+
+- **Sentry** (sentry.io): gói miễn phí đủ cho pilot; tạo project ASP.NET Core (và Next.js), lấy DSN. Dữ liệu ra nước ngoài nhưng đã lọc dữ liệu cá nhân như trên.
+- **GlitchTip** (tự host, tương thích SDK Sentry): cần PostgreSQL + Redis + ~512 MB RAM, nên chạy trên VPS giám sát riêng chứ không trên máy ứng dụng; tạo project, lấy DSN, dùng như Sentry.
+
+## Xử lý dữ liệu cá nhân
+
+Quy tắc đầy đủ: [xu-ly-du-lieu-ca-nhan.md](xu-ly-du-lieu-ca-nhan.md). Việc của người triển khai:
+
+- Script init tạo extension `unaccent` và hàm `public.kk_unaccent` (tìm kiếm không dấu). Server đã chạy từ trước: migration Crm tự tạo khi deploy (role chủ schema `konnyaku` cần quyền tạo extension, là superuser của image postgres).
+- Tuỳ chỉnh (biến môi trường cho `api` và `worker` trong `compose.yaml`, mặc định trong ngoặc): `Privacy__ExportMaxRows` (2000), `Privacy__ExportsPerDay` (20), `Privacy__LeadRetentionMonths` (24, `0` để tắt ẩn danh lead tự động), `Privacy__RequestDueHours` (72).
+- Worker chạy job lưu giữ mỗi ngày; log chỉ ghi số lead đã ẩn danh theo trung tâm.
+- Không bật access log của Caddy hay request log của API (URL danh sách có từ khoá tìm kiếm: tên, số điện thoại). Không bật `Include Error Detail` trong chuỗi kết nối.
+- Backup (`scripts/backup.sh`) chứa dữ liệu cá nhân: giữ quyền truy cập thư mục backup như với database; dữ liệu đã ẩn danh hoá vẫn còn trong backup cũ đến khi backup đó hết hạn lưu.
+- Thoả thuận xử lý dữ liệu với nhà cung cấp VPS/backup và đánh giá tác động khi chuyển dữ liệu ra nước ngoài là việc của trung tâm/nhà vận hành, ngoài phạm vi code.
+
 ## Email (SMTP)
 
 Worker gửi email (nhắc lịch, đổi giờ / hủy buổi, xác nhận vào lớp, sắp hết buổi, lead mới, chào mừng, chốt kỳ lương) qua một máy chủ SMTP. Dùng dịch vụ email giao dịch (Amazon SES, Postmark, Mailgun, SendGrid, Brevo…), không dùng hộp thư cá nhân.
@@ -349,5 +467,7 @@ docker compose exec postgres psql -U konnyaku -c "CREATE ROLE kk_notification LO
 | Backup ngay | `./scripts/kk-backup.sh backup full` |
 | Diễn tập khôi phục | `./scripts/kk-backup.sh drill` (kết quả: `backups/status/drill.json`) |
 | Khôi phục | `./scripts/restore.sh --time "<thời điểm>"` hoặc `latest` ([Khôi phục](#khôi-phục)) |
-| Phòng học đang mở | `docker compose exec caddy wget -qO- http://signaling:5100/rtc/health` (số phòng, số người) |
+| Phòng học đang mở | `docker compose exec caddy wget -qO- http://signaling:5100/rtc/health` (số phòng, số người); dashboard Grafana khi bật giám sát |
+| Dashboard, trace, log | `https://admin.BASE_DOMAIN/grafana/` hoặc SSH tunnel ([Giám sát và cảnh báo](#giám-sát-và-cảnh-báo)) |
+| Redis | `docker compose exec redis sh -c 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli info memory'` |
 | Kiểm tra TURN | Mở <https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/>, nhập `turn:BASE_DOMAIN:3478` với username/credential lấy từ một vé phòng học; phải thấy candidate `relay` |

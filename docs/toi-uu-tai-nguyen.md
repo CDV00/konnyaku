@@ -13,6 +13,7 @@ Tài liệu này trả lời ba câu hỏi: RAM của stack `infra/deploy` đi �
 - **Sửa thêm một lỗi có sẵn**: Caddy thỉnh thoảng trả 502 cho POST (đăng nhập, gửi form) do Node đóng kết nối keep-alive sau 5 s; với một bản sao web, một lỗi như vậy làm Caddy coi web là hỏng và trả 503 trong 30 s (đo được 7 % lỗi ở một lượt). Sau khi đặt `KEEP_ALIVE_TIMEOUT`: 0 lỗi ở cả 4 lượt đo cuối.
 - **GC .NET, ReadyToRun**: đã đo, không đáng kể (API ~120–150 MiB chủ yếu là runtime, mã JIT và model EF, không phải heap) nên không đưa vào cấu hình.
 - **CPU mới là giới hạn**: một trang SSR tốn ~100 ms CPU, mỗi bản sao web (một luồng JavaScript) đạt cỡ 10 trang/giây; web chiếm hơn một nửa CPU của stack. Kịch bản *load* (22 người dùng ảo liên tục) đã làm một bản sao web bão hòa; muốn phục vụ nhiều hơn cần thêm vCPU (và bản sao web), không phải thêm RAM.
+- **Bộ giám sát** (profile `monitoring`): thêm ~250 MiB lúc rảnh, ~600 MiB khi có tải; chạy chung được trên máy 8 GB, máy 2 GB nên đặt trên VPS riêng ([chi tiết](#bộ-giám-sát)).
 - **Rust**: **không tách** service nào lúc này. Phần tốn RAM nhất (web, SSR React) không viết lại bằng Rust được; viết lại API (~7 400 dòng C#, 11 module) tiết kiệm ~100 MiB mỗi bản sao, ít hơn những gì cấu hình đã lấy lại, với chi phí hàng tuần và rủi ro cao. Chi tiết và điều kiện xem xét lại ở [cuối tài liệu](#rust-có-nên-tách-service-không).
 
 ## Cách đo
@@ -190,6 +191,32 @@ Khi nào đổi:
 - `docker stats` cho thấy web chạm gần `WEB_MEM_LIMIT` thường xuyên → tăng `WEB_HEAP_MB` (và trần) chứ không tăng bản sao.
 - CPU web gần 100 % mỗi bản sao → thêm bản sao web (mỗi bản sao ~1 lõi) nếu còn vCPU.
 - Lỗi `53300 too many clients` hoặc `The connection pool has been exhausted` → kiểm tra lại công thức pool ở mục 1 trước khi tăng `PG_MAX_CONNECTIONS`.
+
+## Bộ giám sát
+
+Profile `monitoring` (bật/tắt và cách dùng: [trien-khai.md](trien-khai.md#giám-sát-và-cảnh-báo)) thêm 10 container chạy thường trực (cộng `postgres-monitor-role` chạy xong rồi thoát) và Redis (luôn chạy, ~4–6 MiB). Đo trên stack production local (2 web + 2 api + worker, máy dev dùng chung như mục [Cách đo](#cách-đo)), 20 người dùng ảo mở trang công khai liên tục 3 phút, mọi request được trace (`OTEL_TRACES_RATIO=1`), lấy mẫu `docker stats` mỗi 5 s:
+
+| Container | Mới khởi động | Đỉnh khi có tải | Trần mặc định (8 GB) | Ghi chú |
+| --- | --- | --- | --- | --- |
+| tempo | 21 | 144 | 384m | Trước khi đặt `GOMEMLIMIT`: 277 MiB sau ~20 phút, sát trần |
+| alloy | 82 | 131 | 256m | OTLP + log mọi container + thăm dò từng container |
+| grafana | 18 | 121 | 256m | Trước `GOMEMLIMIT`: 187 MiB |
+| prometheus | 50 | 61 | 512m | Tăng theo số series và thời gian giữ (15 ngày) |
+| loki | 11 | 57 | 384m | |
+| cadvisor | 17 | 21 | 128m | Chế độ cgroup thô (`housekeeping_interval=30s`) |
+| blackbox, alertmanager, node-exporter, postgres-exporter | 9–18 | 12–22 | 48–64m | |
+| **Tổng bộ giám sát** | **~250** | **~600** | ~2,1 GB | Sau tải còn ~530 MiB |
+
+- Ứng dụng khi bật OTel: không đo tách riêng; api 110–160 MiB, web 75–157 MiB trong lượt đo này, cùng khoảng với số đo không có OTel ở trên (chênh lệch nằm trong độ nhiễu của máy dùng chung). CPU của Alloy ~10 % một lõi khi có tải.
+- **`GOMEMLIMIT`**: Go không tự đọc trần RAM của container nên Tempo/Grafana giữ heap tới gần trần; compose đặt `GOMEMLIMIT` (biến `*_GOMEMLIMIT`, ~70–75 % trần) cho tempo, loki, grafana, alloy, prometheus, giảm tổng ~840 → ~600 MiB.
+- **cAdvisor**: tích hợp Docker của cAdvisor (v0.52–0.53) không đọc được container khi Docker dùng *containerd image store* (mặc định ở Docker Desktop và Docker Engine 29 cài mới), nên chạy ở chế độ cgroup thô (không cần socket Docker); tên container và service lấy từ Alloy (rule `konnyaku:container_*`). Cảnh báo thiếu bản sao không dựa vào cAdvisor mà dựa vào thăm dò `/health` từng container.
+
+**Máy 8 GB**: chạy chung được (stack ~0,9–1,4 GB + giám sát ~0,6 GB).
+
+**Máy 2 GB**: ứng dụng đã dùng ~0,5–0,8 GB; thêm ~0,6 GB giám sát là quá sát. Hai cách:
+
+1. **VPS giám sát riêng (khuyến nghị)**, 1 vCPU / 1–2 GB: chạy Grafana, Prometheus, Loki, Tempo, Alertmanager ở đó; trên máy ứng dụng chỉ giữ các thành phần thu thập (alloy, node-exporter, cadvisor, postgres-exporter, blackbox: ~200 MiB). Nối hai máy bằng mạng riêng của nhà cung cấp hoặc WireGuard (không mở OTLP / remote-write ra Internet): Alloy đổi `tempo:4317`, `prometheus:9090` thành địa chỉ máy giám sát; Prometheus ở máy giám sát scrape các exporter qua mạng riêng (hoặc để Alloy scrape và remote-write). Cùng máy đó chạy được Uptime Kuma và GlitchTip, và vẫn báo động khi máy ứng dụng chết hẳn.
+2. **Chạy chung với trần nhỏ**: khối "Small machine" trong `.env.example` (trần ~1,1 GB tổng, giữ dữ liệu ngắn hơn, `OTEL_TRACES_RATIO=0.2`) và bật swap; chấp nhận Grafana chậm khi truy vấn dài.
 
 ## arm64
 

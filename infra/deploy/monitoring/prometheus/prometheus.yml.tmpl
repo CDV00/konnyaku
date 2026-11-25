@@ -1,0 +1,86 @@
+# Rendered by start.sh (${NAME} from the environment of the prometheus service in compose.yaml).
+global:
+  scrape_interval: 30s
+  scrape_timeout: 10s
+  evaluation_interval: 30s
+
+# api, worker and web push metrics over OTLP through Alloy (job = service.name, instance = container id); Alloy also
+# remote-writes one probe per running container (job "containers").
+otlp:
+  promote_resource_attributes: [service.instance.id, service.version, deployment.environment.name]
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: [alertmanager:9093]
+
+rule_files: [/prometheus/config/rules.yml]
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: [localhost:9090]
+
+  - job_name: alloy
+    static_configs:
+      - targets: [alloy:12345]
+
+  - job_name: node
+    static_configs:
+      - targets: [node-exporter:9100]
+
+  # Raw cgroups of every container (id = cgroup path with the container id). Names and compose services come from
+  # Alloy's per-container probes: recording rules konnyaku:container_* join both (rules.yml.tmpl).
+  - job_name: cadvisor
+    static_configs:
+      - targets: [cadvisor:8080]
+    metric_relabel_configs:
+      - source_labels: [id]
+        regex: .*[0-9a-f]{64}.*
+        action: keep
+      - source_labels: [__name__]
+        regex: container_(cpu_usage_seconds_total|memory_working_set_bytes|spec_memory_limit_bytes|start_time_seconds|oom_events_total)
+        action: keep
+
+  - job_name: postgres
+    static_configs:
+      - targets: [postgres-exporter:9187]
+
+  - job_name: caddy
+    static_configs:
+      - targets: [caddy:2020]
+
+  # Built-in classroom: rooms and people connected (services/signaling, GET /metrics, not exposed by Caddy).
+  - job_name: signaling
+    static_configs:
+      - targets: [signaling:5100]
+
+  # Each service answers on the internal network (one replica answers per probe: Docker DNS round robin).
+  - job_name: probe-internal
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets: [http://api:8080/health]
+        labels: { service: api }
+      - targets: [http://web:3000/api/health]
+        labels: { service: web }
+      - targets: [http://signaling:5100/health]
+        labels: { service: signaling }
+    relabel_configs: &blackbox
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115
+
+  # The public site through Caddy and DNS, with its TLS certificate (expiry alert).
+  - job_name: probe-public
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets: [${PROBE_PUBLIC_URL}]
+        labels: { service: caddy }
+    relabel_configs: *blackbox

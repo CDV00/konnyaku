@@ -24,12 +24,17 @@ for module in platform catalog identity organization academic crm scheduling bil
   db_env+=(-e "ConnectionStrings__${module}=Host=127.0.0.1;Database=none;Username=none;Password=none")
 done
 
-docker run -d --name kk-smoke-api -p 18080:8080 "${db_env[@]}" \
+# Telemetry and error reporting on, pointing at a closed port: the images must start and serve with them enabled
+# (integration tests cover the API with them off).
+otel_env=(-e OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:9 -e OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf)
+
+docker run -d --name kk-smoke-api -p 18080:8080 "${db_env[@]}" "${otel_env[@]}" -e Sentry__Dsn=http://public@127.0.0.1:9/1 \
   -e Auth__SigningKey=smoke-test-signing-key-0123456789abcdef \
   -e Captcha__Key=smoke-test-captcha-key-0123456789abcdef \
   -e Platform__AdminKey=smoke -e Platform__BaseDomain=localhost \
   "$prefix-api:$tag" > /dev/null
-docker run -d --name kk-smoke-web -p 13000:3000 "$prefix-web:$tag" > /dev/null
+docker run -d --name kk-smoke-web -p 13000:3000 "${otel_env[@]}" -e SENTRY_DSN=http://public@127.0.0.1:9/1 \
+  "$prefix-web:$tag" > /dev/null
 docker run -d --name kk-smoke-signaling -p 15100:5100 -e SIGNALING_SECRET=smoke-test-signaling-secret-0123456789 \
   "$prefix-signaling:$tag" > /dev/null
 
@@ -43,6 +48,8 @@ fi
 # The image's own health probe (distroless: no shell, the binary checks itself).
 docker exec kk-smoke-signaling /usr/local/bin/konnyaku-signaling healthcheck
 echo "ok signaling healthcheck"
+curl -fsS http://localhost:15100/metrics | grep -q '^konnyaku_signaling_peers 0$'
+echo "ok signaling metrics"
 
 # Idle memory right after start-up on this architecture (docs/toi-uu-tai-nguyen.md compares amd64 and arm64).
 sleep 5

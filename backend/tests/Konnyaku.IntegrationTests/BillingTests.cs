@@ -68,7 +68,7 @@ public sealed class BillingTests(PostgresFixture db) : IAsyncDisposable
         await c.Admin.PostAsJsonAsync($"/api/billing/orders/{order.Id}/payments", new { amount = 2_400_000m, method = "cash" }, Ct);
         await _api.DrainOutboxAsync();
 
-        var orders = (await c.Admin.GetFromJsonAsync<OrderView[]>($"/api/billing/orders?studentId={c.StudentId}", Ct))!;
+        var orders = (await c.Admin.GetItemsAsync<OrderView>($"/api/billing/orders?studentId={c.StudentId}", Ct))!;
         orders.Single().Status.ShouldBe("RefundRequired");
     }
 

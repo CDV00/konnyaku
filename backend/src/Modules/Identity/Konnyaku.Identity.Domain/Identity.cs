@@ -9,8 +9,12 @@ public sealed class User : Entity, IAuditable
     {
     }
 
+    [PersonalData(PersonalDataKind.Email)]
     public string? Email { get; private set; }
+
+    [PersonalData(PersonalDataKind.Name)]
     public string DisplayName { get; private set; } = string.Empty;
+
     public string PreferredLocale { get; private set; } = "vi";
     public DateTimeOffset CreatedAt { get; private set; }
 
@@ -25,6 +29,13 @@ public sealed class User : Entity, IAuditable
     Guid IAuditable.AuditSubjectId => Id;
 
     public static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
+
+    /// <summary>Erasure of a learner: the account keeps its id (records point to it) but no name or email.</summary>
+    public void Anonymize()
+    {
+        DisplayName = "#" + Id.ToString("N")[^8..];
+        Email = null;
+    }
 
     public Result<User> Rename(string displayName)
     {
@@ -99,10 +110,12 @@ public sealed class PasswordCredential : LockableCredential
     {
     }
 
-    public PasswordCredential(Guid userId, string passwordHash)
+    /// <param name="temporary">Chosen by someone else (a generated first password): the owner must change it at first sign-in.</param>
+    public PasswordCredential(Guid userId, string passwordHash, bool temporary = false)
     {
         UserId = userId;
         PasswordHash = passwordHash;
+        MustChangePassword = temporary;
     }
 
     public Guid UserId { get; private set; }

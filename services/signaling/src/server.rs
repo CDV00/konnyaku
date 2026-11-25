@@ -12,6 +12,7 @@ use futures_util::{SinkExt, StreamExt};
 use tokio::sync::mpsc::{UnboundedReceiver, unbounded_channel};
 
 use crate::config::Config;
+use crate::metrics;
 use crate::protocol::{ClientMessage, ErrorCode, ServerMessage};
 use crate::report::Reporter;
 use crate::rooms::{Outbound, Rooms};
@@ -34,12 +35,24 @@ pub fn router(state: Shared) -> Router {
         .route("/rtc/ws", get(upgrade))
         .route("/rtc/health", get(health))
         .route("/health", get(health))
+        .route("/metrics", get(prometheus))
         .with_state(state)
 }
 
 async fn health(State(state): State<Shared>) -> impl IntoResponse {
     let rooms = state.rooms.lock().expect("rooms lock");
     axum::Json(serde_json::json!({ "status": "ok", "rooms": rooms.room_count(), "peers": rooms.peer_count() }))
+}
+
+async fn prometheus(State(state): State<Shared>) -> impl IntoResponse {
+    let (rooms, peers) = {
+        let rooms = state.rooms.lock().expect("rooms lock");
+        (rooms.room_count(), rooms.peer_count())
+    };
+    (
+        [(axum::http::header::CONTENT_TYPE, "text/plain; version=0.0.4")],
+        metrics::render(rooms, peers),
+    )
 }
 
 async fn upgrade(ws: WebSocketUpgrade, State(state): State<Shared>) -> impl IntoResponse {
@@ -88,12 +101,14 @@ async fn connection(socket: WebSocket, state: Shared) {
                 } else {
                     ErrorCode::InvalidTicket
                 };
+                metrics::inc(&metrics::JOIN_REJECTIONS);
                 let _ = sink.send(text(&ServerMessage::Error { code })).await;
                 let _ = sink.close().await;
                 return;
             }
         },
         _ => {
+            metrics::inc(&metrics::JOIN_REJECTIONS);
             let _ = sink
                 .send(text(&ServerMessage::Error {
                     code: ErrorCode::BadMessage,
@@ -118,9 +133,11 @@ async fn connection(socket: WebSocket, state: Shared) {
             for event in joined.events {
                 state.reporter.send(event);
             }
+            metrics::inc(&metrics::JOINS);
             joined.peer_id
         }
         Err(code) => {
+            metrics::inc(&metrics::JOIN_REJECTIONS);
             let _ = sink.send(text(&ServerMessage::Error { code })).await;
             let _ = sink.close().await;
             return;
@@ -143,6 +160,7 @@ async fn connection(socket: WebSocket, state: Shared) {
             Message::Close(_) => break,
             _ => continue,
         };
+        metrics::inc(&metrics::MESSAGES);
         match serde_json::from_str::<ClientMessage>(&raw) {
             Ok(ClientMessage::Signal { to, data }) => {
                 state.rooms.lock().expect("rooms lock").relay(&key, peer_id, to, data)

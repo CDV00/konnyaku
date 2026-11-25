@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   BookOpen,
   CalendarDays,
+  EyeOff,
   ClipboardList,
   GraduationCap,
   Building2,
@@ -51,6 +52,7 @@ const icons = {
   notifications: Mail,
   book: BookOpen,
   attendance: ClipboardList,
+  privacy: EyeOff,
   security: ShieldCheck,
   tenants: Building2,
   audit: ScrollText,
@@ -219,8 +221,8 @@ export function SidebarShell({ brand, links, user, logoutAction, accountHref, la
     </Highlight>
   );
   return (
-    <div className="min-h-dvh md:grid md:grid-cols-[15rem_1fr]">
-      <aside className="sticky top-0 hidden h-dvh flex-col gap-4 border-r bg-sidebar p-4 text-sidebar-foreground md:flex">
+    <div className="min-h-dvh md:grid md:grid-cols-[15rem_1fr] print:block">
+      <aside className="sticky top-0 hidden h-dvh flex-col gap-4 border-r bg-sidebar p-4 text-sidebar-foreground md:flex print:hidden">
         <div className="px-2 py-1">{brand}</div>
         <nav className="grid gap-0.5">{nav()}</nav>
         <div className="mt-auto flex items-center justify-between gap-2 border-t pt-4">
@@ -229,7 +231,7 @@ export function SidebarShell({ brand, links, user, logoutAction, accountHref, la
         </div>
       </aside>
       <div className="min-w-0">
-        <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md md:hidden">
+        <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md md:hidden print:hidden">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger className="-ml-1 grid size-9 place-items-center rounded-md hover:bg-accent" aria-label={labels.menu}>
               <Menu className="size-5" />

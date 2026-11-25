@@ -169,9 +169,20 @@ Lớp tại cơ sở không có dữ liệu phòng học, nên mặc định m�
 
 ## Vận hành trung tâm (`ops`)
 
-Thanh bên trái có 9 mục: Tổng quan, Lead, Học viên, Thu phí, Lớp học, Chương trình, Nhân sự, Cơ sở, Kỳ lương (Quản trị có thêm mục **Bảo mật**). Mọi form thêm mới mở trong ngăn kéo bên phải: điền, bấm **Lưu**, ngăn tự đóng và bảng cập nhật. Lỗi (trùng mã, thiếu quyền…) hiện ngay trong ngăn kéo.
+Thanh bên trái có 9 mục: Tổng quan, Lead, Học viên, Thu phí, Lớp học, Chương trình, Nhân sự, Cơ sở, Kỳ lương (Quản trị có thêm mục **Bảo mật** và **Quyền riêng tư**). Mọi form thêm mới mở trong ngăn kéo bên phải: điền, bấm **Lưu**, ngăn tự đóng và bảng cập nhật. Lỗi (trùng mã, thiếu quyền…) hiện ngay trong ngăn kéo.
 
-**Tổng quan** hiện 4 số: Lead đang mở, Học viên, Lớp đang chạy, Đơn chờ thanh toán, kèm lối tắt tới từng mục.
+**Tổng quan** hiện 4 số: Lead đang mở, Học viên đang học, Lớp đang chạy, Đơn chờ thanh toán, kèm lối tắt tới từng mục.
+
+**Tìm, lọc, phân trang.** Các danh sách Lead, Học viên, Đơn hàng, Lớp học, Nhân sự có ô tìm kiếm và bộ lọc phía trên bảng, mỗi trang 25 dòng (đổi 50 / 100 ở cuối bảng):
+
+- Ô tìm kiếm không phân biệt dấu và hoa thường: gõ "an" hay "Ân" đều ra Ân, An, Anh, Văn… Học viên và lead tìm được theo tên, số điện thoại (gõ có dấu cách, dấu chấm hay `+84` đều được), email, tên phụ huynh; đơn hàng theo tên/SĐT học viên; lớp theo mã lớp; nhân sự theo tên, email.
+- Bộ lọc: trạng thái, cơ sở, ngôn ngữ, hình thức, tư vấn viên, khoảng ngày tạo / ngày khai giảng tuỳ danh sách. **Bỏ lọc** đưa về mặc định.
+- Bấm tiêu đề cột có mũi tên để sắp xếp, bấm lần nữa để đảo chiều.
+- Tìm kiếm, bộ lọc, trang đang xem nằm trên địa chỉ trang: sao chép link gửi đồng nghiệp là họ thấy đúng danh sách đã lọc (với quyền của họ).
+
+**Dữ liệu cá nhân được che.** Trong danh sách, điện thoại, email, năm sinh và tên phụ huynh hiện dạng che (`09xx xxx 567`, `a***@example.com`, `201*`). Người được giữ hồ sơ (quản trị, quản lý cơ sở, điều phối, tư vấn) bấm **Hiện** dưới liên hệ để xem đầy đủ một người, bấm **Ẩn** để che lại; mở form **Sửa** cũng hiện đầy đủ. Mỗi lần hiện đều được ghi vào nhật ký truy cập (ai, lúc nào, hồ sơ nào). Chỉ hiện khi cần gọi hoặc sửa. Lịch sử thay đổi cũng chỉ ghi giá trị đã che.
+
+**Xuất CSV và In** (quản trị, quản lý cơ sở; ở trang Học viên và Lead): xuất đúng danh sách đang lọc. Mỗi lần tối đa 2.000 dòng (nhiều hơn thì lọc bớt) và tối đa 20 lần xuất + in mỗi người trong 24 giờ. File có dòng cuối ghi người xuất và thời điểm; bản in che liên hệ và có dấu người in ở chân trang. Mọi lần xuất/in đều vào nhật ký. File chứa dữ liệu cá nhân: chỉ dùng cho công việc, xoá khi xong, không gửi qua kênh công khai.
 
 Mọi bản ghi đều sửa được bằng nút **Sửa** (biểu tượng bút) ngay trên dòng hoặc thẻ của nó. Bản ghi đã được dùng ở nơi khác (lớp, phòng, gói học, học viên, nhân sự…) không bị xoá mà **Ngừng dùng**: giữ nguyên lịch sử, chỉ không chọn được cho việc mới; bấm **Dùng lại** để mở lại. Riêng ngày nghỉ và đơn giá nhập nhầm thì xoá được.
 
@@ -184,9 +195,9 @@ Ngăn kéo sửa có mục **Lịch sử thay đổi**: ai sửa, lúc nào, tr�
 | Quản trị | Mọi thứ, kể cả nhân sự, cơ sở, chương trình | Mọi thứ |
 | Quản lý cơ sở | Lớp, lịch học, phòng, ngày nghỉ, ghi danh của các cơ sở mình phụ trách (không chọn cơ sở nào = toàn trung tâm); lead của các cơ sở đó; hồ sơ học viên | Mọi lớp, danh sách học viên |
 | Điều phối | Lớp, lịch học, phòng, ngày nghỉ, ghi danh của các cơ sở mình phụ trách; hồ sơ học viên | Mọi lớp, danh sách học viên |
-| Kế toán | Gói học, đơn hàng, thanh toán, hoàn tiền, đơn giá giáo viên. Kế toán giao theo cơ sở chỉ thu tiền, hoàn tiền, điều chỉnh buổi và in phiếu cho đơn của cơ sở đó; không sửa gói học hay đơn giá | Mọi lớp, danh sách học viên (không có số điện thoại, email) |
+| Kế toán | Gói học, đơn hàng, thanh toán, hoàn tiền, đơn giá giáo viên. Kế toán giao theo cơ sở chỉ thu tiền, hoàn tiền, điều chỉnh buổi và in phiếu cho đơn của cơ sở đó; không sửa gói học hay đơn giá | Mọi lớp, danh sách học viên (liên hệ chỉ dạng che, không có nút Hiện) |
 | Tư vấn | Lead, hồ sơ học viên | Mọi lớp |
-| Giáo viên | Không sửa gì trong `ops` | Chỉ các lớp mình dạy; không xem danh sách học viên, lead hay nhân sự (điểm danh trong `teach` vẫn có tên học viên của buổi) |
+| Giáo viên | Không vào `ops` (mở địa chỉ `/ops/...` sẽ được chuyển về `teach`) | Chỉ các lớp mình dạy; không xem danh sách học viên, lead hay nhân sự (điểm danh trong `teach` vẫn có tên học viên của buổi) |
 
 ### Lead
 
@@ -206,10 +217,22 @@ Muốn học viên đăng nhập được thì đánh dấu **Cấp tài khoản
 
 **Sửa** hồ sơ để chỉnh họ tên, năm sinh, liên hệ, cơ sở, ngôn ngữ liên lạc. Học viên nghỉ hẳn thì **Ngừng dùng**: không tạo được đơn hay ghi danh mới, các lớp và đơn cũ giữ nguyên.
 
+### Quyền riêng tư (quản trị)
+
+Hai thẻ:
+
+- **Yêu cầu**: học viên, phụ huynh hay khách xin xem, sửa, xoá dữ liệu hoặc rút đồng ý thì bấm **Ghi nhận yêu cầu** ngay khi nhận: chọn học viên hoặc lead (gõ tên/SĐT để tìm), loại yêu cầu, ghi chú kênh nhận. Hạn xử lý là 72 giờ, quá hạn hiện chữ đỏ. Trên mỗi yêu cầu đang mở:
+  - **Xuất dữ liệu**: tải file JSON gồm mọi thông tin trung tâm giữ về người đó (hồ sơ, tài khoản, lớp, điểm danh, đơn hàng, thanh toán, số buổi). Gửi cho người yêu cầu qua kênh an toàn.
+  - **Ẩn danh hoá** (yêu cầu xoá hoặc rút đồng ý): xoá vĩnh viễn họ tên, năm sinh, phụ huynh, điện thoại, email; khoá tài khoản học viên. Đơn hàng, thanh toán, sổ buổi học, điểm danh giữ nguyên để đối soát nhưng không còn tên. Học viên còn đang học phải **Ngừng dùng** trước. Không hoàn tác được.
+  - **Đóng yêu cầu**: Đã xong (ghi đã làm gì) hoặc Từ chối (bắt buộc ghi lý do).
+- **Nhật ký truy cập**: mọi lần hiện đầy đủ liên hệ, xuất CSV, in, xuất dữ liệu, ẩn danh hoá, kể cả lead quá 24 tháng được hệ thống tự ẩn danh. Lọc theo hành động và ngày; dùng để rà soát định kỳ (ví dụ một người xuất danh sách nhiều bất thường).
+
+Chi tiết quy tắc: [Xử lý dữ liệu cá nhân](xu-ly-du-lieu-ca-nhan.md).
+
 ### Thu phí
 
 - **Thêm gói học**: Mã, Tên (Việt / Anh), Số buổi, Buổi tặng, Giá, Tiền tệ.
-- **Tạo đơn hàng**: chọn Học viên, Gói học và Lớp (hoặc Chưa xếp lớp). Đơn mới ở trạng thái Chờ thanh toán.
+- **Tạo đơn hàng**: gõ tên hoặc SĐT để tìm và chọn Học viên, chọn Gói học và Lớp (hoặc Chưa xếp lớp). Đơn mới ở trạng thái Chờ thanh toán.
 - **Ghi nhận** thanh toán trên từng đơn: Số tiền, Hình thức (Tiền mặt / Chuyển khoản / Thẻ), Mã giao dịch. Một đơn trả được nhiều lần.
 
 Khi đơn được trả đủ, học viên được cộng buổi và, nếu đơn gắn lớp, tự vào lớp sau vài giây. Lớp đã đầy thì đơn chuyển sang **Cần hoàn tiền**.
@@ -226,7 +249,7 @@ Các nút phía trên bảng đơn lọc theo trạng thái: **Tất cả**, **C
 | Nghỉ giữa khoá | Số buổi trả phí chưa dùng × đơn giá một buổi (giá đơn ÷ số buổi trả phí). Buổi tặng không hoàn. Buổi cộng thêm bằng điều chỉnh không hoàn |
 | Nghỉ khi chưa trả đủ | Số đã thu |
 
-Có thể sửa số tiền (ví dụ trừ phí), nhưng không quá số đã thu; **Lý do** luôn bắt buộc và được in trên phiếu chi. Chọn hình thức, mã giao dịch rồi **Xác nhận hoàn tiền**. Mỗi đơn chỉ hoàn một lần, không hoàn tác được: đơn chuyển sang **Đã hoàn tiền**, số buổi còn lại bị trừ hết bằng dòng **Hoàn** trong sổ buổi học, học viên được cho nghỉ lớp và chỗ trong lớp được nhả. Phần chênh giữa giá trị buổi chưa dùng và số hoàn (phí giữ lại) được tính vào doanh thu ghi nhận ngày hoàn, cho cơ sở thu tiền.
+Có thể sửa số tiền (ví dụ trừ phí), nhưng không quá số đã thu; **Lý do** luôn bắt buộc và được in trên phiếu chi. Chọn hình thức, mã giao dịch rồi **Xác nhận hoàn tiền**. Nếu báo **Số buổi của đơn vừa thay đổi**, chưa có gì được hoàn (thường do học viên vừa được xếp lớp hoặc vừa trừ buổi): mở lại ngăn kéo để xem số liệu mới rồi xác nhận lại. Mỗi đơn chỉ hoàn một lần, không hoàn tác được: đơn chuyển sang **Đã hoàn tiền**, số buổi còn lại bị trừ hết bằng dòng **Hoàn** trong sổ buổi học, học viên được cho nghỉ lớp và chỗ trong lớp được nhả. Phần chênh giữa giá trị buổi chưa dùng và số hoàn (phí giữ lại) được tính vào doanh thu ghi nhận ngày hoàn, cho cơ sở thu tiền.
 
 **Sổ buổi học.** Trong **Chi tiết** đơn đã trả có mục **Sổ buổi học**: mọi dòng Mua, Tặng, Học, Hoàn, Điều chỉnh theo thời gian. Sổ chỉ ghi thêm, không sửa: muốn cộng hoặc trừ buổi thì mở **Điều chỉnh buổi**, nhập số buổi (âm để trừ), loại buổi (tặng / trả phí) và lý do, bấm **Ghi bút toán**.
 
@@ -346,7 +369,7 @@ Mỗi mã chỉ dùng một lần; nhập sai mật khẩu hoặc mã 5 lần li
 ### Trung tâm
 
 - **Danh sách**: tên, mã, địa chỉ, trạng thái, số học viên, lớp đang mở, nhân sự, ngày tạo. Bấm tên trung tâm để mở trang chi tiết.
-- **Tạo trung tâm**: nhập tên, mã (thành địa chỉ `<mã>.<tên miền Konnyaku>`, chỉ chữ thường, số, dấu gạch ngang), ngôn ngữ mặc định, ngôn ngữ giao diện được bật, múi giờ, rồi họ tên và email của quản trị viên đầu tiên. Màn hình hiện **mật khẩu tạm** của quản trị viên một lần: sao chép và gửi qua kênh an toàn. Nếu email đã là nhân viên ở trung tâm khác, người đó dùng mật khẩu hiện có.
+- **Tạo trung tâm**: nhập tên, mã (thành địa chỉ `<mã>.<tên miền Konnyaku>`, chỉ chữ thường, số, dấu gạch ngang), ngôn ngữ mặc định, ngôn ngữ giao diện được bật, múi giờ, rồi họ tên và email của quản trị viên đầu tiên. Màn hình hiện **mật khẩu tạm** của quản trị viên một lần: sao chép và gửi qua kênh an toàn; quản trị viên phải đổi mật khẩu này ở lần đăng nhập đầu tiên. Nếu email đã là nhân viên ở trung tâm khác, người đó dùng mật khẩu hiện có.
 - **Tạm khóa trung tâm** (trang chi tiết): nhập lý do (không bắt buộc) rồi xác nhận. Trong lúc khóa, không ai của trung tâm đăng nhập được, người đang đăng nhập bị đưa ra ngoài trong vòng một phút, trang công khai hiện "Trung tâm tạm ngừng hoạt động". Dữ liệu được giữ nguyên. Bấm **Mở lại trung tâm** để hoạt động lại ngay.
 - **Thêm tên miền riêng**: trung tâm trỏ bản ghi DNS (A hoặc CNAME) của tên miền về máy chủ Konnyaku trước, rồi thêm tên miền ở đây. Chứng chỉ HTTPS được cấp tự động ở lần truy cập đầu. Gỡ được tên miền riêng, không gỡ được địa chỉ mặc định.
 - **Thêm quản trị viên**: khi quản trị viên cũ nghỉ hoặc mất quyền truy cập, cấp quyền quản trị cho người khác (nhận mật khẩu tạm nếu chưa có tài khoản nhân viên).

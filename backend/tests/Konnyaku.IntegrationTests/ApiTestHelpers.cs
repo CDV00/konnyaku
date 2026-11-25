@@ -144,3 +144,16 @@ public sealed record SignInDto(string AccessToken, string Audience, DateTimeOffs
     string? Challenge = null, string? NextStep = null);
 
 public sealed record ErrorDto(string Code);
+
+/// <summary>The page shape every list endpoint returns.</summary>
+public sealed record PageDto<T>(T[] Items, int Total, int PageNumber, int PageSize);
+
+public static class PageClientExtensions
+{
+    /// <summary>The rows of one page of a list endpoint (<c>{ items, total, pageNumber, pageSize }</c>).</summary>
+    public static async Task<T[]> GetItemsAsync<T>(this HttpClient client, string url, CancellationToken ct = default) =>
+        (await client.GetFromJsonAsync<PageDto<T>>(url, ct))!.Items;
+
+    public static async Task<PageDto<T>> GetPageAsync<T>(this HttpClient client, string url, CancellationToken ct = default) =>
+        (await client.GetFromJsonAsync<PageDto<T>>(url, ct))!;
+}

@@ -86,7 +86,8 @@
       "payroll": "Payroll",
       "home": "Overview",
       "notifications": "Notifications",
-      "security": "Security"
+      "security": "Security",
+      "privacy": "Privacy"
     },
     "hint": {
       "leads": "Follow up and move leads along",
@@ -98,7 +99,8 @@
       "branches": "Branches and time zones",
       "payroll": "Create and lock pay periods",
       "notifications": "Sent emails, failures and resending",
-      "security": "Lock accounts, reset passwords, sign-in log"
+      "security": "Lock accounts, reset passwords, sign-in log",
+      "privacy": "Personal data requests, access log"
     },
     "zone": "Operations",
     "subtitle": "How the center is doing today, with shortcuts to everyday tasks.",
@@ -455,7 +457,8 @@
       "rateDeleteConfirm": "Delete this rate? Draft timesheets are re-priced.",
       "edit": "Edit {name}",
       "deactivateConfirm": "Suspend the account? They can no longer sign in; history and assignments stay.",
-      "branchScopeHint": "No branch ticked = the whole center."
+      "branchScopeHint": "No branch ticked = the whole center.",
+      "search": "Search name, email"
     },
     "programs": {
       "title": "Programs",
@@ -533,7 +536,9 @@
       "effectiveFromHint": "Empty: from today.",
       "notScheduledReadOnly": "The class has no schedule yet.",
       "room": "Room",
-      "noRoom": "No room"
+      "noRoom": "No room",
+      "search": "Search class code",
+      "current": "Ongoing"
     },
     "students": {
       "title": "Students",
@@ -549,7 +554,11 @@
       "createHint": "With an account, the username and temporary password show only once — pass them on.",
       "edit": "Edit {name}",
       "locale": "Contact language",
-      "deactivateConfirm": "Deactivate the record? The student cannot buy or enroll again; history stays."
+      "deactivateConfirm": "Deactivate the record? The student cannot buy or enroll again; history stays.",
+      "search": "Search name, phone, email (accents optional)",
+      "withAccount": "With account",
+      "withoutAccount": "Without account",
+      "createdAt": "Created"
     },
     "billing": {
       "title": "Billing",
@@ -655,7 +664,10 @@
       "adjustCredits": "Lessons (+ add, − remove)",
       "adjustKind": "Kind",
       "adjustReason": "Reason",
-      "adjustSubmit": "Add entry"
+      "adjustSubmit": "Add entry",
+      "findStudent": "Type a student's name or phone…",
+      "search": "Search student name, phone",
+      "createdAt": "Created"
     },
     "errors": {
       "unknown": "Could not do that ({code}).",
@@ -754,6 +766,7 @@
       "notification_already_pending": "This notification is already waiting to be sent.",
       "notification_resend_not_allowed": "This notification held confidential data and was already sent; it cannot be resent.",
       "billing_order_already_refunded": "This order has already been refunded.",
+      "billing_order_changed": "The order's lessons changed just now (for example the student was just enrolled). Nothing was refunded; open it again and retry.",
       "billing_order_not_refundable": "This order cannot be refunded in its current state.",
       "billing_refund_amount_invalid": "The refund must be above 0 and at most what was received ({max}).",
       "billing_refund_reason_required": "A reason is required (at most {max} characters).",
@@ -767,7 +780,18 @@
       "identity_two_factor_not_enabled": "This person has not turned on two-step sign-in.",
       "identity_account_not_found": "Account not found.",
       "identity_password_too_weak": "Use both letters and digits, and not a common password.",
-      "identity_password_too_long": "The password is too long."
+      "identity_password_too_long": "The password is too long.",
+      "crm_export_too_large": "The list has {total} rows, more than the {limit} allowed per export. Filter it down and export again.",
+      "crm_export_limit_reached": "You exported or printed {limit} times in the last 24 hours. Ask an administrator if you need more.",
+      "crm_student_active": "The student is still active: deactivate the record before anonymizing it.",
+      "crm_student_anonymized": "This record was anonymized and cannot be edited or reactivated.",
+      "crm_subject_not_found": "Student or lead not found.",
+      "crm_request_not_found": "Request not found.",
+      "crm_request_closed": "The request is already closed.",
+      "crm_request_status_invalid": "Invalid status.",
+      "crm_request_reason_required": "A rejection needs a reason.",
+      "crm_subject_type_invalid": "Invalid subject type.",
+      "crm_received_in_future": "The received time cannot be in the future."
     },
     "classStatus": {
       "Planned": "Planned",
@@ -838,7 +862,8 @@
         "Lead": "Lead",
         "Package": "Package",
         "Order": "Order",
-        "Payment": "Payment"
+        "Payment": "Payment",
+        "DataSubjectRequest": "Data request"
       },
       "fields": {
         "code": "Code",
@@ -922,7 +947,9 @@
       "preferredBranch": "Preferred branch",
       "preferredSchedule": "Preferred schedule",
       "consultant": "Consultant",
-      "noConsultant": "Unassigned"
+      "noConsultant": "Unassigned",
+      "search": "Search name, phone, email, guardian",
+      "open": "Open"
     },
     "receipts": {
       "receiptTitle": "Receipt {code}",
@@ -1022,6 +1049,115 @@
         "staff": "staff",
         "learn": "learner"
       }
+    },
+    "list": {
+      "loading": "Loading…",
+      "reset": "Clear filters",
+      "pages": "Pagination",
+      "range": "{from}–{to} of {total}",
+      "pageSize": "Per page",
+      "previous": "Previous page",
+      "next": "Next page",
+      "page": "Page {page} of {pages}",
+      "change": "Change",
+      "noMatch": "No match.",
+      "noResults": "Nothing matches these filters.",
+      "allStatuses": "All statuses",
+      "allBranches": "All branches",
+      "anyAccount": "Account: any",
+      "from": "From",
+      "to": "To",
+      "allLanguages": "All languages",
+      "allConsultants": "All consultants",
+      "allModes": "All modes",
+      "startsFrom": "Starting from",
+      "allPackages": "All packages",
+      "allRoles": "All roles"
+    },
+    "privacy": {
+      "guardian": "Guardian: {name}",
+      "reveal": "Show",
+      "hide": "Hide",
+      "revealHint": "Show in full (written to the access log)",
+      "exportCsv": "Export CSV",
+      "print": "Print",
+      "anonymizedName": "Anonymized ({id})",
+      "birthYear": "Born {year}",
+      "editLogged": "Opening this form shows the full contact details and is written to the personal data access log.",
+      "printStamp": "Printed by {name} at {when} · {count} rows · Personal data: for work only, do not share",
+      "printStudents": "Students",
+      "printLeads": "Leads",
+      "printCount": "{count, plural, one {# row} other {# rows}}",
+      "title": "Privacy",
+      "description": "Requests from students, parents and leads about their personal data (access, correction, erasure, consent withdrawal) and the log of every full view, export, print and anonymization.",
+      "createRequest": "Record a request",
+      "createHint": "Record it as soon as it arrives (email, phone, front desk): the deadline runs from now, 72 hours by default.",
+      "requestType": "Request type",
+      "types": {
+        "Access": "Access / copy of the data",
+        "Rectification": "Correct the data",
+        "Erasure": "Erase the data",
+        "ConsentWithdrawal": "Withdraw consent"
+      },
+      "note": "Note",
+      "noteHint": "How it arrived and what is asked. No need to copy phone numbers or emails here.",
+      "tabs": {
+        "requests": "Requests",
+        "log": "Access log"
+      },
+      "statuses": {
+        "Open": "In progress",
+        "Completed": "Done",
+        "Rejected": "Rejected"
+      },
+      "allTypes": "All types",
+      "noRequests": "No requests yet.",
+      "noRequestsHint": "When a student or parent asks to see, correct or erase their data, record it here to track the deadline.",
+      "subject": "About",
+      "received": "Received",
+      "due": "Due",
+      "overdue": "Overdue",
+      "exportData": "Export data",
+      "anonymize": "Anonymize",
+      "anonymizeConfirm": "Anonymize? Name, birth year, guardian, phone and email are erased for good and the learner account is locked. Lesson ledger, orders and attendance stay (without a name). This cannot be undone.",
+      "resolve": "Close request",
+      "resolveHint": "Write what was done (copy sent, corrected, anonymized) or why it is rejected.",
+      "resolution": "Outcome",
+      "resolutionHint": "Required for a rejection.",
+      "subjects": {
+        "student": "Student",
+        "lead": "Lead"
+      },
+      "subjectType": "About a",
+      "findSubject": "Type a name or phone…",
+      "action": "Action",
+      "allActions": "All actions",
+      "actions": {
+        "Reveal": "Full view",
+        "Export": "CSV export",
+        "Print": "Print",
+        "SubjectExport": "Personal data export",
+        "Anonymize": "Anonymized",
+        "RetentionAnonymize": "Auto-anonymized"
+      },
+      "noAccess": "No access recorded yet.",
+      "when": "When",
+      "actor": "By",
+      "details": "Details",
+      "ip": "IP",
+      "lists": {
+        "students": "Student list",
+        "leads": "Lead list",
+        "student": "Student",
+        "lead": "Lead"
+      },
+      "purposes": {
+        "view": "view",
+        "edit": "edit form",
+        "contact": "contact"
+      },
+      "retention": "past retention ({period})",
+      "rows": "{count, plural, one {# row} other {# rows}}"
     }
   },
   "shell": {

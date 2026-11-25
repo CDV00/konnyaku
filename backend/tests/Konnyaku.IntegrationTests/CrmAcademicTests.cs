@@ -30,7 +30,7 @@ public sealed class CrmAcademicTests(PostgresFixture db) : IAsyncDisposable
         (await visitor.PostAsJsonAsync("/api/crm/public/leads", Lead("0909999999") with { Website = "http://spam" }, Ct))
             .StatusCode.ShouldBe(HttpStatusCode.Accepted);
 
-        var leads = (await admin.GetFromJsonAsync<LeadView[]>("/api/crm/leads", Ct))!;
+        var leads = (await admin.GetItemsAsync<LeadView>("/api/crm/leads", Ct))!;
         leads.Length.ShouldBe(1);
         leads[0].Goal.ShouldBe("JLPT N4");
         leads[0].AssignedConsultantId.ShouldBe(consultant!.UserId);

@@ -6,6 +6,7 @@ using Konnyaku.Crm.Domain;
 using Konnyaku.Identity.Contracts;
 using Konnyaku.SharedKernel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Konnyaku.Crm.Application;
 
@@ -13,12 +14,19 @@ public interface ICrmDbContext
 {
     DbSet<Lead> Leads { get; }
     DbSet<StudentProfile> Students { get; }
+    DbSet<PersonalDataAccess> PersonalDataAccesses { get; }
+    DbSet<DataSubjectRequest> DataSubjectRequests { get; }
 
     DbSet<CaptchaRedemption> CaptchaRedemptions { get; }
 
     void Publish(IIntegrationEvent integrationEvent, string? correlationId = null);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken);
+
+    /// <summary>Blanks the values in the change history of one record (erasure).</summary>
+    Task<int> RedactChangeLogAsync(Guid subjectId, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -141,45 +149,6 @@ public sealed class SubmitLeadHandler(
             .Select(g => new { ConsultantId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.ConsultantId, x => x.Count, cancellationToken);
         return consultants.OrderBy(c => load.GetValueOrDefault(c)).First();
-    }
-}
-
-public sealed record LeadView(
-    Guid Id, string StudentName, int? BirthYear, string? GuardianName, string? Phone, string? Email, string LanguageCode,
-    string? Goal, string Status, Guid? AssignedConsultantId, DateTimeOffset? FollowUpDueAt, DateTimeOffset CreatedAt,
-    Guid? PreferredBranchId, string? PreferredSchedule);
-
-/// <summary>
-/// Leads of the member's scope: everything with a center-wide lead permission; for a branch manager, the leads that
-/// prefer one of their branches.
-/// </summary>
-public sealed class LeadQueries(ICrmDbContext db, IAccessControl access)
-{
-    public async Task<IReadOnlyList<LeadView>> ListAsync(bool openOnly, CancellationToken cancellationToken)
-    {
-        var query = db.Leads.AsNoTracking();
-        if (openOnly)
-        {
-            query = query.Where(l => l.Status == LeadStatus.New || l.Status == LeadStatus.Contacted);
-        }
-
-        var scope = (await access.ListAsync(cancellationToken)).FirstOrDefault(s => s.Permission == Permissions.Leads);
-        if (scope is null)
-        {
-            return [];
-        }
-
-        if (!scope.TenantWide)
-        {
-            var branchIds = scope.BranchIds.ToArray();
-            query = query.Where(l => l.PreferredBranchId != null && branchIds.Contains(l.PreferredBranchId.Value));
-        }
-
-        return await query.OrderBy(l => l.FollowUpDueAt ?? l.CreatedAt)
-            .Select(l => new LeadView(l.Id, l.StudentName, l.BirthYear, l.GuardianName, l.Phone, l.Email, l.LanguageCode,
-                l.Goal, l.Status.ToString(), l.AssignedConsultantId, l.FollowUpDueAt, l.CreatedAt, l.PreferredBranchId, l.PreferredSchedule))
-            .Take(500)
-            .ToListAsync(cancellationToken);
     }
 }
 
@@ -314,25 +283,19 @@ public sealed class CrmEditHandlers(ICrmDbContext db, IIdentityApi identity, Tim
             return Error.NotFound("crm.student_not_found");
         }
 
-        student.SetActive(active);
+        var changed = student.SetActive(active);
+        if (!changed.IsSuccess)
+        {
+            return changed.Error!;
+        }
+
         await db.SaveChangesAsync(ct);
         return student.ToDto();
     }
 }
 
-/// <summary>A student record with contact details, for the people who keep student records (personal data: not for every staff member).</summary>
-public sealed record StudentDetailView(
-    Guid Id, string FullName, int? BirthYear, string? GuardianName, string? Phone, string? Email, Guid? HomeBranchId, Guid? UserId,
-    string CommunicationLocale, bool IsActive);
-
 public sealed class CrmQueries(ICrmDbContext db) : ICrmApi
 {
-    public async Task<IReadOnlyList<StudentDetailView>> ListStudentDetailsAsync(CancellationToken cancellationToken) =>
-        await db.Students.AsNoTracking().OrderBy(s => s.FullName).Take(500)
-            .Select(s => new StudentDetailView(s.Id, s.FullName, s.BirthYear, s.GuardianName, s.Phone, s.Email, s.HomeBranchId, s.UserId,
-                s.CommunicationLocale, s.IsActive))
-            .ToListAsync(cancellationToken);
-
     public async Task<StudentDto?> GetStudentAsync(Guid studentId, CancellationToken cancellationToken)
     {
         var student = await db.Students.AsNoTracking().FirstOrDefaultAsync(s => s.Id == studentId, cancellationToken);
@@ -343,9 +306,21 @@ public sealed class CrmQueries(ICrmDbContext db) : ICrmApi
         (await db.Students.AsNoTracking().Where(s => s.UserId == userId).ToListAsync(cancellationToken))
         .Select(s => s.ToDto()).ToList();
 
-    public async Task<IReadOnlyList<StudentDto>> ListStudentsAsync(CancellationToken cancellationToken) =>
-        (await db.Students.AsNoTracking().OrderBy(s => s.FullName).Take(500).ToListAsync(cancellationToken))
-        .Select(s => s.ToDto()).ToList();
+    public async Task<IReadOnlyList<Guid>> SearchStudentIdsAsync(string query, int limit, CancellationToken cancellationToken)
+    {
+        if (TextSearch.Term(query) is not { } term)
+        {
+            return [];
+        }
+
+        var pattern = TextSearch.Contains(term);
+        return await db.Students.AsNoTracking()
+            .Where(s => EF.Functions.Like(s.SearchText, pattern))
+            .OrderBy(s => s.FullName).ThenBy(s => s.Id)
+            .Select(s => s.Id)
+            .Take(Math.Clamp(limit, 1, 1000))
+            .ToListAsync(cancellationToken);
+    }
 }
 
 public static class StudentMapping

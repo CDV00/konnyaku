@@ -1,7 +1,6 @@
 using Konnyaku.Api;
 using Konnyaku.Composition;
 using System.Text.Json.Serialization;
-using System.Threading.RateLimiting;
 using Konnyaku.Infrastructure.Auth;
 using Konnyaku.Infrastructure.Http;
 using Konnyaku.Infrastructure.Modules;
@@ -11,10 +10,17 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Serilog writes the console (with the trace id of the request, see TraceIdEnricher); other logging providers only
+// receive what Serilog forwards to them, i.e. Sentry when Sentry:Dsn is set.
+builder.Logging.ClearProviders();
 builder.Services.AddSerilog((services, logger) => logger
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
-    .WriteTo.Console());
+    .Enrich.With<TraceIdEnricher>()
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{TraceSuffix:l}{NewLine}{Exception}"),
+    writeToProviders: true);
+builder.AddKonnyakuTelemetry("konnyaku-api", http: true);
+builder.AddKonnyakuErrorReporting();
 
 builder.AddModules(HostRole.Api, KonnyakuModules.All);
 builder.Services.AddKonnyakuAuth();
@@ -29,24 +35,8 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
         options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(network));
     }
 });
-builder.Services.AddRateLimiter(options =>
-{
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddPolicy(RateLimitPolicies.PublicForms, context => RateLimitPartition.GetFixedWindowLimiter(
-        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = context.RequestServices.GetRequiredService<IConfiguration>().GetValue("RateLimits:PublicFormsPerMinute", 10),
-            Window = TimeSpan.FromMinutes(1),
-        }));
-    options.AddPolicy(RateLimitPolicies.PasswordReset, context => RateLimitPartition.GetFixedWindowLimiter(
-        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = context.RequestServices.GetRequiredService<IConfiguration>().GetValue("RateLimits:PasswordResetPerMinute", 5),
-            Window = TimeSpan.FromMinutes(1),
-        }));
-});
+// Per-IP limits of public forms and password reset; shared by every replica through Redis when Redis:ConnectionString is set.
+builder.Services.AddKonnyakuRateLimiting(builder.Configuration);
 builder.Services.AddOpenApi();
 // Enums travel as names ("Online", "Regular") in requests and responses.
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));

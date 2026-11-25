@@ -128,7 +128,7 @@ jobs:
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           # Stack definition comes from the repo; .env (secrets, domain) and backups/ stay on the server.
           cd infra/deploy
-          tar -czf - compose.yaml Caddyfile caddy postgres scripts .env.example \
+          tar -czf - compose.yaml Caddyfile caddy postgres scripts monitoring .env.example 
             | ssh -i ~/.ssh/id_deploy "$TARGET" "mkdir -p '$DEPLOY_PATH' && tar -xzf - -C '$DEPLOY_PATH'"
           # Rolling deploy: migrator first, then api/web/worker one replica at a time (new healthy before old stops);
           # signaling only when no classroom is open (docs/trien-khai.md#deploy). Rollback: the same with an older tag.

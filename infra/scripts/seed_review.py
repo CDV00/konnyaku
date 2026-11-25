@@ -293,9 +293,15 @@ def main():
     withdrawn = order(learners[3], pkg_zh, zh_hn, 3600000)
     wait_for("ZH-HSK1-HN enrollment", lambda: any(r["studentId"] == learners[3]["student"] for r in roster(zh_hn)))
     accountant = {**host, "Authorization": f"Bearer {staff_token('accountant@review.example.com')}"}
-    post(f"/api/billing/orders/{withdrawn['id']}/refunds", {
-        "method": "bank_transfer", "reference": f"HT-{withdrawn['id'][:8]}",
-        "reason": "Đổi lịch làm việc, nghỉ trước khai giảng (demo)"}, "refund", accountant)
+    def refund():
+        # billing.order_changed: the Worker was still linking the new enrollment to the credits; try again.
+        result = call("POST", f"/api/billing/orders/{withdrawn['id']}/refunds", {
+            "method": "bank_transfer", "reference": f"HT-{withdrawn['id'][:8]}",
+            "reason": "Đổi lịch làm việc, nghỉ trước khai giảng (demo)"}, accountant)
+        if isinstance(result[1], dict) and result[1].get("code") == "billing.order_changed":
+            return False
+        return must(result, "refund")
+    wait_for("refund", refund, 10)
 
     # --- leads (public form, as a visitor would) ----------------------------------------------------------------------
     leads = [("Khách Lan (demo)", "ja", "Học giao tiếp để đi làm"), ("Khách Tú (demo)", "en", "IELTS 6.5"),
@@ -307,7 +313,7 @@ def main():
             "languageCode": lang, "goal": goal, "preferredBranchId": q1["id"], "consentVersion": "2026-11",
             "consentGiven": True, "locale": "vi", "captcha": solve_captcha(host)}, host), "lead")
     consultant = {**host, "Authorization": f"Bearer {staff_token('consultant@review.example.com')}"}
-    lead_rows = wait_for("leads", lambda: get("/api/crm/leads", "leads", consultant))
+    lead_rows = wait_for("leads", lambda: get("/api/crm/leads", "leads", consultant)["items"])
     for lead, status in zip(lead_rows, ["Contacted", "Contacted", "Converted", "Lost"]):
         post(f"/api/crm/leads/{lead['id']}/status", {"status": status}, "lead status", consultant)
 

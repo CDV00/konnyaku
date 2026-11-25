@@ -4,3 +4,6 @@
 **/*.tsbuildinfo
 **/.env*.local
 **/AGENTS.md
+e2e/logs/
+e2e/test-results/
+e2e/playwright-report/

@@ -1,5 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+    <PackageReference Include="Sentry.AspNetCore" />
+    <PackageReference Include="Sentry.Extensions.Hosting" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\Modules\Organization\Konnyaku.Organization.Endpoints\Konnyaku.Organization.Endpoints.csproj" />
     <ProjectReference Include="..\..\Modules\Platform\Konnyaku.Platform.Endpoints\Konnyaku.Platform.Endpoints.csproj" />
     <ProjectReference Include="..\..\Modules\Catalog\Konnyaku.Catalog.Endpoints\Konnyaku.Catalog.Endpoints.csproj" />

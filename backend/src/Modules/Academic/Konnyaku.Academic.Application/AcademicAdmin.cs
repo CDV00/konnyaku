@@ -1,6 +1,7 @@
 using Konnyaku.Academic.Contracts;
 using Konnyaku.Academic.Domain;
 using Konnyaku.Application.Authorization;
+using Konnyaku.Application.Persistence;
 using Konnyaku.Catalog.Contracts;
 using Konnyaku.Organization.Contracts;
 using Konnyaku.Scheduling.Contracts;
@@ -123,18 +124,98 @@ public sealed class ProgramAdminHandler(IAcademicDbContext db, ICatalogApi catal
 /// see every class; a teacher sees the classes they teach. Enrolling, freezing and dropping need
 /// <see cref="Permissions.Classes"/> for the class's branch (paid orders enroll through the Worker, without this check).
 /// </summary>
-public sealed class ClassAccess(IAcademicDbContext db, AcademicQueries queries, ISchedulingApi scheduling, IAccessControl access)
+/// <summary>
+/// Filters of the class list (<c>GET /api/academic/classes</c>): <see cref="Q"/> searches the class code; <see cref="Status"/>
+/// is a status name, <c>current</c> (planned, open or running) or empty for all.
+/// </summary>
+public sealed record ClassFilter(
+    string? Q = null, string? Status = null, Guid? Branch = null, string? Language = null, string? Mode = null, Guid? Level = null,
+    DateOnly? StartsFrom = null, DateOnly? StartsTo = null, string? Ids = null);
+
+public sealed class ClassAccess(IAcademicDbContext db, ISchedulingApi scheduling, IAccessControl access)
 {
-    public async Task<IReadOnlyList<ClassDto>> VisibleClassesAsync(Guid userId, CancellationToken ct)
+    public static readonly IReadOnlySet<string> Sorts = new HashSet<string> { "startsOn", "code", "status", "enrolled" };
+
+    /// <summary>
+    /// Classes the member may see (all of them with <see cref="Permissions.ClassesView"/>, otherwise those they teach),
+    /// filtered, sorted and paged in the database.
+    /// </summary>
+    public async Task<Page<ClassDto>> VisibleClassesAsync(Guid userId, ClassFilter filter, PageRequest page, CancellationToken ct)
     {
-        var all = await queries.ListClassesAsync(ct);
-        if (await access.HasAsync(Permissions.ClassesView, ct))
+        var classes = db.Classes.AsNoTracking();
+        if (!await access.HasAsync(Permissions.ClassesView, ct))
         {
-            return all;
+            var mine = (await scheduling.ListClassIdsOfTeacherAsync(userId, ct)).ToArray();
+            classes = classes.Where(c => mine.Contains(c.Id));
         }
 
-        var mine = (await scheduling.ListClassIdsOfTeacherAsync(userId, ct)).ToHashSet();
-        return all.Where(c => mine.Contains(c.Id)).ToList();
+        if (TextSearch.Term(filter.Q) is { } term)
+        {
+            var pattern = TextSearch.Contains(term);
+            classes = classes.Where(c => EF.Functions.Like(c.Code.ToLower(), pattern));
+        }
+
+        classes = filter.Status switch
+        {
+            null or "" or "all" => classes,
+            "current" => classes.Where(c => c.Status == ClassStatus.Planned || c.Status == ClassStatus.Open || c.Status == ClassStatus.Running),
+            var s when Enum.TryParse<ClassStatus>(s, true, out var status) => classes.Where(c => c.Status == status),
+            _ => classes.Where(_ => false),
+        };
+        if (filter.Branch is { } branch)
+        {
+            classes = classes.Where(c => c.BranchId == branch);
+        }
+
+        if (Enum.TryParse<DeliveryMode>(filter.Mode, true, out var mode))
+        {
+            classes = classes.Where(c => c.DeliveryMode == mode);
+        }
+
+        if (filter.Level is { } level)
+        {
+            classes = classes.Where(c => c.CourseLevelId == level);
+        }
+
+        if (filter.StartsFrom is { } from)
+        {
+            classes = classes.Where(c => c.StartsOn >= from);
+        }
+
+        if (filter.StartsTo is { } to)
+        {
+            classes = classes.Where(c => c.StartsOn <= to);
+        }
+
+        // Name lookups of other screens (the classes of a page of orders).
+        if (!string.IsNullOrWhiteSpace(filter.Ids))
+        {
+            var ids = filter.Ids.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(id => Guid.TryParse(id, out var g) ? g : Guid.Empty).Where(g => g != Guid.Empty).Distinct().Take(PageRequest.MaxPageSize).ToArray();
+            classes = classes.Where(c => ids.Contains(c.Id));
+        }
+
+        var rows = from c in classes
+                   join l in db.CourseLevels on c.CourseLevelId equals l.Id
+                   join p in db.Programs on l.ProgramId equals p.Id
+                   select new { Class = c, l.SessionMinutes, p.LanguageCode };
+        if (!string.IsNullOrWhiteSpace(filter.Language))
+        {
+            rows = rows.Where(r => r.LanguageCode == filter.Language);
+        }
+
+        var ordered = (page.Sort, page.Descending) switch
+        {
+            ("code", var desc) => desc ? rows.OrderByDescending(r => r.Class.Code).ThenByDescending(r => r.Class.Id) : rows.OrderBy(r => r.Class.Code).ThenBy(r => r.Class.Id),
+            ("status", var desc) => desc ? rows.OrderByDescending(r => r.Class.Status).ThenBy(r => r.Class.Code).ThenBy(r => r.Class.Id) : rows.OrderBy(r => r.Class.Status).ThenBy(r => r.Class.Code).ThenBy(r => r.Class.Id),
+            ("enrolled", var desc) => desc ? rows.OrderByDescending(r => r.Class.EnrolledCount).ThenBy(r => r.Class.Code).ThenBy(r => r.Class.Id) : rows.OrderBy(r => r.Class.EnrolledCount).ThenBy(r => r.Class.Code).ThenBy(r => r.Class.Id),
+            (_, true) => rows.OrderByDescending(r => r.Class.StartsOn).ThenByDescending(r => r.Class.Code).ThenByDescending(r => r.Class.Id),
+            _ => rows.OrderBy(r => r.Class.StartsOn).ThenBy(r => r.Class.Code).ThenBy(r => r.Class.Id),
+        };
+        return await ordered
+            .Select(r => new ClassDto(r.Class.Id, r.Class.Code, r.Class.CourseLevelId, r.Class.BranchId, r.Class.DeliveryMode.ToString(),
+                r.Class.Capacity, r.Class.EnrolledCount, r.Class.StartsOn, r.Class.TimeZone, r.Class.Status.ToString(), r.SessionMinutes, r.LanguageCode))
+            .ToPageAsync(page, ct);
     }
 
     public async Task<bool> CanSeeAsync(Guid classId, Guid userId, CancellationToken ct) =>

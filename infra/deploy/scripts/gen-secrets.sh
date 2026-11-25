@@ -22,3 +22,8 @@ echo "TURN_SECRET=$(secret 48)"
 # Encryption key of the pgBackRest repository (client-side, AES-256). Store it OUTSIDE this server as well (team
 # password manager): the backups cannot be read without it, and a lost server takes this .env with it.
 echo "BACKUP_CIPHER_PASS=$(secret 64)"
+# Redis (shared rate-limit counters of the API replicas). Letters and digits only: it goes into a connection string.
+echo "REDIS_PASSWORD=$(secret 40)"
+# Monitoring profile: Grafana "admin" password and the read-only statistics role of postgres-exporter.
+echo "GRAFANA_ADMIN_PASSWORD=$(secret 24)"
+echo "DB_PASSWORD_MONITOR=$(secret)"
