@@ -19,6 +19,13 @@
     <Project Path="src/Modules/Academic/Konnyaku.Academic.Endpoints/Konnyaku.Academic.Endpoints.csproj" />
     <Project Path="src/Modules/Academic/Konnyaku.Academic.Infrastructure/Konnyaku.Academic.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Content/">
+    <Project Path="src/Modules/Content/Konnyaku.Content.Application/Konnyaku.Content.Application.csproj" />
+    <Project Path="src/Modules/Content/Konnyaku.Content.Contracts/Konnyaku.Content.Contracts.csproj" />
+    <Project Path="src/Modules/Content/Konnyaku.Content.Domain/Konnyaku.Content.Domain.csproj" />
+    <Project Path="src/Modules/Content/Konnyaku.Content.Endpoints/Konnyaku.Content.Endpoints.csproj" />
+    <Project Path="src/Modules/Content/Konnyaku.Content.Infrastructure/Konnyaku.Content.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Assessment/">
     <Project Path="src/Modules/Assessment/Konnyaku.Assessment.Application/Konnyaku.Assessment.Application.csproj" />
     <Project Path="src/Modules/Assessment/Konnyaku.Assessment.Contracts/Konnyaku.Assessment.Contracts.csproj" />

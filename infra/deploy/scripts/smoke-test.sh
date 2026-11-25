@@ -20,7 +20,7 @@ wait_for() {
 
 # DbContexts are resolved per request even for /health, so every module needs a connection string; nothing connects.
 db_env=()
-for module in platform catalog identity organization academic crm scheduling billing workspace learning hr notification assessment; do
+for module in platform catalog identity organization academic crm scheduling billing workspace learning hr notification assessment content; do
   db_env+=(-e "ConnectionStrings__${module}=Host=127.0.0.1;Database=none;Username=none;Password=none")
 done
 

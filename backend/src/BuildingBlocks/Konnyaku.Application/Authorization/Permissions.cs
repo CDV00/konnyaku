@@ -56,10 +56,13 @@ public static class Permissions
     /// </summary>
     public const string Assessments = "assessment.manage";
 
+    /// <summary>Every file of the center (storage used and quota, any member's uploads, quarantined files); center-wide.</summary>
+    public const string Files = "content.files";
+
     public static readonly IReadOnlyList<string> All =
     [
         Programs, Classes, ClassesView, Schedules, Branches, Rooms, Holidays, Staff, Accounts, PayRates, Payroll, Packages, Orders, Payments,
-        Refunds, Sales, Finance, Leads, Students, StudentsView, PersonalDataExport, Privacy, Notifications, Assessments,
+        Refunds, Sales, Finance, Leads, Students, StudentsView, PersonalDataExport, Privacy, Notifications, Assessments, Files,
     ];
 }
 

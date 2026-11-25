@@ -23,5 +23,6 @@
     <ProjectReference Include="..\..\Modules\Hr\Konnyaku.Hr.Endpoints\Konnyaku.Hr.Endpoints.csproj" />
     <ProjectReference Include="..\..\Modules\Notification\Konnyaku.Notification.Endpoints\Konnyaku.Notification.Endpoints.csproj" />
     <ProjectReference Include="..\..\Modules\Assessment\Konnyaku.Assessment.Endpoints\Konnyaku.Assessment.Endpoints.csproj" />
+    <ProjectReference Include="..\..\Modules\Content\Konnyaku.Content.Endpoints\Konnyaku.Content.Endpoints.csproj" />
   </ItemGroup>
 </Project>

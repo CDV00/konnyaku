@@ -2,6 +2,7 @@ using Konnyaku.Academic.Endpoints;
 using Konnyaku.Assessment.Endpoints;
 using Konnyaku.Billing.Endpoints;
 using Konnyaku.Catalog.Endpoints;
+using Konnyaku.Content.Endpoints;
 using Konnyaku.Crm.Endpoints;
 using Konnyaku.Hr.Endpoints;
 using Konnyaku.Identity.Endpoints;
@@ -33,5 +34,6 @@ public static class KonnyakuModules
         new HrModule(),
         new NotificationModule(),
         new AssessmentModule(),
+        new ContentModule(),
     ];
 }

@@ -8,6 +8,7 @@
     <PackageReference Include="EFCore.NamingConventions" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="StackExchange.Redis" />
+    <PackageReference Include="AWSSDK.S3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Konnyaku.Application\Konnyaku.Application.csproj" />

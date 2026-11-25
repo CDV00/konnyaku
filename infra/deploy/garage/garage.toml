@@ -1,0 +1,26 @@
+# Garage (S3-compatible object storage, Rust) for the files of the Content module: one node, one copy of each block.
+# Secrets come from the environment (GARAGE_RPC_SECRET, GARAGE_ADMIN_TOKEN; compose.yaml). Bucket and key: scripts/garage-init.sh.
+# Durability is the off-site copy (service files-backup), not replication. docs/trien-khai.md#kho-file-garage
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+# SQLite: smallest memory footprint for a single node (LMDB maps the whole metadata file into memory).
+db_engine = "sqlite"
+# Consistent copy of the metadata database, taken while running (restores after a crash mid-write).
+metadata_auto_snapshot_interval = "6h"
+
+replication_factor = 1
+# Uploads are images, audio, PDF and video: already compressed.
+compression_level = "none"
+block_size = "1MiB"
+# Blocks waiting to be written to disk are held in RAM up to this much; the container limit must leave room for it.
+block_ram_buffer_max = "32MiB"
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "[::]:3900"
+
+[admin]
+api_bind_addr = "[::]:3903"
