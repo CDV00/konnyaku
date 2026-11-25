@@ -4,6 +4,7 @@ import { apiFetch, currentMonth, requireMe, tenantInfo } from "@konnyaku/session
 import { SessionList, type SessionView } from "@konnyaku/session/schedule";
 import { EmptyState, PageHeader, Panel, StatCard, StatusBadge, type Tone } from "@konnyaku/ui/kk/blocks";
 import { Fade } from "@konnyaku/ui/components/animate-ui/primitives/effects/fade";
+import { TeachOnboarding } from "./teach-onboarding";
 
 type Timesheet = {
   sessionId: string;
@@ -40,6 +41,7 @@ export default async function HomePage() {
   return (
     <div className="space-y-8">
       <PageHeader title={session("greeting", { name: me.displayName })} description={t("subtitle")} />
+      <TeachOnboarding />
 
       <Fade inView className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label={ts("sessionsLabel")} count={timesheets.length} icon={CalendarCheck2} hint={ts("thisMonth")} />

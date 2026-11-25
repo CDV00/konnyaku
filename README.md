@@ -72,6 +72,8 @@ Hướng dẫn cho người dùng cuối (học viên, giáo viên, nhân viên 
 | [5. Scaffolding](docs/05-scaffolding.md) | Cấu trúc thư mục BE/FE, NuGet/npm packages, ADR & checklist ngày đầu |
 | [6. Tiến hóa kiến trúc](docs/06-evolution-strategy.md) | **Nguồn duy nhất** về danh sách module & event; 10 đường cắt, tách theo tenant (Silo), tiêu chí & playbook tách service |
 | [7. Đa trung tâm, đa cơ sở, đa ngôn ngữ](docs/07-multi-tenant-multi-language.md) | **Nguồn duy nhất** về quy tắc đa tenant; identity xuyên tenant, RLS, cấu hình kế thừa, khung năng lực, i18n, đăng nhập 2 tab & trang công khai |
+| [8. Đề xuất cải tiến](docs/08-de-xuat-cai-tien.md) | Việc nên làm tiếp (11/2026), xếp theo giá trị và công sức, để chọn đưa vào roadmap |
+| [9. Rà soát và kế hoạch production](docs/09-ra-soat-va-ke-hoach-production.md) | Đủ / thiếu theo từng vai trò, lỗi cần sửa ngay, khoảng cách tới chuẩn production, kế hoạch 4 giai đoạn |
 
 ## Thuật ngữ
 

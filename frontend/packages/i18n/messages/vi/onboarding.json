@@ -1,0 +1,40 @@
+{
+  "show": "Hướng dẫn nhanh",
+  "hide": "Ẩn hướng dẫn",
+  "progress": "Đã xong {done}/{total} bước",
+  "ops": {
+    "title": "Bắt đầu vận hành trung tâm",
+    "intro": "Làm lần lượt các bước dưới đây. Bước nào xong, hệ thống tự đánh dấu dựa trên dữ liệu của trung tâm.",
+    "steps": {
+      "branches": { "title": "Tạo cơ sở và phòng học", "description": "Mỗi cơ sở có múi giờ riêng; lớp online thuộc cơ sở ảo \"Online\"." },
+      "staff": { "title": "Thêm nhân sự và giáo viên", "description": "Gán vai trò cho từng người và đặt đơn giá theo giờ cho giáo viên." },
+      "programs": { "title": "Tạo chương trình và cấp độ", "description": "Chọn ngôn ngữ, khung năng lực (JLPT, CEFR, HSK…) và số buổi mỗi cấp độ." },
+      "classes": { "title": "Mở lớp và xếp lịch", "description": "Chọn ngày trong tuần, giờ học và giáo viên; buổi học được sinh tự động, tránh ngày nghỉ." },
+      "students": { "title": "Thêm học viên và cấp tài khoản", "description": "Mật khẩu tạm chỉ hiện một lần; học viên phải đổi ở lần đăng nhập đầu." },
+      "billing": { "title": "Tạo gói học, đơn hàng và thu phí", "description": "Đơn thanh toán đủ thì học viên được tự động xếp vào lớp." },
+      "payroll": { "title": "Tạo và chốt kỳ lương", "description": "Công dạy được tính tự động từ buổi học; chốt kỳ để giữ nguyên đơn giá." },
+      "leads": { "title": "Chăm sóc lead mới", "description": "Khách đăng ký trên trang công khai hiện ở đây; cập nhật trạng thái sau mỗi lần liên hệ." }
+    }
+  },
+  "teach": {
+    "title": "Cách dùng trang giáo viên",
+    "intro": "Mọi việc của một buổi dạy đều bắt đầu từ trang này.",
+    "steps": {
+      "schedule": { "title": "Xem lịch dạy", "description": "Các buổi sắp tới hiện theo giờ của trung tâm, kèm hình thức online hay tại cơ sở." },
+      "join": { "title": "Vào lớp", "description": "Nút \"Vào lớp\" xuất hiện khi phòng học đã sẵn sàng; bấm để mở phòng." },
+      "attendance": { "title": "Điểm danh", "description": "Lớp online có sẵn bản nháp từ dữ liệu phòng học; kiểm tra, sửa nếu cần rồi xác nhận. Xác nhận xong mới trừ buổi của học viên." },
+      "timesheet": { "title": "Xem công tháng này", "description": "Số buổi, số phút được tính và số tiền tạm tính nằm ở cuối trang." }
+    }
+  },
+  "learn": {
+    "title": "Cách dùng cổng học viên",
+    "intro": "Theo dõi việc học của bạn ngay trên trang này.",
+    "steps": {
+      "credits": { "title": "Số buổi còn lại", "description": "Gồm buổi đã đóng phí và buổi tặng; buổi vắng có phép không bị trừ." },
+      "schedule": { "title": "Lịch học", "description": "Các buổi sắp tới hiện theo giờ của trung tâm." },
+      "join": { "title": "Vào lớp", "description": "Nút \"Vào lớp\" xuất hiện khi phòng học đã sẵn sàng, thường trước giờ học." },
+      "replay": { "title": "Xem lại buổi học", "description": "Video của các buổi đã học nằm trong mục Xem lại." },
+      "password": { "title": "Đổi mật khẩu", "description": "Đổi mật khẩu bất cứ lúc nào để bảo vệ tài khoản." }
+    }
+  }
+}
