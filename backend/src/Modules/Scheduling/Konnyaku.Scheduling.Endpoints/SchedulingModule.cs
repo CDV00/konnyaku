@@ -7,6 +7,7 @@ using Konnyaku.Infrastructure.Messaging;
 using Konnyaku.Infrastructure.Modules;
 using Konnyaku.Scheduling.Application;
 using Konnyaku.Scheduling.Infrastructure;
+using Konnyaku.SharedKernel;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -53,14 +54,22 @@ public sealed class SchedulingModule : IModule
         coordinators.MapPost("/sessions/{id:guid}/cancel", async (Guid id, CancelSessionCommand command, SessionChangeHandler handler, CancellationToken ct) =>
             ApiResults.From(await handler.CancelAsync(id, command, ct), Results.Ok));
 
-        group.MapGet("/classes/{classId:guid}/pattern", async (Guid classId, SchedulingQueries queries, CancellationToken ct) =>
-                await queries.GetPatternAsync(classId, ct) is { } pattern ? Results.Ok(pattern) : Results.NoContent())
+        // Members who see every class (or schedule them); a teacher only the classes they teach.
+        static async Task<bool> CanSeeAsync(Guid classId, ClaimsPrincipal user, IAccessControl access, SchedulingQueries queries, CancellationToken ct) =>
+            await access.HasAsync(Permissions.ClassesView, ct) || await access.HasAsync(Permissions.Schedules, ct)
+            || (await queries.ListClassIdsOfTeacherAsync(user.UserId()!.Value, ct)).Contains(classId);
+
+        group.MapGet("/classes/{classId:guid}/pattern", async (Guid classId, ClaimsPrincipal user, IAccessControl access, SchedulingQueries queries, CancellationToken ct) =>
+                !await CanSeeAsync(classId, user, access, queries, ct) ? ApiResults.Error(Error.Forbidden("access.forbidden"))
+                : await queries.GetPatternAsync(classId, ct) is { } pattern ? Results.Ok(pattern) : Results.NoContent())
             .RequireAuthorization(Policies.Staff);
 
-        group.MapChangeHistory<SchedulingDbContext>();
+        group.MapChangeHistory<SchedulingDbContext>(Permissions.Schedules, Permissions.ClassesView);
 
-        group.MapGet("/classes/{classId:guid}/sessions", async (Guid classId, SchedulingQueries queries, CancellationToken ct) =>
-                Results.Ok(await queries.ListClassSessionsAsync(classId, ct)))
+        group.MapGet("/classes/{classId:guid}/sessions", async (Guid classId, ClaimsPrincipal user, IAccessControl access, SchedulingQueries queries, CancellationToken ct) =>
+                await CanSeeAsync(classId, user, access, queries, ct)
+                    ? Results.Ok(await queries.ListClassSessionsAsync(classId, ct))
+                    : ApiResults.Error(Error.Forbidden("access.forbidden")))
             .RequireAuthorization(Policies.Staff);
 
         // Teacher app: own teaching schedule, including the past week (attendance is taken after the lesson).

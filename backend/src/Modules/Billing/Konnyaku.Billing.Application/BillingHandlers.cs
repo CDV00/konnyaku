@@ -1,4 +1,5 @@
 using Konnyaku.Academic.Contracts;
+using Konnyaku.Application.Authorization;
 using Konnyaku.Application.Messaging;
 using Konnyaku.Application.Persistence;
 using Konnyaku.Billing.Contracts;
@@ -6,6 +7,7 @@ using Konnyaku.Billing.Domain;
 using Konnyaku.Crm.Contracts;
 using Konnyaku.SharedKernel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace Konnyaku.Billing.Application;
 
@@ -16,6 +18,15 @@ public interface IBillingDbContext
     DbSet<Payment> Payments { get; }
     DbSet<CreditLedgerEntry> Ledger { get; }
     DbSet<CreditBalance> Balances { get; }
+    DbSet<Refund> Refunds { get; }
+    DbSet<ReceiptPrintLog> ReceiptPrints { get; }
+    DatabaseFacade Database { get; }
+
+    /// <summary>
+    /// Next consecutive number of a document kind (<see cref="DocumentKinds"/>) for the current center. Must run inside the
+    /// transaction that saves the document: it locks the counter until commit, and a rollback gives the number back.
+    /// </summary>
+    Task<long> NextDocumentNumberAsync(string kind, CancellationToken cancellationToken);
 
     void Publish(IIntegrationEvent integrationEvent, string? correlationId = null);
 
@@ -32,11 +43,13 @@ public sealed record CreateOrderCommand(Guid StudentId, Guid PackageId, Guid? Cl
 
 public sealed record OrderView(
     Guid Id, Guid StudentId, Guid PackageId, Guid? ClassId, decimal Amount, decimal AmountReceived, string Currency, string Status, Guid? BranchId,
-    DateTimeOffset CreatedAt);
+    decimal AmountRefunded, DateTimeOffset CreatedAt);
 
 /// <summary>
 /// Filters of the order list (<c>GET /api/billing/orders</c>): <see cref="Q"/> finds the orders of students whose name,
-/// phone or email matches (accents ignored, through Crm); dates are the order's creation day (UTC).
+/// phone or email matches (accents ignored, through Crm); <see cref="Status"/> is <c>unpaid</c> (nothing received),
+/// <c>partial</c>, <c>paid</c>, <c>refund_required</c>, <c>refunded</c>, <c>cancelled</c> or empty; dates are the order's
+/// creation day (UTC).
 /// </summary>
 public sealed record OrderFilter(
     Guid? StudentId = null, string? Q = null, string? Status = null, Guid? Branch = null, Guid? Package = null, Guid? Class = null,
@@ -44,7 +57,10 @@ public sealed record OrderFilter(
 
 public sealed record RecordPaymentCommand(decimal Amount, string Method, string? Reference);
 
-public sealed class OrderHandlers(IBillingDbContext db, ICrmApi crm, IAcademicApi academic, TimeProvider clock)
+/// <summary>The signed-in person behind a request, stamped on documents (collector, approver) and print logs.</summary>
+public sealed record RequestActor(Guid? UserId, string? Name, string? ClientIp);
+
+public sealed class OrderHandlers(IBillingDbContext db, ICrmApi crm, IAcademicApi academic, IAccessControl access, TimeProvider clock)
 {
     public async Task<Result<PackageView>> CreatePackageAsync(CreatePackageCommand command, CancellationToken ct)
     {
@@ -101,13 +117,23 @@ public sealed class OrderHandlers(IBillingDbContext db, ICrmApi crm, IAcademicAp
         return order.ToView();
     }
 
-    /// <summary>Records money received. When the order becomes fully paid, its credits are opened in the ledger.</summary>
-    public async Task<Result<OrderView>> RecordPaymentAsync(Guid orderId, RecordPaymentCommand command, CancellationToken ct)
+    /// <summary>
+    /// Records money received with its numbered receipt. When the order becomes fully paid, its credits are opened in the
+    /// ledger. The receipt number is taken first: it serializes the center's payments, so the order read next is current.
+    /// </summary>
+    public async Task<Result<OrderView>> RecordPaymentAsync(Guid orderId, RecordPaymentCommand command, RequestActor actor, CancellationToken ct)
     {
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        var receiptNo = await db.NextDocumentNumberAsync(DocumentKinds.Receipt, ct);
         var order = await db.Orders.FirstOrDefaultAsync(o => o.Id == orderId, ct);
         if (order is null)
         {
             return Error.NotFound("billing.order_not_found");
+        }
+
+        if (await access.EnsureAsync(Permissions.Payments, ct, order.BranchId) is { } forbidden)
+        {
+            return forbidden;
         }
 
         var now = clock.GetUtcNow();
@@ -117,7 +143,8 @@ public sealed class OrderHandlers(IBillingDbContext db, ICrmApi crm, IAcademicAp
             return paid.Error!;
         }
 
-        db.Payments.Add(new Payment(order.Id, command.Amount, string.IsNullOrWhiteSpace(command.Method) ? "cash" : command.Method, command.Reference, now));
+        db.Payments.Add(new Payment(order.Id, receiptNo, command.Amount, string.IsNullOrWhiteSpace(command.Method) ? "cash" : command.Method.Trim(),
+            command.Reference, now, actor.UserId, actor.Name));
         if (paid.Value)
         {
             var (account, lines) = CreditBalance.Open(order, now);
@@ -128,6 +155,7 @@ public sealed class OrderHandlers(IBillingDbContext db, ICrmApi crm, IAcademicAp
         }
 
         await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
         return order.ToView();
     }
 }
@@ -174,11 +202,11 @@ public sealed class ConsumeCreditHandler(IBillingDbContext db, IDbErrorClassifie
 
 public sealed record AdjustCreditsCommand(decimal Credits, CreditKind Kind, string Reason);
 
-public sealed class AdjustCreditsHandler(IBillingDbContext db, TimeProvider clock)
+public sealed class AdjustCreditsHandler(IBillingDbContext db, IAccessControl access, TimeProvider clock)
 {
     public async Task<Result<CreditAccountDto>> HandleAsync(Guid orderId, AdjustCreditsCommand command, CancellationToken ct)
     {
-        if (command.Credits == 0 || string.IsNullOrWhiteSpace(command.Reason))
+        if (command.Credits == 0 || string.IsNullOrWhiteSpace(command.Reason) || command.Reason.Trim().Length > 300)
         {
             return Error.Validation("billing.adjustment_invalid");
         }
@@ -187,6 +215,17 @@ public sealed class AdjustCreditsHandler(IBillingDbContext db, TimeProvider cloc
         if (account is null)
         {
             return Error.NotFound("billing.account_not_found");
+        }
+
+        var order = await db.Orders.AsNoTracking().FirstAsync(o => o.Id == orderId, ct);
+        if (await access.EnsureAsync(Permissions.Orders, ct, order.BranchId) is { } forbidden)
+        {
+            return forbidden;
+        }
+
+        if (order.Status == OrderStatus.Refunded)
+        {
+            return Error.Conflict("billing.order_already_refunded");
         }
 
         db.Ledger.Add(account.Adjust(command.Credits, command.Kind, command.Reason.Trim(), clock.GetUtcNow()));
@@ -227,7 +266,8 @@ public sealed class EnrollmentRejectedConsumer(IBillingDbContext db) : IIntegrat
     }
 }
 
-public sealed record RevenueLine(Guid? BranchId, string Currency, decimal Lessons, decimal Amount);
+/// <summary>Recognized revenue of a branch: <see cref="Amount"/> = <see cref="LessonAmount"/> + <see cref="RefundAdjustment"/>.</summary>
+public sealed record RevenueLine(Guid? BranchId, string Currency, decimal Lessons, decimal LessonAmount, decimal RefundAdjustment, decimal Amount);
 
 public sealed class BillingQueries(IBillingDbContext db, ICrmApi crm) : IBillingApi
 {
@@ -247,13 +287,13 @@ public sealed class BillingQueries(IBillingDbContext db, ICrmApi crm) : IBilling
         (await db.Packages.AsNoTracking().Where(p => includeInactive || p.IsActive).OrderBy(p => p.Code).ToListAsync(ct)).Select(p => p.ToView()).ToList();
 
     public async Task<IReadOnlyList<PaymentView>> ListPaymentsAsync(Guid orderId, CancellationToken ct) =>
-        await db.Payments.AsNoTracking().Where(p => p.OrderId == orderId).OrderBy(p => p.ReceivedAt)
-            .Select(p => new PaymentView(p.Id, p.OrderId, p.Amount, p.Method, p.Reference, p.ReceivedAt, p.VoidedAt))
-            .ToListAsync(ct);
+        (await db.Payments.AsNoTracking().Where(p => p.OrderId == orderId).OrderBy(p => p.ReceivedAt).ToListAsync(ct))
+        .Select(p => p.ToView()).ToList();
 
     public static readonly IReadOnlySet<string> OrderSorts = new HashSet<string> { "createdAt", "amount", "status" };
 
-    public async Task<Page<OrderView>> ListOrdersAsync(OrderFilter filter, PageRequest page, CancellationToken ct)
+    /// <summary>Orders filtered, sorted and paged (newest first by default).</summary>
+    public async Task<Result<Page<OrderView>>> ListOrdersAsync(OrderFilter filter, PageRequest page, CancellationToken ct)
     {
         var query = db.Orders.AsNoTracking();
         if (filter.StudentId is { } id)
@@ -268,12 +308,32 @@ public sealed class BillingQueries(IBillingDbContext db, ICrmApi crm) : IBilling
             query = query.Where(o => students.Contains(o.StudentId));
         }
 
-        query = filter.Status switch
+        switch (filter.Status)
         {
-            null or "" or "all" => query,
-            var s when Enum.TryParse<OrderStatus>(s, true, out var status) => query.Where(o => o.Status == status),
-            _ => query.Where(_ => false),
-        };
+            case null or "" or "all":
+                break;
+            case "unpaid":
+                query = query.Where(o => o.Status == OrderStatus.PendingPayment && o.AmountReceived == 0);
+                break;
+            case "partial":
+                query = query.Where(o => o.Status == OrderStatus.PendingPayment && o.AmountReceived > 0);
+                break;
+            case "paid":
+                query = query.Where(o => o.Status == OrderStatus.Paid);
+                break;
+            case "refund_required":
+                query = query.Where(o => o.Status == OrderStatus.RefundRequired);
+                break;
+            case "refunded":
+                query = query.Where(o => o.Status == OrderStatus.Refunded);
+                break;
+            case "cancelled":
+                query = query.Where(o => o.Status == OrderStatus.Cancelled);
+                break;
+            default:
+                return Error.Validation("billing.order_filter_invalid");
+        }
+
         if (filter.Branch is { } branch)
         {
             query = query.Where(o => o.BranchId == branch);
@@ -311,21 +371,57 @@ public sealed class BillingQueries(IBillingDbContext db, ICrmApi crm) : IBilling
         return (await ordered.ToPageAsync(page, ct)).Map(o => o.ToView());
     }
 
-    /// <summary>Revenue recognized when lessons are taught: per branch of the class, for sessions held in [from, to].</summary>
-    public async Task<IReadOnlyList<RevenueLine>> RecognizedRevenueAsync(DateOnly from, DateOnly to, CancellationToken ct) =>
-        await db.Ledger.AsNoTracking()
+    /// <summary>
+    /// Revenue recognized in [from, to] per branch: lessons taught (paid credits × unit amount, on the class's branch and
+    /// the session's local date) plus what refunds kept or gave beyond the unused lessons (on the collecting branch and the
+    /// refund's local date). Refunded unused lessons were never recognized, so they change nothing.
+    /// </summary>
+    public async Task<IReadOnlyList<RevenueLine>> RecognizedRevenueAsync(DateOnly from, DateOnly to, CancellationToken ct)
+    {
+        var lessons = await db.Ledger.AsNoTracking()
             .Where(l => l.EntryType == LedgerEntryType.Consume && l.SessionLocalDate >= from && l.SessionLocalDate <= to)
             .GroupBy(l => new { l.BranchId, l.Currency })
-            .Select(g => new RevenueLine(g.Key.BranchId, g.Key.Currency, -g.Sum(l => l.Credits), -g.Sum(l => l.Credits * l.UnitAmount)))
+            .Select(g => new { g.Key.BranchId, g.Key.Currency, Lessons = -g.Sum(l => l.Credits), Amount = -g.Sum(l => l.Credits * l.UnitAmount) })
             .ToListAsync(ct);
+        var refunds = await db.Refunds.AsNoTracking()
+            .Where(r => r.LocalDate >= from && r.LocalDate <= to && r.RetainedAmount != 0)
+            .GroupBy(r => new { r.BranchId, r.Currency })
+            .Select(g => new { g.Key.BranchId, g.Key.Currency, Amount = g.Sum(r => r.RetainedAmount) })
+            .ToListAsync(ct);
+        return lessons.Select(l => (l.BranchId, l.Currency)).Concat(refunds.Select(r => (r.BranchId, r.Currency))).Distinct()
+            .Select(key =>
+            {
+                var lesson = lessons.FirstOrDefault(l => l.BranchId == key.BranchId && l.Currency == key.Currency);
+                var refund = refunds.FirstOrDefault(r => r.BranchId == key.BranchId && r.Currency == key.Currency)?.Amount ?? 0;
+                var lessonAmount = lesson?.Amount ?? 0;
+                return new RevenueLine(key.BranchId, key.Currency, lesson?.Lessons ?? 0, lessonAmount, refund, lessonAmount + refund);
+            })
+            .ToList();
+    }
+
+    /// <summary>Every line of an order's lesson ledger, oldest first.</summary>
+    public async Task<IReadOnlyList<LedgerLineView>> ListLedgerAsync(Guid orderId, CancellationToken ct) =>
+        (await db.Ledger.AsNoTracking().Where(l => l.OrderId == orderId).OrderBy(l => l.CreatedAt).ThenBy(l => l.Id).ToListAsync(ct))
+        .Select(l => new LedgerLineView(l.Id, l.EntryType.ToString(), l.CreditKind.ToString(), l.Credits, l.UnitAmount, l.Currency, l.BranchId,
+            l.SessionLocalDate, l.Reason, l.CreatedAt))
+        .ToList();
 }
+
+public sealed record LedgerLineView(
+    Guid Id, string EntryType, string CreditKind, decimal Credits, decimal UnitAmount, string Currency, Guid? BranchId, DateOnly? SessionLocalDate,
+    string? Reason, DateTimeOffset CreatedAt);
 
 public static class BillingMapping
 {
     public static PackageView ToView(this Package p) => new(p.Id, p.Code, p.Name.Values, p.PaidCredits, p.BonusCredits, p.Price, p.Currency, p.IsActive);
 
     public static OrderView ToView(this Order o) =>
-        new(o.Id, o.StudentId, o.PackageId, o.ClassId, o.Amount, o.AmountReceived, o.Currency, o.Status.ToString(), o.BranchId, o.CreatedAt);
+        new(o.Id, o.StudentId, o.PackageId, o.ClassId, o.Amount, o.AmountReceived, o.Currency, o.Status.ToString(), o.BranchId, o.AmountRefunded,
+            o.CreatedAt);
+
+    public static PaymentView ToView(this Payment p) =>
+        new(p.Id, p.OrderId, p.Amount, p.Method, p.Reference, p.ReceivedAt, p.VoidedAt, p.ReceiptNo, ReceiptCodes.For(DocumentKinds.Receipt, p.ReceiptNo),
+            p.ReceivedByName);
 
     public static CreditAccountDto ToDto(this CreditBalance b) =>
         new(b.OrderId, b.StudentId, b.EnrollmentId, b.PaidCredits, b.BonusCredits, b.Total, b.Currency);

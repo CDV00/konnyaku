@@ -35,6 +35,7 @@ public sealed class AcademicModule : IModule
         services.AddScoped<ClassAccess>();
         services.AddScoped<Konnyaku.Application.Privacy.IPersonalDataSource, AcademicPersonalData>();
         services.AddScoped<Konnyaku.Application.Messaging.IIntegrationEventHandler<Konnyaku.Billing.Contracts.OrderPaidV1>, OrderPaidConsumer>();
+        services.AddScoped<Konnyaku.Application.Messaging.IIntegrationEventHandler<Konnyaku.Billing.Contracts.OrderRefundedV1>, OrderRefundedConsumer>();
     }
 
     public void AddWorkerServices(IServiceCollection services) => services.AddOutboxProcessor<AcademicDbContext>();
@@ -106,6 +107,6 @@ public sealed class AcademicModule : IModule
         classes.MapPost("/classes/{id:guid}/reopen", async (Guid id, ClassAdminHandler handler, CancellationToken ct) =>
             ApiResults.From(await handler.ReopenAsync(id, ct), Results.Ok));
 
-        group.MapChangeHistory<AcademicDbContext>();
+        group.MapChangeHistory<AcademicDbContext>(Permissions.Programs, Permissions.Classes, Permissions.ClassesView);
     }
 }

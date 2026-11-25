@@ -1,3 +1,4 @@
+
 import { getFormatter, getLocale, getTranslations } from "next-intl/server";
 import { Package as PackageIcon, Receipt, SearchX } from "lucide-react";
 import { requireMe } from "@konnyaku/session";
@@ -11,6 +12,8 @@ import { ChangeHistory } from "../history";
 import { emptyPage, getAccess, getJson, listQuery, localized, namesOf, statusTone, type ClassRow, type Package, type Page, type SearchParams } from "../lib";
 import { FilterDate, FilterSelect, ListBody, ListFrame, ListToolbar, Pagination, SortHeader } from "../list";
 import { RecordPicker } from "../personal-data";
+
+import { Ledger, RefundForm, RefundList } from "./order-money";
 import { PaymentList } from "./payments";
 
 type Order = {
@@ -23,13 +26,18 @@ type Order = {
   currency: string;
   status: string;
   createdAt: string;
+  branchId: string | null;
+  amountRefunded: number;
 };
 
+/** Status filters of the orders list, as the API names them (`/api/billing/orders?status=`). */
+const statusFilters = ["unpaid", "partial", "paid", "refund_required", "refunded", "cancelled"] as const;
+
 const paymentMethods = ["cash", "bank_transfer", "card"] as const;
-const orderStatuses = ["PendingPayment", "Paid", "Cancelled", "RefundRequired"] as const;
 
 export default async function BillingPage({ searchParams }: { searchParams: SearchParams }) {
   const { token } = await requireMe("staff");
+
   const t = await getTranslations("admin");
   const locale = await getLocale();
   const format = await getFormatter();
@@ -126,7 +134,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Sear
       <ListFrame>
       <h2 className="font-semibold tracking-tight">{t("billing.orders")}</h2>
       <ListToolbar placeholder={t("billing.search")}>
-        <FilterSelect name="status" label={t("fields.status")} allLabel={t("list.allStatuses")} options={orderStatuses.map((s) => ({ value: s, label: t(`orderStatus.${s}`) }))} />
+        <FilterSelect name="status" label={t("fields.status")} allLabel={t("billing.filters.all")} options={statusFilters.map((s) => ({ value: s, label: t(`billing.filters.${s}`) }))} />
         <FilterSelect name="package" label={t("billing.package")} allLabel={t("list.allPackages")} options={packages.map((p) => ({ value: p.id, label: p.code }))} />
         <FilterDate name="createdFrom" label={t("list.from")} />
         <FilterDate name="createdTo" label={t("list.to")} />
@@ -151,6 +159,8 @@ export default async function BillingPage({ searchParams }: { searchParams: Sear
             <TableBody>
               {orders.map((o) => {
                 const pending = o.status === "PendingPayment";
+                const refundable = o.status === "Paid" || o.status === "RefundRequired" || (pending && o.amountReceived > 0);
+                const canRefund = refundable && access.can("billing.refunds", o.branchId);
                 return (
                   <TableRow key={o.id}>
                     <TableCell className="pl-5">
@@ -185,6 +195,18 @@ export default async function BillingPage({ searchParams }: { searchParams: Sear
                             </ActionForm>
                           </FormSheet>
                         )}
+                        {canRefund && (
+                          <FormSheet
+                            triggerLabel={t("billing.refund")}
+                            title={t("billing.refundTitle", { name: studentName.get(o.studentId) ?? "" })}
+                            description={t("billing.refundDescription")}
+                            variant={o.status === "RefundRequired" ? "destructive" : "outline"}
+                            size="sm"
+                            icon={false}
+                          >
+                            <RefundForm orderId={o.id} />
+                          </FormSheet>
+                        )}
                         <FormSheet triggerLabel={t("billing.details")} title={t("billing.orderOf", { name: studentName.get(o.studentId) ?? "" })} variant="ghost" size="sm" icon={false}>
                           {pending && canOrders && (
                             <section className="space-y-3 pt-4">
@@ -203,6 +225,11 @@ export default async function BillingPage({ searchParams }: { searchParams: Sear
                           <section className="mt-6 space-y-3">
                             <h3 className="text-sm font-semibold">{t("billing.payments")}</h3>
                             <PaymentList orderId={o.id} currency={o.currency} editable={canPayments} pending={pending} />
+                          </section>
+                          <RefundList orderId={o.id} />
+                          <section className="mt-6 space-y-3">
+                            <h3 className="text-sm font-semibold">{t("billing.ledger")}</h3>
+                            <Ledger orderId={o.id} canAdjust={o.status === "Paid" && access.can("billing.orders", o.branchId)} />
                           </section>
                           <section className="mt-6 space-y-3">
                             <h3 className="text-sm font-semibold">{t("history.title")}</h3>

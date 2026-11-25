@@ -84,6 +84,7 @@ Luật phụ thuộc:
 | `RecordingPublishedV1` | Workspace | Learning (gắn vào bài học), Notification |
 | `AttendanceConfirmedV1` | Learning | Billing (`Consume`), Hr (timesheet), Ai |
 | `OrderPaidV1` | Billing | Academic |
+| `OrderRefundedV1` | Billing | Academic (cho nghỉ học, nhả chỗ) |
 | `EnrollmentActivatedV1` / `EnrollmentRejectedV1` | Academic | Billing, Notification, Crm |
 | `ClassDeliveryModeChangedV1` / `ClassClosedV1` | Academic | Scheduling (đổi hình thức / huỷ các buổi còn lại → `SessionRescheduledV1` / `SessionCancelledV1` cho Workspace) |
 | `CreditBalanceChangedV1` / `CreditLowV1` | Billing | Academic (hiển thị), Notification, Crm (churn) |

@@ -265,7 +265,7 @@ public sealed class ListsAndPrivacyTests(PostgresFixture db) : IAsyncDisposable
         await c.PostIdAsync("/api/billing/orders", new { studentId = ân, packageId = package });
         await c.PostIdAsync("/api/billing/orders", new { studentId = other, packageId = package });
         (await c.Admin.GetPageAsync<IdView>("/api/billing/orders?q=an", Ct)).Total.ShouldBe(1);
-        (await c.Admin.GetPageAsync<IdView>("/api/billing/orders?status=Paid", Ct)).Total.ShouldBe(0);
+        (await c.Admin.GetPageAsync<IdView>("/api/billing/orders?status=paid", Ct)).Total.ShouldBe(0);
         (await c.Admin.GetPageAsync<IdView>("/api/billing/orders?pageSize=1", Ct)).ShouldSatisfyAllConditions(p => p.Total.ShouldBe(2), p => p.Items.Length.ShouldBe(1));
 
         (await c.Admin.GetPageAsync<StaffRow>("/api/identity/staff?role=Teacher", Ct)).Total.ShouldBe(2);

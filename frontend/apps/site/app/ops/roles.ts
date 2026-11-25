@@ -2,6 +2,6 @@
 export const staffRoles = ["TenantAdmin", "BranchManager", "Coordinator", "Consultant", "Accountant", "Teacher"] as const;
 
 /** Roles that may be limited to chosen branches (the API refuses a branch on any other role). */
-export const branchScopedRoles: ReadonlySet<string> = new Set(["BranchManager", "Coordinator"]);
+export const branchScopedRoles: ReadonlySet<string> = new Set(["BranchManager", "Coordinator", "Accountant"]);
 
 export type RoleGrant = { role: string; branchId: string | null };

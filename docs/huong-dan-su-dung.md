@@ -27,9 +27,18 @@ Mọi người đăng nhập ở cùng một trang `/login`, chọn đúng tab t
     - **Giáo viên · Nhân viên**: nhập **Email** công việc và mật khẩu.
 3. Bấm **Đăng nhập**. Hệ thống tự chuyển vào đúng khu vực: học viên vào `learn`, giáo viên vào `teach`, nhân viên vận hành vào `ops`.
 
-Học viên đăng nhập lần đầu bằng mật khẩu tạm sẽ phải đổi mật khẩu ngay (ít nhất 8 ký tự) trước khi dùng tiếp.
+Ai đăng nhập bằng mật khẩu tạm (học viên lần đầu, hoặc sau khi quản trị đặt lại mật khẩu) sẽ phải đổi mật khẩu ngay trước khi dùng tiếp. Mật khẩu ở cả hai tab: ít nhất 8 ký tự, có cả chữ và số, không phải mật khẩu phổ biến.
 
-Nhập sai mật khẩu 5 lần liên tiếp thì tài khoản bị khoá 15 phút. Quên mật khẩu: liên hệ trung tâm để được cấp lại.
+Nhập sai mật khẩu (hoặc mã xác thực) 5 lần liên tiếp thì tài khoản bị khoá 15 phút.
+
+**Xác thực 2 bước.** Nhân viên đã bật xác thực 2 bước nhập thêm **mã 6 số** trong ứng dụng xác thực trên điện thoại (Google Authenticator, Microsoft Authenticator…) sau mật khẩu. Mất điện thoại: bấm **Dùng mã khôi phục** và nhập một mã khôi phục đã lưu (mỗi mã dùng một lần), hoặc nhờ quản trị gỡ xác thực 2 bước. Vai trò **Quản trị** và **Kế toán** bắt buộc dùng: lần đăng nhập đầu tiên hệ thống hướng dẫn quét mã QR, nhập mã, rồi hiện 10 mã khôi phục để lưu lại.
+
+**Quên mật khẩu.**
+
+- Giáo viên, nhân viên: bấm **Quên mật khẩu? Nhận link đặt lại qua email** ở tab Giáo viên · Nhân viên, nhập email công việc. Link có hiệu lực 30 phút và chỉ dùng được một lần; đặt mật khẩu mới xong thì mọi thiết bị đang đăng nhập bị đăng xuất. Trang luôn trả lời giống nhau dù email có tài khoản hay không. Mỗi tài khoản nhận tối đa 3 link mỗi giờ.
+- Học viên, phụ huynh (tài khoản không có email): liên hệ trung tâm; quản trị cấp mật khẩu tạm mới trong **Bảo mật**.
+
+**Phiên đăng nhập kết thúc.** Khi bạn đăng xuất ở nơi khác, đổi mật khẩu, bị khoá tài khoản hoặc đổi vai trò, các trang đang mở tự chuyển về trang đăng nhập trong khoảng một phút, kèm thông báo "Phiên đăng nhập đã kết thúc".
 
 ### Thao tác chung
 
@@ -38,6 +47,7 @@ Nhập sai mật khẩu 5 lần liên tiếp thì tài khoản bị khoá 15 ph�
 | Đổi giao diện sáng / tối | Bấm biểu tượng mặt trời / mặt trăng trên thanh trên cùng. Mỗi lần bấm chuyển sang chế độ kế tiếp trong ba chế độ Sáng, Tối, Theo máy. Lựa chọn được nhớ cho lần sau. |
 | Đổi ngôn ngữ (Việt / Anh) | Trên trang công khai, bấm nút **VI / EN** ở thanh trên cùng. |
 | Đăng xuất | Bấm tên của bạn ở góc trên bên phải (trong `ops`: cuối thanh bên trái) → **Đăng xuất**. Chỉ phiên của khu vực đang mở bị đăng xuất. |
+| Tài khoản & bảo mật | Bấm tên của bạn → **Tài khoản & bảo mật**: đổi mật khẩu, bật/tắt xác thực 2 bước, tạo lại mã khôi phục, xem và đăng xuất các thiết bị đang đăng nhập (nhân viên, giáo viên). Học viên vào trang đổi mật khẩu. |
 | Dùng trên điện thoại | Menu thu vào nút ba gạch; bấm để mở, bấm **Đóng** hoặc ra ngoài để đóng. |
 
 ## Khách và phụ huynh: trang công khai
@@ -83,6 +93,10 @@ Trang **Tổng quan** của học viên cho biết còn bao nhiêu buổi, buổ
 
 Nếu số buổi âm, trang hiện dòng cảnh báo màu đỏ **Đang nợ … buổi**. Khi đó học viên vẫn học được, nhưng cần liên hệ trung tâm để gia hạn gói.
 
+### Lịch sử thanh toán
+
+Mục **Thanh toán** liệt kê mọi lần đóng học phí và hoàn tiền của học viên (phụ huynh thấy của các con): số phiếu, ngày, gói học, số tiền. Bấm **Tải phiếu** để tải phiếu thu (hoặc phiếu chi khi được hoàn tiền) dạng PDF. Mỗi lần tải đều được trung tâm ghi lại.
+
 ### Vào lớp
 
 Nút **Vào lớp** hiện bên cạnh buổi học trực tuyến khi phòng học đã được tạo. Bấm nút để mở phòng học. Chỉ học viên có chỗ trong lớp mới vào được.
@@ -114,7 +128,7 @@ Phòng học có sẵn **chưa ghi hình**: buổi học trong phòng này khôn
 
 ### Đổi mật khẩu
 
-Lần đăng nhập đầu tiên, hệ thống mở trang **Đổi mật khẩu**. Nhập **Mật khẩu hiện tại** (mật khẩu tạm), **Mật khẩu mới** từ 8 ký tự, rồi bấm **Lưu mật khẩu**.
+Lần đăng nhập đầu tiên, hệ thống mở trang **Đổi mật khẩu**. Nhập **Mật khẩu hiện tại** (mật khẩu tạm), **Mật khẩu mới** (ít nhất 8 ký tự, có cả chữ và số), rồi bấm **Lưu mật khẩu**. Muốn đổi lại sau này: bấm tên của bạn → **Tài khoản & bảo mật**. Các thiết bị khác đang đăng nhập sẽ bị đăng xuất.
 
 ## Giáo viên (`teach`)
 
@@ -155,7 +169,7 @@ Lớp tại cơ sở không có dữ liệu phòng học, nên mặc định m�
 
 ## Vận hành trung tâm (`ops`)
 
-Thanh bên trái có 9 mục: Tổng quan, Lead, Học viên, Thu phí, Lớp học, Chương trình, Nhân sự, Cơ sở, Kỳ lương (quản trị viên có thêm **Quyền riêng tư**). Mọi form thêm mới mở trong ngăn kéo bên phải: điền, bấm **Lưu**, ngăn tự đóng và bảng cập nhật. Lỗi (trùng mã, thiếu quyền…) hiện ngay trong ngăn kéo.
+Thanh bên trái có 9 mục: Tổng quan, Lead, Học viên, Thu phí, Lớp học, Chương trình, Nhân sự, Cơ sở, Kỳ lương (Quản trị có thêm mục **Bảo mật** và **Quyền riêng tư**). Mọi form thêm mới mở trong ngăn kéo bên phải: điền, bấm **Lưu**, ngăn tự đóng và bảng cập nhật. Lỗi (trùng mã, thiếu quyền…) hiện ngay trong ngăn kéo.
 
 **Tổng quan** hiện 4 số: Lead đang mở, Học viên đang học, Lớp đang chạy, Đơn chờ thanh toán, kèm lối tắt tới từng mục.
 
@@ -181,7 +195,7 @@ Ngăn kéo sửa có mục **Lịch sử thay đổi**: ai sửa, lúc nào, tr�
 | Quản trị | Mọi thứ, kể cả nhân sự, cơ sở, chương trình | Mọi thứ |
 | Quản lý cơ sở | Lớp, lịch học, phòng, ngày nghỉ, ghi danh của các cơ sở mình phụ trách (không chọn cơ sở nào = toàn trung tâm); lead của các cơ sở đó; hồ sơ học viên | Mọi lớp, danh sách học viên |
 | Điều phối | Lớp, lịch học, phòng, ngày nghỉ, ghi danh của các cơ sở mình phụ trách; hồ sơ học viên | Mọi lớp, danh sách học viên |
-| Kế toán | Gói học, đơn hàng, thanh toán, đơn giá giáo viên | Mọi lớp, danh sách học viên (liên hệ chỉ dạng che, không có nút Hiện) |
+| Kế toán | Gói học, đơn hàng, thanh toán, hoàn tiền, đơn giá giáo viên. Kế toán giao theo cơ sở chỉ thu tiền, hoàn tiền, điều chỉnh buổi và in phiếu cho đơn của cơ sở đó; không sửa gói học hay đơn giá | Mọi lớp, danh sách học viên (liên hệ chỉ dạng che, không có nút Hiện) |
 | Tư vấn | Lead, hồ sơ học viên | Mọi lớp |
 | Giáo viên | Không sửa gì trong `ops` | Chỉ các lớp mình dạy; không xem danh sách học viên, lead hay nhân sự (điểm danh trong `teach` vẫn có tên học viên của buổi) |
 
@@ -223,6 +237,22 @@ Chi tiết quy tắc: [Xử lý dữ liệu cá nhân](xu-ly-du-lieu-ca-nhan.md)
 
 Khi đơn được trả đủ, học viên được cộng buổi và, nếu đơn gắn lớp, tự vào lớp sau vài giây. Lớp đã đầy thì đơn chuyển sang **Cần hoàn tiền**.
 
+Các nút phía trên bảng đơn lọc theo trạng thái: **Tất cả**, **Chờ thu** (chưa thu đồng nào), **Trả một phần**, **Đã trả**, **Chờ hoàn**, **Đã hoàn**.
+
+**Phiếu thu.** Mỗi lần ghi nhận thanh toán tạo một phiếu thu số `PT-000001`, `PT-000002`… tăng dần trong trung tâm, không trùng, không nhảy số; mỗi lần hoàn tiền tạo một phiếu chi `PC-…` với dãy số riêng. Trong **Chi tiết** đơn, bấm **Xem phiếu** cạnh từng lần thanh toán để xem phiếu: trung tâm, cơ sở, học viên, gói học, số tiền bằng số và bằng chữ, hình thức, người thu. **In** mở PDF để in, **Tải PDF** lưu file. Mỗi lần in hoặc tải được ghi vào **Nhật ký in / tải** (ai, lúc nào); PDF có dòng "In bởi" với tên người in đã che bớt. Một người in một phiếu tối đa 20 lần trong 24 giờ. Thanh toán đã huỷ vẫn giữ phiếu, in ra có dấu **ĐÃ HỦY**.
+
+**Hoàn tiền** (Kế toán, Quản trị). Nút **Hoàn tiền** có trên đơn Chờ hoàn (lớp đầy), đơn Đã trả (học viên nghỉ giữa khoá) và đơn Trả một phần (nghỉ khi chưa trả đủ). Ngăn kéo hiện cách tính:
+
+| Trường hợp | Số tiền đề xuất |
+| --- | --- |
+| Lớp không nhận được học viên, hoặc chưa học buổi nào | Toàn bộ số đã thu |
+| Nghỉ giữa khoá | Số buổi trả phí chưa dùng × đơn giá một buổi (giá đơn ÷ số buổi trả phí). Buổi tặng không hoàn. Buổi cộng thêm bằng điều chỉnh không hoàn |
+| Nghỉ khi chưa trả đủ | Số đã thu |
+
+Có thể sửa số tiền (ví dụ trừ phí), nhưng không quá số đã thu; **Lý do** luôn bắt buộc và được in trên phiếu chi. Chọn hình thức, mã giao dịch rồi **Xác nhận hoàn tiền**. Mỗi đơn chỉ hoàn một lần, không hoàn tác được: đơn chuyển sang **Đã hoàn tiền**, số buổi còn lại bị trừ hết bằng dòng **Hoàn** trong sổ buổi học, học viên được cho nghỉ lớp và chỗ trong lớp được nhả. Phần chênh giữa giá trị buổi chưa dùng và số hoàn (phí giữ lại) được tính vào doanh thu ghi nhận ngày hoàn, cho cơ sở thu tiền.
+
+**Sổ buổi học.** Trong **Chi tiết** đơn đã trả có mục **Sổ buổi học**: mọi dòng Mua, Tặng, Học, Hoàn, Điều chỉnh theo thời gian. Sổ chỉ ghi thêm, không sửa: muốn cộng hoặc trừ buổi thì mở **Điều chỉnh buổi**, nhập số buổi (âm để trừ), loại buổi (tặng / trả phí) và lý do, bấm **Ghi bút toán**.
+
 Sửa và điều chỉnh (Kế toán, Quản trị):
 
 - **Sửa** gói học: giá và số buổi mới chỉ áp cho đơn tạo sau; đơn đã có giữ giá cũ. **Ngừng dùng** để thôi bán gói.
@@ -254,8 +284,17 @@ Sửa lớp trên trang chi tiết:
 
 - **Thêm nhân sự**: Họ tên, Email, Mật khẩu ban đầu (bỏ trống nếu người này đã có tài khoản), và một hoặc nhiều vai trò: Quản trị, Quản lý cơ sở, Điều phối, Tư vấn, Kế toán, Giáo viên.
 - **Đặt đơn giá** cho giáo viên: Đơn giá mỗi giờ, Tiền tệ, Áp dụng từ. Đơn giá mới chỉ áp cho công còn nháp; công đã duyệt hoặc đã chốt không đổi. Trong cùng ngăn kéo, đơn giá nhập nhầm sửa hoặc xoá được khi chưa có công đã duyệt/chốt dùng nó.
-- **Sửa** nhân sự: họ tên và vai trò. Với Quản lý cơ sở và Điều phối, đánh dấu các cơ sở người đó phụ trách (không chọn = toàn trung tâm). Trung tâm luôn phải còn ít nhất một Quản trị.
-- **Ngừng dùng** khoá tài khoản ngay (kể cả phiên đang mở không lưu được gì); **Dùng lại** để mở. Không tự khoá tài khoản của mình.
+- **Sửa** nhân sự: họ tên và vai trò. Với Quản lý cơ sở, Điều phối và Kế toán, đánh dấu các cơ sở người đó phụ trách (không chọn = toàn trung tâm). Trung tâm luôn phải còn ít nhất một Quản trị.
+- **Ngừng dùng** khoá tài khoản ngay: người đó bị đăng xuất khỏi mọi thiết bị và không đăng nhập được; **Dùng lại** để mở. Không tự khoá tài khoản của mình. Đổi vai trò cũng đăng xuất người đó để họ đăng nhập lại với vai trò mới.
+- **Đặt lại mật khẩu** (Quản trị): tạo mật khẩu tạm hiện một lần để đưa cho người đó; họ phải đổi khi đăng nhập và bị đăng xuất khỏi mọi thiết bị. Trong cùng ngăn kéo: **Gỡ xác thực 2 bước** cho người mất điện thoại (có ghi lịch sử) và **Đăng xuất mọi thiết bị**. Nhân viên làm việc cho cả trung tâm khác dùng chung mật khẩu và xác thực 2 bước giữa các trung tâm, nên chỉ họ tự đặt lại được (Quên mật khẩu).
+- Nhân viên đã bật xác thực 2 bước có nhãn **Xác thực 2 bước** cạnh tên.
+
+### Bảo mật
+
+Chỉ Quản trị thấy mục này.
+
+- **Tài khoản học viên và phụ huynh**: tên đăng nhập, lần dùng gần nhất, nhãn **Đã khoá**, **Tạm khoá do nhập sai**, **Mật khẩu tạm**. Nút **Đặt lại mật khẩu** (mật khẩu tạm hiện một lần, học viên phải đổi khi đăng nhập), **Khoá** / **Mở khoá** (khoá thì người đó bị đăng xuất ngay), **Đăng xuất mọi thiết bị**.
+- **Nhật ký bảo mật**: 200 sự kiện gần nhất — đăng nhập, đăng nhập thất bại (kèm lý do), tạm khoá do nhập sai, khoá / mở tài khoản, đổi và đặt lại mật khẩu, yêu cầu link đặt lại, bật / tắt / gỡ xác thực 2 bước, dùng mã khôi phục, đăng xuất — với tài khoản, người thực hiện (khi là quản trị) và IP. Lọc theo loại sự kiện ở góc trên.
 
 ### Cơ sở
 
@@ -348,7 +387,10 @@ Mỗi mã chỉ dùng một lần; nhập sai mật khẩu hoặc mã 5 lần li
 | “Tài khoản tạm khóa do nhập sai nhiều lần” | Chờ 15 phút rồi đăng nhập lại. |
 | “Không xác định được trung tâm của địa chỉ này” | Kiểm tra lại địa chỉ trang: mỗi trung tâm có tên miền riêng. |
 | Đăng nhập đúng nhưng bị đưa về trang đăng nhập | Kiểm tra đã chọn đúng tab chưa: học viên dùng tab Học viên · Phụ huynh, giáo viên và nhân viên dùng tab còn lại. |
-| Quên mật khẩu tạm của học viên | Mật khẩu tạm chỉ hiện một lần và chưa cấp lại được trên giao diện; liên hệ quản trị kỹ thuật. |
+| Quên mật khẩu tạm của học viên | Quản trị vào **Bảo mật** → **Đặt lại mật khẩu** để cấp mật khẩu tạm mới. |
+| “Tài khoản đã bị khoá. Liên hệ quản trị trung tâm.” | Quản trị đã khoá tài khoản; nhờ quản trị **Mở khoá** (Nhân sự hoặc Bảo mật). |
+| Mất điện thoại có ứng dụng xác thực | Đăng nhập bằng một **mã khôi phục**; hết mã thì nhờ quản trị **Gỡ xác thực 2 bước** rồi bật lại. |
+| Không nhận được email đặt lại mật khẩu | Xem cả thư rác; mỗi giờ chỉ gửi tối đa 3 link. Vẫn không có thì nhờ quản trị đặt lại mật khẩu. |
 | Không thấy nút **Vào lớp** | Phòng học chưa được tạo, hoặc buổi học ở cơ sở. Nếu đã gần giờ học, báo giáo vụ. |
 | Phòng học không có hình/tiếng của mình | Trình duyệt đang chặn camera/micro: bấm biểu tượng ổ khoá cạnh địa chỉ trang → cho phép Camera và Micro → tải lại trang. Kiểm tra máy không có ứng dụng khác đang giữ camera. |
 | “Phòng đã đủ người” | Phòng học có sẵn giới hạn số người (mặc định 6, gồm giáo viên). Báo giáo viên hoặc trung tâm. |
@@ -361,4 +403,4 @@ Mỗi mã chỉ dùng một lần; nhập sai mật khẩu hoặc mã 5 lần li
 | Trang trung tâm báo “Trung tâm tạm ngừng hoạt động” | Trung tâm đang bị tạm khóa trên Konnyaku; quản trị viên trung tâm liên hệ Konnyaku. |
 | Người vận hành mất điện thoại và hết mã khôi phục | Chưa tự đặt lại được trên giao diện; liên hệ quản trị kỹ thuật để đặt lại. |
 
-Chưa có trên giao diện ở bản này: sửa/xoá bản ghi, đổi lịch từng buổi, bảo lưu, học bù, thanh toán online, đăng nhập bằng Google.
+Chưa có trên giao diện ở bản này: đổi lịch từng buổi, bảo lưu, học bù, thanh toán online, đăng nhập bằng Google.

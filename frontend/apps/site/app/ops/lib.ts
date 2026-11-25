@@ -56,7 +56,15 @@ export function localized(name: Localized | null | undefined, locale: string): s
 
 export type Branch = { id: string; code: string; name: Localized; timeZone: string; isVirtual: boolean; isActive: boolean };
 export type { RoleGrant };
-export type StaffMember = { userId: string; displayName: string; email: string | null; roles: string[]; status: string; grants: RoleGrant[] };
+export type StaffMember = {
+  userId: string;
+  displayName: string;
+  email: string | null;
+  roles: string[];
+  status: string;
+  grants: RoleGrant[];
+  twoFactorEnabled: boolean;
+};
 export type Level = {
   id: string;
   code: string;
@@ -131,10 +139,15 @@ export type Permission =
   | "organization.rooms"
   | "organization.holidays"
   | "identity.staff"
+  | "identity.accounts"
   | "hr.rates"
+  | "hr.payroll"
   | "billing.packages"
   | "billing.orders"
   | "billing.payments"
+  | "billing.sales"
+  | "billing.finance"
+  | "billing.refunds"
   | "crm.leads"
   | "crm.students"
   | "crm.students.view"
@@ -199,6 +212,7 @@ export const statusTone: Record<string, Tone> = {
   PendingPayment: "warning",
   Paid: "success",
   RefundRequired: "destructive",
+  Refunded: "muted",
   // payroll
   Locked: "success",
   // staff

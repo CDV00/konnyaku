@@ -74,6 +74,9 @@ public enum OrderStatus
     Paid,
     Cancelled,
     RefundRequired,
+
+    /// <summary>Money was paid back (see <see cref="Refund"/>); the order is closed.</summary>
+    Refunded,
 }
 
 /// <summary>A student buying a package (optionally for a class). Amounts and credits are snapshots of the package.</summary>
@@ -113,6 +116,8 @@ public sealed class Order : Entity, ITenantOwned, IAuditable
     public OrderStatus Status { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset? PaidAt { get; private set; }
+    public decimal AmountRefunded { get; private set; }
+    public DateTimeOffset? RefundedAt { get; private set; }
 
     /// <summary>Value of one paid credit, used for revenue recognition and refunds. Bonus credits are worth 0.</summary>
     public decimal UnitAmount => PaidCredits == 0 ? 0 : decimal.Round(Amount / PaidCredits, 2);
@@ -142,6 +147,43 @@ public sealed class Order : Entity, ITenantOwned, IAuditable
     }
 
     public void RequireRefund() => Status = OrderStatus.RefundRequired;
+
+    /// <summary>
+    /// Why money can be paid back: the class could not take the student (<see cref="RefundKind.ClassUnavailable"/>), the
+    /// student leaves a paid course (<see cref="RefundKind.Withdrawal"/>) or stops before paying in full
+    /// (<see cref="RefundKind.Cancellation"/>). Null when nothing can be refunded.
+    /// </summary>
+    public RefundKind? RefundKind => Status switch
+    {
+        OrderStatus.RefundRequired => Domain.RefundKind.ClassUnavailable,
+        OrderStatus.Paid => Domain.RefundKind.Withdrawal,
+        OrderStatus.PendingPayment when AmountReceived > 0 => Domain.RefundKind.Cancellation,
+        _ => null,
+    };
+
+    /// <summary>One refund per order: it closes the order. The amount can never exceed what was received.</summary>
+    public Result<RefundKind> MarkRefunded(decimal amount, DateTimeOffset now)
+    {
+        if (Status == OrderStatus.Refunded)
+        {
+            return Error.Conflict("billing.order_already_refunded");
+        }
+
+        if (RefundKind is not { } kind)
+        {
+            return Error.Conflict("billing.order_not_refundable");
+        }
+
+        if (amount <= 0 || amount > AmountReceived)
+        {
+            return Error.Validation("billing.refund_amount_invalid", new Dictionary<string, object?> { ["max"] = AmountReceived });
+        }
+
+        AmountRefunded = amount;
+        RefundedAt = now;
+        Status = OrderStatus.Refunded;
+        return kind;
+    }
 
     Guid IAuditable.AuditSubjectId => Id;
 
@@ -209,21 +251,34 @@ public sealed class Payment : Entity, ITenantOwned, IAuditable
     {
     }
 
-    public Payment(Guid orderId, decimal amount, string method, string? reference, DateTimeOffset receivedAt)
+    public Payment(Guid orderId, long receiptNo, decimal amount, string method, string? reference, DateTimeOffset receivedAt,
+        Guid? receivedById, string? receivedByName)
     {
         OrderId = orderId;
+        ReceiptNo = receiptNo;
         Amount = amount;
         Method = method;
-        Reference = reference;
+        Reference = string.IsNullOrWhiteSpace(reference) ? null : reference.Trim();
         ReceivedAt = receivedAt;
+        ReceivedById = receivedById;
+        ReceivedByName = receivedByName;
     }
 
     public Guid TenantId { get; private set; }
     public Guid OrderId { get; private set; }
+
+    /// <summary>Number of its receipt (phiếu thu), consecutive per center — see <see cref="DocumentKinds"/>.</summary>
+    public long ReceiptNo { get; private set; }
+
     public decimal Amount { get; private set; }
     public string Method { get; private set; } = string.Empty;
     public string? Reference { get; private set; }
     public DateTimeOffset ReceivedAt { get; private set; }
+
+    /// <summary>The staff member who recorded the money (printed on the receipt as the collector).</summary>
+    public Guid? ReceivedById { get; private set; }
+
+    public string? ReceivedByName { get; private set; }
 
     /// <summary>Set when the payment was entered by mistake; the row stays as a trace.</summary>
     public DateTimeOffset? VoidedAt { get; private set; }
@@ -377,5 +432,28 @@ public sealed class CreditBalance : ITenantOwned
         }
 
         return CreditLedgerEntry.Line(this, LedgerEntryType.Adjust, kind, credits, kind == CreditKind.Paid ? UnitAmount : 0, null, now, reason: reason);
+    }
+
+    /// <summary>
+    /// Closes the account of a refunded order with reversing lines: unused paid credits leave at their unit value (they
+    /// were never recognized as revenue), unused bonus credits are forfeited (bonus is never refunded). Credits owed
+    /// (below zero) stay as they are.
+    /// </summary>
+    public IReadOnlyList<CreditLedgerEntry> CloseForRefund(Guid? branchId, string reason, DateTimeOffset now)
+    {
+        var lines = new List<CreditLedgerEntry>();
+        if (PaidCredits > 0)
+        {
+            lines.Add(CreditLedgerEntry.Line(this, LedgerEntryType.Refund, CreditKind.Paid, -PaidCredits, UnitAmount, branchId, now, reason: reason));
+            PaidCredits = 0;
+        }
+
+        if (BonusCredits > 0)
+        {
+            lines.Add(CreditLedgerEntry.Line(this, LedgerEntryType.Refund, CreditKind.Bonus, -BonusCredits, 0, branchId, now, reason: reason));
+            BonusCredits = 0;
+        }
+
+        return lines;
     }
 }

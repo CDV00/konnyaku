@@ -47,6 +47,12 @@ export async function apiFetch(path: string, init: RequestInit & { token?: strin
   const { token, ...rest } = init;
   const requestHeaders = new Headers(rest.headers);
   requestHeaders.set("X-Tenant-Host", await tenantHost());
+  // The visitor's device and IP (sign-in sessions, security log, rate limits), not the web server's.
+  const incoming = await headers();
+  const forwardedFor = incoming.get("x-forwarded-for");
+  const userAgent = incoming.get("user-agent");
+  if (forwardedFor && !requestHeaders.has("X-Forwarded-For")) requestHeaders.set("X-Forwarded-For", forwardedFor);
+  if (userAgent && !requestHeaders.has("User-Agent")) requestHeaders.set("User-Agent", userAgent);
   if (token) requestHeaders.set("Authorization", `Bearer ${token}`);
   if (rest.body && !requestHeaders.has("Content-Type")) requestHeaders.set("Content-Type", "application/json");
   return fetch(`${apiUrl}${path}`, { ...rest, headers: requestHeaders, cache: "no-store" });

@@ -44,6 +44,10 @@ fi
 docker exec kk-smoke-signaling /usr/local/bin/konnyaku-signaling healthcheck
 echo "ok signaling healthcheck"
 
+# Idle memory right after start-up on this architecture (docs/toi-uu-tai-nguyen.md compares amd64 and arm64).
+sleep 5
+docker stats --no-stream --format 'memory {{.Name}} {{.MemUsage}}' kk-smoke-api kk-smoke-web
+
 # Worker and migrator need PostgreSQL to do anything; check the runtime starts and the app loads.
 for image in worker migrator; do
   docker run --rm --entrypoint dotnet "$prefix-$image:$tag" --list-runtimes | grep -q Microsoft.NETCore.App

@@ -184,10 +184,13 @@ public sealed class EditTests(PostgresFixture db) : IAsyncDisposable
         var (managerId, manager) = await c.AddStaffAsync("Coordinator");
 
         await (await c.Admin.PutAsJsonAsync($"/api/identity/staff/{managerId}",
-                new { displayName = "Quản lý CS-A", roles = new[] { new { role = "Accountant", branchId = (Guid?)c.BranchA } } }, Ct))
+                new { displayName = "Quản lý CS-A", roles = new[] { new { role = "Consultant", branchId = (Guid?)c.BranchA } } }, Ct))
             .ShouldFailWith(HttpStatusCode.BadRequest, "identity.role_scope_invalid");
         await (await c.Admin.PutAsJsonAsync($"/api/identity/staff/{managerId}",
             new { displayName = "Quản lý CS-A", roles = new[] { new { role = "BranchManager", branchId = (Guid?)c.BranchA } } }, Ct)).ShouldSucceed();
+        // New roles end the member's sessions (the token listed the old ones): they sign in again.
+        (await manager.GetAsync("/api/identity/me", Ct)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        manager = await c.SignInAsync(managerId);
 
         var staff = (await c.Admin.GetItemsAsync<StaffView>("/api/identity/staff", Ct))!;
         var edited = staff.Single(s => s.UserId == managerId);
@@ -204,9 +207,9 @@ public sealed class EditTests(PostgresFixture db) : IAsyncDisposable
             .ShouldFailWith(HttpStatusCode.Conflict, "identity.cannot_suspend_self");
 
         await (await c.Admin.PostAsJsonAsync($"/api/identity/staff/{managerId}/deactivate", new { }, Ct)).ShouldSucceed();
-        // Suspended: the live permission check refuses the still-valid token.
+        // Suspended: the session is revoked, the token no longer works.
         (await manager.PostAsJsonAsync($"/api/organization/branches/{c.BranchA}/rooms", new { code = "P1", capacity = 5 }, Ct))
-            .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+            .StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
         var history = await c.HistoryAsync("identity", managerId);
         history.ShouldContain(h => h.Changes.Any(f => f.Field == "roles" && f.Old!.Contains("Coordinator") && f.New!.Contains("BranchManager")));

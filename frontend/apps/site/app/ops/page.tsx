@@ -15,14 +15,17 @@ export default async function HomePage() {
   const session = await getTranslations("session");
   // Counts only: one row per list, the total comes with the page.
   const count = (path: string) => getJson<Page<unknown>>(path, token, emptyPage()).then((page) => page.total);
-  const [openLeads, activeStudents, openClasses, runningClasses, unpaid] = await Promise.all([
+  const [openLeads, activeStudents, openClasses, runningClasses, unpaidOrders, partialOrders] = await Promise.all([
     count("/api/crm/leads?pageSize=1"),
     count("/api/crm/students?status=active&pageSize=1"),
     count("/api/academic/classes?status=Open&pageSize=1"),
     count("/api/academic/classes?status=Running&pageSize=1"),
-    count("/api/billing/orders?status=PendingPayment&pageSize=1"),
+    count("/api/billing/orders?status=unpaid&pageSize=1"),
+    count("/api/billing/orders?status=partial&pageSize=1"),
   ]);
   const running = openClasses + runningClasses;
+  // Awaiting payment: nothing received yet, or part of it.
+  const unpaid = unpaidOrders + partialOrders;
 
   return (
     <div className="space-y-8">

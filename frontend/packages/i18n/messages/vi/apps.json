@@ -35,10 +35,24 @@
     "title": "Cổng học viên & phụ huynh",
     "zone": "Học viên",
     "nav": {
-      "home": "Tổng quan"
+      "home": "Tổng quan",
+      "payments": "Thanh toán"
     },
     "subtitle": "Lịch học, số buổi còn lại và video xem lại của bạn.",
-    "nextLesson": "Buổi học kế tiếp"
+    "nextLesson": "Buổi học kế tiếp",
+    "payments": {
+      "title": "Lịch sử thanh toán",
+      "description": "Các lần đóng học phí và hoàn tiền, kèm phiếu để tải về.",
+      "empty": "Chưa có thanh toán nào.",
+      "receipt": "Phiếu thu",
+      "refund": "Hoàn tiền",
+      "voided": "Đã huỷ",
+      "download": "Tải phiếu",
+      "code": "Số phiếu",
+      "date": "Ngày",
+      "package": "Gói học",
+      "amount": "Số tiền"
+    }
   },
   "teach": {
     "title": "Ứng dụng giáo viên",
@@ -72,6 +86,7 @@
       "payroll": "Kỳ lương",
       "home": "Tổng quan",
       "notifications": "Thông báo",
+      "security": "Bảo mật",
       "privacy": "Quyền riêng tư"
     },
     "hint": {
@@ -84,6 +99,7 @@
       "branches": "Cơ sở và múi giờ",
       "payroll": "Tạo và chốt kỳ lương",
       "notifications": "Email đã gửi, lỗi và gửi lại",
+      "security": "Khoá tài khoản, đặt lại mật khẩu, nhật ký đăng nhập",
       "privacy": "Yêu cầu về dữ liệu cá nhân, nhật ký truy cập"
     },
     "zone": "Vận hành",
@@ -117,10 +133,54 @@
       "identity_account_locked": "Tài khoản tạm khóa do nhập sai nhiều lần. Thử lại sau 15 phút.",
       "identity_tenant_unknown": "Không xác định được trung tâm của địa chỉ này.",
       "platform_tenant_suspended": "Trung tâm đang tạm ngừng hoạt động trên Konnyaku. Vui lòng liên hệ trung tâm.",
-      "unknown": "Có lỗi xảy ra, vui lòng thử lại."
+      "unknown": "Có lỗi xảy ra, vui lòng thử lại.",
+      "identity_account_suspended": "Tài khoản đã bị khoá. Liên hệ quản trị trung tâm.",
+      "identity_code_invalid": "Mã không đúng hoặc đã dùng.",
+      "identity_sign_in_expired": "Phiên đăng nhập quá hạn, vui lòng nhập lại mật khẩu.",
+      "identity_reset_link_invalid": "Link đặt lại đã hết hạn hoặc đã được dùng. Hãy yêu cầu link mới.",
+      "rate_limited": "Bạn thao tác quá nhanh, vui lòng thử lại sau một phút.",
+      "identity_password_too_short": "Mật khẩu phải có ít nhất 8 ký tự.",
+      "identity_password_too_long": "Mật khẩu dài tối đa 128 ký tự.",
+      "identity_password_too_weak": "Mật khẩu cần có cả chữ và số, và không phải mật khẩu phổ biến.",
+      "identity_password_unchanged": "Mật khẩu mới phải khác mật khẩu hiện tại."
     },
     "subtitle": "{center}",
-    "forgot": "Quên mật khẩu? Liên hệ trung tâm để được cấp lại."
+    "ended": "Phiên đăng nhập đã kết thúc (đăng xuất, đổi mật khẩu hoặc tài khoản bị khoá). Vui lòng đăng nhập lại.",
+    "forgotLearn": "Quên mật khẩu? Liên hệ trung tâm để được cấp mật khẩu tạm.",
+    "forgotStaff": "Quên mật khẩu? Nhận link đặt lại qua email",
+    "mfa": {
+      "verifyHint": "Nhập mã 6 số trong ứng dụng xác thực (Google Authenticator, Microsoft Authenticator…).",
+      "recoveryHint": "Nhập một mã khôi phục bạn đã lưu khi bật xác thực 2 bước. Mỗi mã chỉ dùng được một lần.",
+      "code": "Mã xác thực",
+      "recoveryCode": "Mã khôi phục",
+      "submit": "Xác nhận",
+      "useRecovery": "Mất điện thoại? Dùng mã khôi phục",
+      "useCode": "Dùng mã trong ứng dụng xác thực",
+      "enrollTitle": "Vai trò của bạn cần xác thực 2 bước",
+      "enrollHint": "Bật một lần trên điện thoại; từ nay mỗi lần đăng nhập cần thêm mã 6 số trong ứng dụng.",
+      "continue": "Tôi đã lưu mã, tiếp tục"
+    },
+    "forgotPage": {
+      "title": "Quên mật khẩu",
+      "hint": "Nhập email công việc. Nếu email có tài khoản ở trung tâm này, bạn sẽ nhận link đặt lại (hiệu lực 30 phút).",
+      "email": "Email",
+      "submit": "Gửi link đặt lại",
+      "sent": "Nếu email này có tài khoản, link đặt lại đã được gửi. Hãy kiểm tra hộp thư (cả thư rác).",
+      "back": "Quay lại đăng nhập"
+    },
+    "resetPage": {
+      "title": "Đặt mật khẩu mới",
+      "hint": "Link chỉ dùng được một lần. Sau khi đặt, mọi thiết bị đang đăng nhập sẽ bị đăng xuất.",
+      "next": "Mật khẩu mới",
+      "policy": "Ít nhất 8 ký tự, có cả chữ và số.",
+      "confirm": "Nhập lại mật khẩu mới",
+      "mismatch": "Hai mật khẩu không khớp.",
+      "submit": "Lưu mật khẩu",
+      "done": "Đã đặt mật khẩu mới.",
+      "login": "Đăng nhập",
+      "invalid": "Link không hợp lệ. Hãy yêu cầu link mới.",
+      "again": "Yêu cầu link mới"
+    }
   },
   "session": {
     "greeting": "Xin chào, {name}",
@@ -134,11 +194,15 @@
     "submit": "Lưu mật khẩu",
     "required": "Bạn cần đổi mật khẩu tạm trước khi tiếp tục.",
     "errors": {
-      "identity_password_too_short": "Mật khẩu mới phải có ít nhất 8 ký tự.",
+      "identity_password_too_short": "Mật khẩu phải có ít nhất 8 ký tự.",
       "identity_invalid_credentials": "Mật khẩu hiện tại không đúng.",
       "identity_account_locked": "Tài khoản tạm khóa. Thử lại sau 15 phút.",
-      "unknown": "Có lỗi xảy ra, vui lòng thử lại."
-    }
+      "unknown": "Có lỗi xảy ra, vui lòng thử lại.",
+      "identity_password_too_long": "Mật khẩu dài tối đa 128 ký tự.",
+      "identity_password_too_weak": "Mật khẩu cần có cả chữ và số, và không phải mật khẩu phổ biến.",
+      "identity_password_unchanged": "Mật khẩu mới phải khác mật khẩu hiện tại."
+    },
+    "hint": "Mật khẩu mới có ít nhất 8 ký tự, có cả chữ và số. Các thiết bị khác sẽ bị đăng xuất."
   },
   "register": {
     "title": "Đăng ký tư vấn",
@@ -314,7 +378,9 @@
       "Coordinator": "Điều phối",
       "Consultant": "Tư vấn",
       "Accountant": "Kế toán",
-      "Teacher": "Giáo viên"
+      "Teacher": "Giáo viên",
+      "Student": "Học viên",
+      "Parent": "Phụ huynh"
     },
     "modes": {
       "Online": "Online",
@@ -345,11 +411,13 @@
       "PendingPayment": "Chờ thanh toán",
       "Paid": "Đã thanh toán",
       "Cancelled": "Đã huỷ",
-      "RefundRequired": "Cần hoàn tiền"
+      "RefundRequired": "Cần hoàn tiền",
+      "Refunded": "Đã hoàn tiền"
     },
     "result": {
       "username": "Tên đăng nhập:",
-      "temporaryPassword": "Mật khẩu tạm (chỉ hiện một lần):"
+      "temporaryPassword": "Mật khẩu tạm (chỉ hiện một lần):",
+      "email": "Email đăng nhập:"
     },
     "branches": {
       "title": "Cơ sở",
@@ -540,6 +608,63 @@
       "editPackage": "Sửa gói {code}",
       "packageEditHint": "Giá mới áp dụng cho đơn tạo sau; đơn đã có giữ giá cũ.",
       "deactivatePackageConfirm": "Ngừng bán gói này? Đơn đã có giữ nguyên.",
+      "filters": {
+        "all": "Tất cả",
+        "unpaid": "Chờ thu",
+        "partial": "Trả một phần",
+        "paid": "Đã trả",
+        "refund_required": "Chờ hoàn",
+        "refunded": "Đã hoàn",
+        "cancelled": "Đã huỷ"
+      },
+      "filterLabel": "Lọc theo trạng thái",
+      "refunded": "Đã hoàn",
+      "refund": "Hoàn tiền",
+      "refundTitle": "Hoàn tiền cho {name}",
+      "refundDescription": "Hoàn buổi trả phí chưa dùng × đơn giá; buổi tặng không hoàn. Có thể sửa số tiền đề xuất, ghi rõ lý do.",
+      "refundKinds": {
+        "ClassUnavailable": "Lớp không nhận được học viên",
+        "Withdrawal": "Nghỉ giữa khoá",
+        "Cancellation": "Nghỉ khi chưa trả đủ"
+      },
+      "quoteReceived": "Đã thu",
+      "quotePaidLeft": "Buổi trả phí chưa dùng",
+      "quoteBonusLeft": "Buổi tặng (không hoàn)",
+      "quoteUnit": "Đơn giá một buổi",
+      "quoteSuggested": "Số tiền đề xuất",
+      "quoteNotRefundable": "Đơn này không ở trạng thái hoàn được.",
+      "refundAmount": "Số tiền hoàn",
+      "refundAmountHint": "Tối đa {max}. Khác số đề xuất thì ghi lý do bên dưới.",
+      "refundReason": "Lý do",
+      "refundReasonHint": "In trên phiếu chi và ghi vào sổ buổi học.",
+      "refundSubmit": "Xác nhận hoàn tiền",
+      "refunds": "Hoàn tiền",
+      "refundLine": "{code} · {amount} · {who}",
+      "viewReceipt": "Xem phiếu",
+      "collectedBy": "Người thu: {name}",
+      "ledger": "Sổ buổi học",
+      "ledgerEmpty": "Đơn chưa có buổi nào trong sổ (chưa thanh toán đủ).",
+      "ledgerHint": "Chỉ ghi thêm, không sửa: mọi thay đổi là một dòng mới.",
+      "entryTypes": {
+        "Purchase": "Mua",
+        "Bonus": "Tặng",
+        "Consume": "Học",
+        "Refund": "Hoàn",
+        "TransferOut": "Chuyển đi",
+        "TransferIn": "Chuyển đến",
+        "Expire": "Hết hạn",
+        "Adjust": "Điều chỉnh"
+      },
+      "creditKinds": {
+        "Paid": "trả phí",
+        "Bonus": "tặng"
+      },
+      "ledgerCredits": "{credits} buổi {kind}",
+      "adjust": "Điều chỉnh buổi",
+      "adjustCredits": "Số buổi (+ cộng, − trừ)",
+      "adjustKind": "Loại buổi",
+      "adjustReason": "Lý do",
+      "adjustSubmit": "Ghi bút toán",
       "findStudent": "Gõ tên hoặc SĐT học viên…",
       "search": "Tìm theo tên, SĐT học viên",
       "createdAt": "Ngày tạo"
@@ -640,6 +765,21 @@
       "notification_message_not_found": "Không tìm thấy thông báo.",
       "notification_already_pending": "Thông báo đang chờ gửi.",
       "notification_resend_not_allowed": "Thông báo chứa dữ liệu bảo mật đã gửi, không gửi lại được.",
+      "billing_order_already_refunded": "Đơn này đã được hoàn tiền.",
+      "billing_order_not_refundable": "Đơn này không ở trạng thái hoàn được.",
+      "billing_refund_amount_invalid": "Số tiền hoàn phải lớn hơn 0 và không quá số đã thu ({max}).",
+      "billing_refund_reason_required": "Cần ghi lý do hoàn (tối đa {max} ký tự).",
+      "billing_receipt_not_found": "Không tìm thấy phiếu.",
+      "billing_receipt_print_limit": "Đã in/tải phiếu này {limit} lần trong 24 giờ.",
+      "billing_order_filter_invalid": "Bộ lọc không hợp lệ.",
+      "billing_adjustment_invalid": "Số buổi khác 0 và cần lý do (tối đa 300 ký tự).",
+      "billing_account_not_found": "Đơn chưa có sổ buổi học (chưa thanh toán đủ).",
+      "identity_cannot_reset_self": "Đổi mật khẩu của chính bạn trong trang Tài khoản.",
+      "identity_account_shared_with_other_centers": "Người này làm việc ở trung tâm khác nữa: mật khẩu và xác thực 2 bước dùng chung, chỉ họ tự đặt lại được (Quên mật khẩu).",
+      "identity_two_factor_not_enabled": "Người này chưa bật xác thực 2 bước.",
+      "identity_account_not_found": "Không tìm thấy tài khoản.",
+      "identity_password_too_weak": "Mật khẩu cần có cả chữ và số, và không phải mật khẩu phổ biến.",
+      "identity_password_too_long": "Mật khẩu quá dài.",
       "crm_export_too_large": "Danh sách có {total} dòng, vượt giới hạn {limit} dòng mỗi lần xuất. Hãy lọc bớt rồi xuất lại.",
       "crm_export_limit_reached": "Bạn đã xuất/in {limit} lần trong 24 giờ qua. Liên hệ quản trị viên nếu cần thêm.",
       "crm_student_active": "Học viên còn đang học: ngừng hồ sơ trước khi ẩn danh hóa.",
@@ -810,6 +950,105 @@
       "search": "Tìm theo tên, SĐT, email, phụ huynh",
       "open": "Đang mở"
     },
+    "receipts": {
+      "receiptTitle": "Phiếu thu {code}",
+      "refundTitle": "Phiếu chi {code}",
+      "back": "Thu phí",
+      "print": "In",
+      "download": "Tải PDF",
+      "voided": "Phiếu đã huỷ (thanh toán nhập nhầm)",
+      "center": "Trung tâm",
+      "branch": "Cơ sở",
+      "date": "Ngày",
+      "student": "Học viên",
+      "package": "Gói học",
+      "amount": "Số tiền",
+      "inWords": "Bằng chữ",
+      "method": "Hình thức",
+      "reference": "Mã giao dịch",
+      "reason": "Lý do hoàn",
+      "issuedBy": "Người lập phiếu",
+      "credits": "Buổi học",
+      "creditsValue": "Hoàn {paid} buổi trả phí chưa dùng · {bonus} buổi tặng không hoàn",
+      "prints": "Nhật ký in / tải",
+      "noPrints": "Chưa ai in hoặc tải phiếu này.",
+      "printLine": "{who} · {action} · {when}",
+      "actions": {
+        "print": "in",
+        "download": "tải"
+      },
+      "audiences": {
+        "staff": "nhân viên",
+        "learn": "học viên"
+      },
+      "notice": "Mỗi lần in hoặc tải đều được ghi lại; PDF có dòng tên người in (đã che bớt)."
+    },
+    "security": {
+      "title": "Bảo mật tài khoản",
+      "description": "Khoá / mở tài khoản, đặt lại mật khẩu và xem nhật ký đăng nhập của trung tâm. Tài khoản nhân sự quản lý ở trang Nhân sự.",
+      "accounts": "Tài khoản học viên và phụ huynh",
+      "accountsHint": "Khoá thì người đó bị đăng xuất ngay và không đăng nhập được nữa; mở lại bất cứ lúc nào.",
+      "noAccounts": "Chưa có tài khoản học viên nào.",
+      "username": "Tên đăng nhập",
+      "lastSeen": "Dùng gần nhất",
+      "lockedOut": "Tạm khoá do nhập sai",
+      "temporaryPassword": "Mật khẩu tạm",
+      "resetPassword": "Đặt lại mật khẩu",
+      "resetPasswordFor": "Đặt lại mật khẩu của {name}",
+      "resetPasswordHint": "Tạo mật khẩu tạm (chỉ hiện một lần) để đưa cho người này; họ phải đổi ngay khi đăng nhập. Mọi thiết bị đang đăng nhập sẽ bị đăng xuất.",
+      "resetStaffPasswordHint": "Tạo mật khẩu tạm (chỉ hiện một lần); người này phải đổi khi đăng nhập và bị đăng xuất khỏi mọi thiết bị. Nếu họ có email, họ cũng có thể tự đặt lại bằng “Quên mật khẩu”.",
+      "lock": "Khoá",
+      "lockConfirm": "Khoá tài khoản? Người này bị đăng xuất ngay và không đăng nhập được cho tới khi mở lại.",
+      "unlock": "Mở khoá",
+      "signOut": "Đăng xuất mọi thiết bị",
+      "signOutConfirm": "Đăng xuất người này khỏi mọi thiết bị?",
+      "signOutHint": "Dùng khi nghi tài khoản bị lộ hoặc máy dùng chung quên đăng xuất.",
+      "twoFactor": "Xác thực 2 bước",
+      "resetTwoFactor": "Gỡ xác thực 2 bước",
+      "resetTwoFactorHint": "Cho người mất điện thoại: gỡ xác thực 2 bước (có ghi nhật ký); họ đăng nhập bằng mật khẩu rồi bật lại.",
+      "resetTwoFactorConfirm": "Gỡ xác thực 2 bước của người này? Họ sẽ bị đăng xuất khỏi mọi thiết bị.",
+      "log": "Nhật ký bảo mật",
+      "logHint": "200 sự kiện gần nhất: đăng nhập, sai mật khẩu, khoá, đặt lại mật khẩu, xác thực 2 bước.",
+      "kind": "Sự kiện",
+      "allKinds": "Mọi sự kiện",
+      "filter": "Lọc",
+      "noEvents": "Chưa có sự kiện nào.",
+      "when": "Thời điểm",
+      "account": "Tài khoản",
+      "by": "Người thực hiện",
+      "ip": "IP",
+      "kinds": {
+        "SignInSucceeded": "Đăng nhập",
+        "SignInFailed": "Đăng nhập thất bại",
+        "AccountLockedOut": "Tạm khoá do nhập sai",
+        "AccountSuspended": "Khoá tài khoản",
+        "AccountReactivated": "Mở khoá tài khoản",
+        "PasswordChanged": "Đổi mật khẩu",
+        "PasswordResetByAdmin": "Quản trị đặt lại mật khẩu",
+        "PasswordResetRequested": "Yêu cầu link đặt lại mật khẩu",
+        "PasswordResetCompleted": "Đặt lại mật khẩu qua link",
+        "TwoFactorEnabled": "Bật xác thực 2 bước",
+        "TwoFactorDisabled": "Tắt xác thực 2 bước",
+        "TwoFactorResetByAdmin": "Quản trị gỡ xác thực 2 bước",
+        "RecoveryCodesRegenerated": "Tạo lại mã khôi phục",
+        "RecoveryCodeUsed": "Dùng mã khôi phục",
+        "SignedOut": "Đăng xuất",
+        "SessionRevoked": "Đăng xuất một thiết bị",
+        "SignedOutEverywhere": "Đăng xuất khỏi mọi thiết bị"
+      },
+      "details": {
+        "unknown_account": "tài khoản không tồn tại",
+        "wrong_password": "sai mật khẩu",
+        "locked": "đang tạm khoá",
+        "suspended": "tài khoản đã bị khoá",
+        "no_staff_role": "không có vai trò nhân viên",
+        "no_learner_role": "không có vai trò học viên",
+        "wrong_code": "sai mã xác thực",
+        "throttled": "quá số lần trong 1 giờ",
+        "staff": "nhân viên",
+        "learn": "học viên"
+      }
+    },
     "list": {
       "loading": "Đang tải…",
       "reset": "Bỏ lọc",
@@ -924,7 +1163,8 @@
     "theme": "Đổi giao diện sáng/tối",
     "menu": "Mở menu",
     "logout": "Đăng xuất",
-    "close": "Đóng"
+    "close": "Đóng",
+    "account": "Tài khoản & bảo mật"
   },
   "siteNav": {
     "brand": "Trung tâm",
@@ -1045,12 +1285,79 @@
     "templates": {
       "lead_created": "Lead mới",
       "learner_welcome": "Chào mừng học viên",
+      "identity_password_reset": "Link đặt lại mật khẩu",
       "credit_low": "Sắp hết buổi",
       "enrollment_activated": "Xác nhận vào lớp",
       "session_rescheduled": "Đổi giờ buổi học",
       "session_cancelled": "Hủy buổi học",
       "session_reminder": "Nhắc lịch học",
       "payroll_locked": "Chốt kỳ lương"
+    }
+  },
+  "account": {
+    "title": "Tài khoản & bảo mật",
+    "description": "Mật khẩu, xác thực 2 bước và các thiết bị đang đăng nhập.",
+    "password": {
+      "title": "Đổi mật khẩu",
+      "hint": "Các thiết bị khác đang đăng nhập sẽ bị đăng xuất; thiết bị này giữ nguyên.",
+      "required": "Bạn đang dùng mật khẩu tạm. Hãy đặt mật khẩu mới để tiếp tục.",
+      "current": "Mật khẩu hiện tại",
+      "next": "Mật khẩu mới",
+      "policy": "Ít nhất 8 ký tự, có cả chữ và số.",
+      "confirm": "Nhập lại mật khẩu mới",
+      "mismatch": "Hai mật khẩu không khớp.",
+      "submit": "Lưu mật khẩu",
+      "done": "Đã đổi mật khẩu."
+    },
+    "twoFactor": {
+      "title": "Xác thực 2 bước",
+      "description": "Ngoài mật khẩu, mỗi lần đăng nhập cần thêm mã 6 số trong ứng dụng xác thực trên điện thoại.",
+      "on": "Đang bật",
+      "off": "Đang tắt",
+      "requiredHint": "Vai trò của bạn bắt buộc dùng xác thực 2 bước.",
+      "enable": "Bật xác thực 2 bước",
+      "scan": "Quét mã QR bằng ứng dụng xác thực (hoặc nhập khoá bí mật), rồi nhập mã 6 số ứng dụng hiện ra.",
+      "qrAlt": "Mã QR để thêm tài khoản vào ứng dụng xác thực",
+      "secret": "Khoá bí mật",
+      "code": "Mã 6 số",
+      "verify": "Xác nhận và bật",
+      "codesTitle": "Mã khôi phục",
+      "codesHint": "Lưu các mã này ở nơi an toàn. Khi mất điện thoại, mỗi mã dùng thay mã 6 số được một lần. Chúng chỉ hiện một lần.",
+      "copy": "Sao chép tất cả",
+      "copied": "Đã sao chép",
+      "codesLeft": "Còn {count, plural, other {# mã khôi phục}} chưa dùng.",
+      "regenerate": "Tạo mã khôi phục mới",
+      "regenerateHint": "Các mã cũ sẽ không dùng được nữa. Nhập mã 6 số hiện tại để xác nhận.",
+      "disable": "Tắt xác thực 2 bước",
+      "disableHint": "Nhập mật khẩu và mã 6 số hiện tại (hoặc một mã khôi phục).",
+      "password": "Mật khẩu"
+    },
+    "sessions": {
+      "title": "Thiết bị đang đăng nhập",
+      "description": "Đăng xuất thiết bị bạn không nhận ra, rồi đổi mật khẩu.",
+      "current": "Thiết bị này",
+      "unknownDevice": "Thiết bị không rõ",
+      "realm_staff": "Nhân viên",
+      "realm_learn": "Học viên",
+      "detail": "Đăng nhập {signedIn} · dùng gần nhất {lastSeen} · IP {ip}",
+      "revoke": "Đăng xuất"
+    },
+    "errors": {
+      "unknown": "Có lỗi xảy ra, vui lòng thử lại.",
+      "unauthorized": "Phiên đăng nhập đã hết, vui lòng đăng nhập lại.",
+      "identity_invalid_credentials": "Mật khẩu hiện tại không đúng.",
+      "identity_account_locked": "Tài khoản tạm khoá do nhập sai nhiều lần. Thử lại sau 15 phút.",
+      "identity_code_invalid": "Mã không đúng hoặc đã dùng.",
+      "identity_sign_in_expired": "Phiên đăng nhập quá hạn, vui lòng đăng nhập lại.",
+      "identity_two_factor_already_enabled": "Xác thực 2 bước đã bật.",
+      "identity_two_factor_not_enabled": "Xác thực 2 bước chưa bật.",
+      "identity_two_factor_required": "Vai trò của bạn bắt buộc dùng xác thực 2 bước.",
+      "identity_session_not_found": "Không tìm thấy phiên đăng nhập.",
+      "identity_account_not_found": "Không tìm thấy tài khoản.",
+      "identity_password_too_short": "Mật khẩu phải có ít nhất 8 ký tự.",
+      "identity_password_too_long": "Mật khẩu dài tối đa 128 ký tự.",
+      "identity_password_too_weak": "Mật khẩu cần có cả chữ và số, và không phải mật khẩu phổ biến.",
+      "identity_password_unchanged": "Mật khẩu mới phải khác mật khẩu hiện tại."
     }
   }
 }

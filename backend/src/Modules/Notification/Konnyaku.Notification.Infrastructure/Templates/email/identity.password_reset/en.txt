@@ -1,0 +1,8 @@
+Hi {{recipientName}},
+
+Someone (probably you) asked to reset the password of your staff account at {{tenantName}}.
+The link below works once and expires in {{expiresInMinutes}} minutes. Once you set a new password, every signed-in device is signed out.
+
+Choose a new password: {{siteUrl}}{{resetPath}}
+
+If you did not ask for this, ignore this email: your current password stays as it is.

@@ -127,7 +127,7 @@ public sealed class CrmModule : IModule
             .RequirePermission(Permissions.Privacy);
 
         // Student and lead history holds (masked) contact changes: same audience as the records themselves.
-        group.MapChangeHistory<CrmDbContext>().RequirePermission(Permissions.Students, Permissions.Leads);
+        group.MapChangeHistory<CrmDbContext>(Permissions.Students, Permissions.Leads);
     }
 
     /// <summary>Who is acting, from the access token (never from the request body) and the connection.</summary>

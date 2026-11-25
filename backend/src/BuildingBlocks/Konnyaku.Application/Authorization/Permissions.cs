@@ -16,10 +16,25 @@ public static class Permissions
     public const string Rooms = "organization.rooms";
     public const string Holidays = "organization.holidays";
     public const string Staff = "identity.staff";
+
+    /// <summary>Account security of every member: lock / unlock, reset passwords and 2FA, sign-out everywhere, security log.</summary>
+    public const string Accounts = "identity.accounts";
     public const string PayRates = "hr.rates";
+
+    /// <summary>Timesheets of every teacher and payroll periods.</summary>
+    public const string Payroll = "hr.payroll";
     public const string Packages = "billing.packages";
     public const string Orders = "billing.orders";
     public const string Payments = "billing.payments";
+
+    /// <summary>Money paid back to a student (an order the class could not take, or a student leaving mid-course).</summary>
+    public const string Refunds = "billing.refunds";
+
+    /// <summary>Selling: read packages, orders, payments, refunds and lesson credits; place an order for a student.</summary>
+    public const string Sales = "billing.sales";
+
+    /// <summary>Revenue reports.</summary>
+    public const string Finance = "billing.finance";
     public const string Leads = "crm.leads";
     public const string Students = "crm.students";
 
@@ -37,8 +52,8 @@ public static class Permissions
 
     public static readonly IReadOnlyList<string> All =
     [
-        Programs, Classes, ClassesView, Schedules, Branches, Rooms, Holidays, Staff, PayRates, Packages, Orders, Payments, Leads,
-        Students, StudentsView, PersonalDataExport, Privacy, Notifications,
+        Programs, Classes, ClassesView, Schedules, Branches, Rooms, Holidays, Staff, Accounts, PayRates, Payroll, Packages, Orders, Payments,
+        Refunds, Sales, Finance, Leads, Students, StudentsView, PersonalDataExport, Privacy, Notifications,
     ];
 }
 
@@ -52,18 +67,22 @@ public static class StaffRoles
     public const string Accountant = "Accountant";
     public const string Teacher = "Teacher";
 
-    /// <summary>Roles that may be granted for chosen branches only; every other role applies to the whole center.</summary>
-    public static readonly IReadOnlySet<string> BranchScoped = new HashSet<string> { BranchManager, Coordinator };
+    /// <summary>
+    /// Roles that may be granted for chosen branches only; every other role applies to the whole center. A branch accountant
+    /// handles the orders, payments and refunds of their branches; packages and pay rates stay center-wide.
+    /// </summary>
+    public static readonly IReadOnlySet<string> BranchScoped = new HashSet<string> { BranchManager, Coordinator, Accountant };
 }
 
 /// <summary>
 /// The role → permission matrix. TenantAdmin changes everything; branch managers and coordinators run classes, schedules,
 /// rooms and days off of their branches and keep student records (branch managers also follow up the leads of their
-/// branches); accountants handle packages, orders, payments and pay rates and read the student list; consultants handle
-/// leads and student records; teachers change nothing and see only the classes they teach.
+/// branches); accountants handle packages, orders, payments, refunds, pay rates and payroll and read the student list;
+/// consultants handle leads and student records and place orders; teachers change nothing and see only the classes they
+/// teach. Account security (locking, password and 2FA resets, security log) is the administrator's alone.
 /// Personal data: lists show contact details masked; members who keep the records (<see cref="Permissions.Students"/>,
 /// <see cref="Permissions.Leads"/>) reveal one record at a time (logged); only the tenant admin and branch managers export
-/// or print lists; only the tenant admin handles data subject requests and reads the access log.
+/// or print lists; only the tenant admin handles data subject requests and reads the personal data access log.
 /// </summary>
 public static class RolePermissions
 {
@@ -82,9 +101,13 @@ public static class RolePermissions
         },
         [StaffRoles.Accountant] = new HashSet<string>
         {
-            Permissions.Packages, Permissions.Orders, Permissions.Payments, Permissions.PayRates, Permissions.ClassesView, Permissions.StudentsView,
+            Permissions.Packages, Permissions.Orders, Permissions.Payments, Permissions.Refunds, Permissions.Sales, Permissions.Finance,
+            Permissions.PayRates, Permissions.Payroll, Permissions.ClassesView, Permissions.StudentsView,
         },
-        [StaffRoles.Consultant] = new HashSet<string> { Permissions.Leads, Permissions.Students, Permissions.StudentsView, Permissions.ClassesView },
+        [StaffRoles.Consultant] = new HashSet<string>
+        {
+            Permissions.Leads, Permissions.Students, Permissions.StudentsView, Permissions.ClassesView, Permissions.Sales,
+        },
         [StaffRoles.Teacher] = new HashSet<string>(),
     };
 

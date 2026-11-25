@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Konnyaku.Application.Authorization;
 using Konnyaku.Application.Messaging;
 using Konnyaku.Infrastructure.Auth;
 using Konnyaku.Infrastructure.Http;
@@ -13,6 +14,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Konnyaku.Workspace.Endpoints;
 
@@ -94,10 +96,15 @@ public sealed class WorkspaceModule : IModule
             })
             .AllowAnonymous();
 
+        // Development tool: fakes a meeting that took place (participants, recording), which then drives attendance and
+        // timesheets. Off unless Workspace:DevTools is true (default: on in Development only), whatever the provider.
         group.MapPost("/dev/sessions/{id:guid}/simulate", async (Guid id, SimulateMeetingCommand command, SimulateMeetingHandler handler, CancellationToken ct) =>
                 ApiResults.From(await handler.HandleAsync(id, command, ct), _ => Results.Accepted()))
-            .RequireAuthorization(p => p.RequireAuthenticatedUser()
-                .RequireClaim(KonnyakuClaims.Audience, Audiences.Staff)
-                .RequireRole("TenantAdmin", "Coordinator"));
+            .AddEndpointFilter(async (context, next) => DevToolsEnabled(context.HttpContext.RequestServices) ? await next(context) : Results.NotFound())
+            .RequirePermission(Permissions.Schedules);
     }
+
+    public static bool DevToolsEnabled(IServiceProvider services) =>
+        services.GetRequiredService<IConfiguration>().GetValue<bool?>("Workspace:DevTools")
+        ?? services.GetRequiredService<IHostEnvironment>().IsDevelopment();
 }

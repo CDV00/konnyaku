@@ -1,5 +1,5 @@
 import { getFormatter, getLocale, getTranslations } from "next-intl/server";
-import { SearchX, Users } from "lucide-react";
+import { SearchX, ShieldCheck, Users } from "lucide-react";
 import { requireMe } from "@konnyaku/session";
 import { Input } from "@konnyaku/ui/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@konnyaku/ui/components/ui/table";
@@ -30,6 +30,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Search
   const filtered = staffFilters.some((key) => query.has(key));
   const canManage = access.can("identity.staff");
   const canRates = access.can("hr.rates");
+  const canAccounts = access.can("identity.accounts");
   // Rates come newest first per teacher: the first one seen is the latest.
   const ratesOf = new Map<string, Rate[]>();
   for (const rate of rates) ratesOf.set(rate.teacherId, [...(ratesOf.get(rate.teacherId) ?? []), rate]);
@@ -100,6 +101,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Search
                           <p className="flex flex-wrap items-center gap-2 font-medium">
                             {member.displayName}
                             {!active && <StatusBadge tone={statusTone[member.status]}>{t(`staffStatus.${member.status}`)}</StatusBadge>}
+                            {member.twoFactorEnabled && <StatusBadge tone="success"><ShieldCheck className="size-3" />{t("security.twoFactor")}</StatusBadge>}
                           </p>
                           <p className="text-xs text-muted-foreground">{member.email}</p>
                         </div>
@@ -178,6 +180,32 @@ export default async function StaffPage({ searchParams }: { searchParams: Search
                             <section className="mt-6 space-y-3">
                               <h3 className="text-sm font-semibold">{t("history.title")}</h3>
                               <ChangeHistory sources={[{ module: "identity", id: member.userId }]} names={names} />
+                            </section>
+                          </FormSheet>
+                        )}
+                        {canAccounts && member.userId !== me.userId && active && (
+                          <FormSheet
+                            triggerLabel={t("security.resetPassword")}
+                            title={t("security.resetPasswordFor", { name: member.displayName })}
+                            description={t("security.resetStaffPasswordHint")}
+                            variant="ghost"
+                            size="sm"
+                            icon={false}
+                          >
+                            <ActionForm api={`identity/accounts/${member.userId}/reset-password`} submitLabel={t("security.resetPassword")} showResult={["email", "temporaryPassword"]}>
+                              <span />
+                            </ActionForm>
+                            {member.twoFactorEnabled && (
+                              <section className="mt-6 space-y-3">
+                                <h3 className="text-sm font-semibold">{t("security.twoFactor")}</h3>
+                                <p className="text-xs text-muted-foreground">{t("security.resetTwoFactorHint")}</p>
+                                <ActionButton api={`identity/accounts/${member.userId}/reset-2fa`} label={t("security.resetTwoFactor")} confirm={t("security.resetTwoFactorConfirm")} />
+                              </section>
+                            )}
+                            <section className="mt-6 space-y-3">
+                              <h3 className="text-sm font-semibold">{t("security.signOut")}</h3>
+                              <p className="text-xs text-muted-foreground">{t("security.signOutHint")}</p>
+                              <ActionButton api={`identity/accounts/${member.userId}/sign-out`} label={t("security.signOut")} confirm={t("security.signOutConfirm")} />
                             </section>
                           </FormSheet>
                         )}

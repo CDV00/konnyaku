@@ -36,14 +36,12 @@ public sealed class LearningModule : IModule
 
     public void MapEndpoints(RouteGroupBuilder group)
     {
-        static IReadOnlyCollection<string> Roles(ClaimsPrincipal user) => user.FindAll(KonnyakuClaims.Role).Select(c => c.Value).ToList();
-
         group.MapGet("/sessions/{id:guid}/attendance", async (Guid id, ClaimsPrincipal user, AttendanceHandlers handlers, CancellationToken ct) =>
-                ApiResults.From(await handlers.ListAsync(id, user.UserId()!.Value, Roles(user), ct), Results.Ok))
+                ApiResults.From(await handlers.ListAsync(id, user.UserId()!.Value, ct), Results.Ok))
             .RequireAuthorization(Policies.Staff);
 
         group.MapPost("/sessions/{id:guid}/attendance/confirm", async (Guid id, ConfirmAttendanceCommand command, ClaimsPrincipal user, AttendanceHandlers handlers, CancellationToken ct) =>
-                ApiResults.From(await handlers.ConfirmAsync(id, user.UserId()!.Value, Roles(user), command, ct), Results.Ok))
+                ApiResults.From(await handlers.ConfirmAsync(id, user.UserId()!.Value, command, ct), Results.Ok))
             .RequireAuthorization(Policies.Staff);
 
         group.MapGet("/my/recordings", async (ClaimsPrincipal user, RecordingQueries queries, CancellationToken ct) =>

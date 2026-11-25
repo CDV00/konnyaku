@@ -2,7 +2,7 @@
 
 Creates tenant "review" (host review.<base domain>, e.g. http://review.localhost:4000) with:
 - staff for every role, one shared password (STAFF_PASSWORD below):
-    admin@, manager@, coordinator@, consultant@, accountant@ (all @review.example.com)
+    admin@, manager@, coordinator@, consultant@, accountant@, accountant.hn@ (all @review.example.com)
     teacher.ja@, teacher.en@, teacher.zh@ (Teacher, hourly rates set 90 days back)
 - learners hv-review01..hv-review12 (Student) and ph-review01 (Parent), password LEARNER_PASSWORD, no forced change
 - 3 branches (Online, Q1 HCM with 2 rooms, Ha Noi with 1 room), a branch holiday, Fake meeting provider with 3 hosts
@@ -12,11 +12,13 @@ Creates tenant "review" (host review.<base domain>, e.g. http://review.localhost
     ZH-HSK1-HN offline Ha Noi, starts next week
     JP-N4-ON2  online, starts in 2 weeks, capacity 2 and full -> a third paid order waits for a refund
     KO-T1-ON3  online, no schedule yet (for the coordinator to schedule)
-- packages, orders (paid, partially paid, unpaid), leads in every status
+- packages, orders (paid, partially paid, unpaid, one refunded, one waiting for a refund), leads in every status
 - timesheets from the held sessions, last month's payroll period locked, this month's open
 - the platform super-admin (console at http://admin.<base domain>:4000/platform), when none exists yet:
     OPERATOR_EMAIL / OPERATOR_PASSWORD, TOTP secret OPERATOR_TOTP_SECRET (add it to an authenticator app,
     or print the current code with: python infra/scripts/seed_review.py --totp)
+- two-step sign-in (TOTP) turned on for accountant@: the script prints its secret key (new on every run); add it to
+  an authenticator app or print the current code with: python infra/scripts/seed_review.py --totp <secret>
 
 Every API call goes to KONNYAKU_API (default http://localhost:5080) with the platform key KONNYAKU_PLATFORM_KEY
 (default dev-platform-key). The Worker must be running: enrollments, rooms, attendance and timesheets come from events.
@@ -112,10 +114,11 @@ def last_weekday_on_or_before(day, weekday):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-domain", default="localhost", help="Platform:BaseDomain of the API (default localhost)")
-    parser.add_argument("--totp", action="store_true", help="only print the current TOTP code of the dev super-admin")
+    parser.add_argument("--totp", nargs="?", const=OPERATOR_TOTP_SECRET, metavar="SECRET",
+                        help="only print the current TOTP code of a secret (default: the dev super-admin's)")
     args = parser.parse_args()
     if args.totp:
-        print(totp(OPERATOR_TOTP_SECRET))
+        print(totp(args.totp))
         return
     host = {"X-Tenant-Host": f"{SLUG}.{args.base_domain}"}
     platform = {"X-Platform-Key": PLATFORM_KEY}
@@ -173,7 +176,7 @@ def main():
 
     # --- staff -------------------------------------------------------------------------------------------------------
     staff = {}
-    for email, name, roles in [
+    for email, name, roles, *branches in [
         ("manager@review.example.com", "Quản lý cơ sở", ["BranchManager"]),
         ("coordinator@review.example.com", "Điều phối viên", ["Coordinator"]),
         ("consultant@review.example.com", "Tư vấn viên", ["Consultant"]),
@@ -181,9 +184,12 @@ def main():
         ("teacher.ja@review.example.com", "GV tiếng Nhật", ["Teacher"]),
         ("teacher.en@review.example.com", "GV tiếng Anh", ["Teacher"]),
         ("teacher.zh@review.example.com", "GV tiếng Trung", ["Teacher"]),
+        # Limited to Cầu Giấy: sees every order but collects and refunds only those of that branch.
+        ("accountant.hn@review.example.com", "Kế toán Cầu Giấy", ["Accountant"], [hn["id"]]),
     ]:
         staff[email] = post("/api/identity/staff", {
-            "email": email, "displayName": name, "initialPassword": STAFF_PASSWORD, "roles": roles}, f"staff {email}")
+            "email": email, "displayName": name, "initialPassword": STAFF_PASSWORD, "roles": roles,
+            "branchIds": branches[0] if branches else []}, f"staff {email}")
     teachers = {lang: staff[f"teacher.{lang}@review.example.com"]["userId"] for lang in ("ja", "en", "zh")}
     for lang, rate in (("ja", 300000), ("en", 350000), ("zh", 280000)):
         must(call("PUT", f"/api/hr/teachers/{teachers[lang]}/rate", {
@@ -283,6 +289,14 @@ def main():
     wait_for("JP-N5-ON1 enrollments", lambda: len(roster(jp_on1)) >= 5)
     wait_for("EN-A2-Q1 enrollments", lambda: len(roster(en_q1)) >= 4)
 
+    # A refunded order: paid for ZH-HSK1-HN, then the student withdrew before the start (full refund, seat freed).
+    withdrawn = order(learners[3], pkg_zh, zh_hn, 3600000)
+    wait_for("ZH-HSK1-HN enrollment", lambda: any(r["studentId"] == learners[3]["student"] for r in roster(zh_hn)))
+    accountant = {**host, "Authorization": f"Bearer {staff_token('accountant@review.example.com')}"}
+    post(f"/api/billing/orders/{withdrawn['id']}/refunds", {
+        "method": "bank_transfer", "reference": f"HT-{withdrawn['id'][:8]}",
+        "reason": "Đổi lịch làm việc, nghỉ trước khai giảng (demo)"}, "refund", accountant)
+
     # --- leads (public form, as a visitor would) ----------------------------------------------------------------------
     leads = [("Khách Lan (demo)", "ja", "Học giao tiếp để đi làm"), ("Khách Tú (demo)", "en", "IELTS 6.5"),
              ("Khách Vy (demo)", "zh-Hans", "Thi HSK 3"), ("Khách Nam (demo)", "ko", "Du học Hàn Quốc"),
@@ -336,11 +350,18 @@ def main():
     call("POST", "/api/hr/payroll-periods", {
         "from": first_this_month.isoformat(), "to": (next_month - dt.timedelta(days=1)).isoformat()}, admin)
 
+    # --- two-step sign-in for the accountant (the last step: the accountant signs in with a code from now on) --------
+    accountant = {**host, "Authorization": f"Bearer {staff_token('accountant@review.example.com')}"}
+    secret = must(call("POST", "/api/identity/me/2fa/setup", None, accountant), "2fa setup")["secret"]
+    must(call("POST", "/api/identity/me/2fa/enable", {"code": totp(secret)}, accountant), "2fa enable")
+
     print(f"tenant '{SLUG}' ready at http://{SLUG}.{args.base_domain}:4000")
     print(f"  {len(held_jp)} online + {len(held_en)} offline lessons held with confirmed attendance")
     print(f"  staff (password {STAFF_PASSWORD}): admin, manager, coordinator, consultant, accountant,")
-    print("    teacher.ja, teacher.en, teacher.zh  @review.example.com")
+    print("    accountant.hn (Cau Giay branch only), teacher.ja, teacher.en, teacher.zh  @review.example.com")
     print(f"  learners (password {LEARNER_PASSWORD}): hv-review01..hv-review12, parent ph-review01")
+    print(f"  accountant@ signs in with two-step sign-in, TOTP secret {secret}")
+    print(f"    current code: python infra/scripts/seed_review.py --totp {secret}")
     print(f"platform console at http://admin.{args.base_domain}:4000/platform")
     print(f"  {OPERATOR_EMAIL} / {OPERATOR_PASSWORD}, TOTP secret {OPERATOR_TOTP_SECRET} (code now: {totp(OPERATOR_TOTP_SECRET)})")
 

@@ -17,5 +17,11 @@ public sealed record OrderPaidV1(Guid OrderId, Guid StudentId, Guid? ClassId, de
 
 public sealed record CreditBalanceChangedV1(Guid OrderId, Guid StudentId, Guid? EnrollmentId, decimal PaidCredits, decimal BonusCredits) : IIntegrationEvent;
 
+/// <summary>
+/// Money was paid back and the order is closed (its unused lessons left the ledger). Academic drops the enrollment the
+/// order paid for (<see cref="EnrollmentId"/>, null when the class never took the student).
+/// </summary>
+public sealed record OrderRefundedV1(Guid OrderId, Guid StudentId, Guid? ClassId, Guid? EnrollmentId, decimal Amount, string Currency) : IIntegrationEvent;
+
 /// <summary>Few lessons left (or owed): trigger renewal care.</summary>
 public sealed record CreditLowV1(Guid OrderId, Guid StudentId, Guid? EnrollmentId, decimal RemainingCredits) : IIntegrationEvent;

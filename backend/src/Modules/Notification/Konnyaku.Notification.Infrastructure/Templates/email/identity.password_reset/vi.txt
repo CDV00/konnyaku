@@ -1,0 +1,8 @@
+Chào {{recipientName}},
+
+Có người (có thể là bạn) vừa yêu cầu đặt lại mật khẩu tài khoản nhân viên tại {{tenantName}}.
+Link dưới đây chỉ dùng được một lần và hết hạn sau {{expiresInMinutes}} phút. Đặt mật khẩu mới xong, mọi thiết bị đang đăng nhập sẽ bị đăng xuất.
+
+Đặt mật khẩu mới: {{siteUrl}}{{resetPath}}
+
+Nếu bạn không yêu cầu, hãy bỏ qua email này: mật khẩu hiện tại vẫn giữ nguyên.

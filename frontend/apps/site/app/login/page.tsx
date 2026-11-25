@@ -3,8 +3,8 @@ import { tenantInfo } from "@konnyaku/session";
 import { LogoMark } from "@konnyaku/ui/kk/logo";
 import { LoginTabs } from "./login-tabs";
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ realm?: string }> }) {
-  const { realm } = await searchParams;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ realm?: string; ended?: string }> }) {
+  const { realm, ended } = await searchParams;
   const t = await getTranslations("login");
   const tenant = await tenantInfo();
   return (
@@ -19,7 +19,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </div>
         </div>
         <div className="rounded-2xl border bg-card p-6 shadow-sm">
-          <LoginTabs initialRealm={realm === "staff" ? "staff" : "learn"} />
+          <LoginTabs initialRealm={realm === "staff" ? "staff" : "learn"} ended={ended === "1"} />
         </div>
       </div>
     </main>

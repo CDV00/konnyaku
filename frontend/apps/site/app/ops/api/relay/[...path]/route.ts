@@ -14,6 +14,7 @@ const writes: Record<"POST" | "PUT" | "DELETE", RegExp[]> = {
     route("organization/holidays"),
     route("identity/staff"),
     route("identity/staff/{id}/(deactivate|activate)"),
+    route("identity/accounts/{id}/(suspend|activate|reset-password|reset-2fa|sign-out)"),
     route("academic/programs"),
     route("academic/programs/{id}/(deactivate|activate)"),
     route("academic/programs/{id}/levels"),
@@ -33,6 +34,8 @@ const writes: Record<"POST" | "PUT" | "DELETE", RegExp[]> = {
     route("billing/orders/{id}/payments"),
     route("billing/orders/{id}/cancel"),
     route("billing/payments/{id}/void"),
+    route("billing/orders/{id}/refunds"),
+    route("billing/accounts/{id}/adjustments"),
     route("notification/messages/{id}/resend"),
   ],
   PUT: [
@@ -55,10 +58,13 @@ const writes: Record<"POST" | "PUT" | "DELETE", RegExp[]> = {
   DELETE: [route("organization/holidays/{id}"), route("hr/rates/{id}")],
 };
 
-/** Reads made from the browser (change history and payments inside a drawer, record pickers searching a list). */
+/** Reads made from the browser (change history, payments, refunds and the lesson ledger inside a drawer; record pickers). */
 const reads = [
   route("(academic|scheduling|organization|identity|hr|crm|billing)/history/{id}"),
-  route("billing/orders/{id}/payments"),
+  route("billing/orders/{id}/(payments|refunds|refund-quote)"),
+  route("billing/accounts/{id}/ledger"),
+  route("billing/receipts/(receipt|refund)/{id}/prints"),
+  // Record pickers search a list (search term and page in the query string).
   route("crm/(students|leads)"),
 ];
 

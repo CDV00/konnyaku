@@ -35,10 +35,24 @@
     "title": "Student & parent portal",
     "zone": "Learner",
     "nav": {
-      "home": "Overview"
+      "home": "Overview",
+      "payments": "Payments"
     },
     "subtitle": "Your schedule, remaining lessons and replays.",
-    "nextLesson": "Next lesson"
+    "nextLesson": "Next lesson",
+    "payments": {
+      "title": "Payment history",
+      "description": "Tuition payments and refunds, with receipts to download.",
+      "empty": "No payments yet.",
+      "receipt": "Receipt",
+      "refund": "Refund",
+      "voided": "Voided",
+      "download": "Download",
+      "code": "No.",
+      "date": "Date",
+      "package": "Package",
+      "amount": "Amount"
+    }
   },
   "teach": {
     "title": "Teacher app",
@@ -72,6 +86,7 @@
       "payroll": "Payroll",
       "home": "Overview",
       "notifications": "Notifications",
+      "security": "Security",
       "privacy": "Privacy"
     },
     "hint": {
@@ -84,6 +99,7 @@
       "branches": "Branches and time zones",
       "payroll": "Create and lock pay periods",
       "notifications": "Sent emails, failures and resending",
+      "security": "Lock accounts, reset passwords, sign-in log",
       "privacy": "Personal data requests, access log"
     },
     "zone": "Operations",
@@ -117,10 +133,54 @@
       "identity_account_locked": "Too many failed attempts. Try again in 15 minutes.",
       "identity_tenant_unknown": "This address does not belong to a known center.",
       "platform_tenant_suspended": "This center is temporarily suspended on Konnyaku. Please contact the center.",
-      "unknown": "Something went wrong. Please try again."
+      "unknown": "Something went wrong. Please try again.",
+      "identity_account_suspended": "This account is locked. Contact your center's administrator.",
+      "identity_code_invalid": "Wrong or already used code.",
+      "identity_sign_in_expired": "The sign-in took too long, please enter your password again.",
+      "identity_reset_link_invalid": "This reset link expired or was already used. Ask for a new one.",
+      "rate_limited": "Too many attempts, please try again in a minute.",
+      "identity_password_too_short": "The password needs at least 8 characters.",
+      "identity_password_too_long": "The password can be at most 128 characters.",
+      "identity_password_too_weak": "Use both letters and digits, and not a common password.",
+      "identity_password_unchanged": "The new password must differ from the current one."
     },
     "subtitle": "{center}",
-    "forgot": "Forgot your password? Ask your center to reset it."
+    "ended": "Your session ended (signed out, password changed or account locked). Please sign in again.",
+    "forgotLearn": "Forgot your password? Ask your center for a temporary one.",
+    "forgotStaff": "Forgot your password? Get a reset link by email",
+    "mfa": {
+      "verifyHint": "Enter the 6-digit code from your authenticator app (Google Authenticator, Microsoft Authenticator…).",
+      "recoveryHint": "Enter one of the recovery codes you saved when you turned on two-step sign-in. Each works once.",
+      "code": "Code",
+      "recoveryCode": "Recovery code",
+      "submit": "Confirm",
+      "useRecovery": "Lost your phone? Use a recovery code",
+      "useCode": "Use the code from the authenticator app",
+      "enrollTitle": "Your role needs two-step sign-in",
+      "enrollHint": "Set it up once on your phone; from now on each sign-in also asks for the 6-digit code from the app.",
+      "continue": "I saved the codes, continue"
+    },
+    "forgotPage": {
+      "title": "Forgot password",
+      "hint": "Enter your work email. If it has an account at this center, you will get a reset link (valid for 30 minutes).",
+      "email": "Email",
+      "submit": "Send reset link",
+      "sent": "If this email has an account, a reset link is on its way. Check your inbox (and spam).",
+      "back": "Back to sign in"
+    },
+    "resetPage": {
+      "title": "Choose a new password",
+      "hint": "The link works once. Every device signed in to your account will be signed out.",
+      "next": "New password",
+      "policy": "At least 8 characters, letters and digits.",
+      "confirm": "Repeat the new password",
+      "mismatch": "The two passwords differ.",
+      "submit": "Save password",
+      "done": "Your new password is set.",
+      "login": "Sign in",
+      "invalid": "This link is not valid. Ask for a new one.",
+      "again": "Ask for a new link"
+    }
   },
   "session": {
     "greeting": "Hello, {name}",
@@ -134,11 +194,15 @@
     "submit": "Save password",
     "required": "Please replace your temporary password to continue.",
     "errors": {
-      "identity_password_too_short": "The new password must have at least 8 characters.",
+      "identity_password_too_short": "The password needs at least 8 characters.",
       "identity_invalid_credentials": "The current password is incorrect.",
       "identity_account_locked": "Account locked. Try again in 15 minutes.",
-      "unknown": "Something went wrong. Please try again."
-    }
+      "unknown": "Something went wrong. Please try again.",
+      "identity_password_too_long": "The password can be at most 128 characters.",
+      "identity_password_too_weak": "Use both letters and digits, and not a common password.",
+      "identity_password_unchanged": "The new password must differ from the current one."
+    },
+    "hint": "At least 8 characters, letters and digits. Your other devices will be signed out."
   },
   "register": {
     "title": "Request a consultation",
@@ -314,7 +378,9 @@
       "Coordinator": "Coordinator",
       "Consultant": "Consultant",
       "Accountant": "Accountant",
-      "Teacher": "Teacher"
+      "Teacher": "Teacher",
+      "Student": "Student",
+      "Parent": "Parent"
     },
     "modes": {
       "Online": "Online",
@@ -345,11 +411,13 @@
       "PendingPayment": "Awaiting payment",
       "Paid": "Paid",
       "Cancelled": "Cancelled",
-      "RefundRequired": "Refund due"
+      "RefundRequired": "Refund due",
+      "Refunded": "Refunded"
     },
     "result": {
       "username": "Username:",
-      "temporaryPassword": "Temporary password (shown once):"
+      "temporaryPassword": "Temporary password (shown once):",
+      "email": "Sign-in email:"
     },
     "branches": {
       "title": "Branches",
@@ -540,6 +608,63 @@
       "editPackage": "Edit package {code}",
       "packageEditHint": "A new price applies to new orders; existing orders keep theirs.",
       "deactivatePackageConfirm": "Stop selling this package? Existing orders stay.",
+      "filters": {
+        "all": "All",
+        "unpaid": "Awaiting payment",
+        "partial": "Partly paid",
+        "paid": "Paid",
+        "refund_required": "Refund due",
+        "refunded": "Refunded",
+        "cancelled": "Cancelled"
+      },
+      "filterLabel": "Filter by status",
+      "refunded": "Refunded",
+      "refund": "Refund",
+      "refundTitle": "Refund {name}",
+      "refundDescription": "Unused paid lessons × unit price are refunded; bonus lessons are not. You may change the suggested amount — give the reason.",
+      "refundKinds": {
+        "ClassUnavailable": "Class could not take the student",
+        "Withdrawal": "Leaving mid-course",
+        "Cancellation": "Stopping before paying in full"
+      },
+      "quoteReceived": "Received",
+      "quotePaidLeft": "Unused paid lessons",
+      "quoteBonusLeft": "Bonus lessons (not refunded)",
+      "quoteUnit": "Price per lesson",
+      "quoteSuggested": "Suggested amount",
+      "quoteNotRefundable": "This order cannot be refunded in its current state.",
+      "refundAmount": "Amount to refund",
+      "refundAmountHint": "At most {max}. If it differs from the suggestion, explain below.",
+      "refundReason": "Reason",
+      "refundReasonHint": "Printed on the refund voucher and kept in the lesson ledger.",
+      "refundSubmit": "Confirm refund",
+      "refunds": "Refunds",
+      "refundLine": "{code} · {amount} · {who}",
+      "viewReceipt": "View receipt",
+      "collectedBy": "Collected by {name}",
+      "ledger": "Lesson ledger",
+      "ledgerEmpty": "No lessons in the ledger yet (the order is not fully paid).",
+      "ledgerHint": "Append-only: every change is a new line.",
+      "entryTypes": {
+        "Purchase": "Purchase",
+        "Bonus": "Bonus",
+        "Consume": "Lesson",
+        "Refund": "Refund",
+        "TransferOut": "Transfer out",
+        "TransferIn": "Transfer in",
+        "Expire": "Expired",
+        "Adjust": "Adjustment"
+      },
+      "creditKinds": {
+        "Paid": "paid",
+        "Bonus": "bonus"
+      },
+      "ledgerCredits": "{credits} {kind} lessons",
+      "adjust": "Adjust lessons",
+      "adjustCredits": "Lessons (+ add, − remove)",
+      "adjustKind": "Kind",
+      "adjustReason": "Reason",
+      "adjustSubmit": "Add entry",
       "findStudent": "Type a student's name or phone…",
       "search": "Search student name, phone",
       "createdAt": "Created"
@@ -640,6 +765,21 @@
       "notification_message_not_found": "Notification not found.",
       "notification_already_pending": "This notification is already waiting to be sent.",
       "notification_resend_not_allowed": "This notification held confidential data and was already sent; it cannot be resent.",
+      "billing_order_already_refunded": "This order has already been refunded.",
+      "billing_order_not_refundable": "This order cannot be refunded in its current state.",
+      "billing_refund_amount_invalid": "The refund must be above 0 and at most what was received ({max}).",
+      "billing_refund_reason_required": "A reason is required (at most {max} characters).",
+      "billing_receipt_not_found": "Receipt not found.",
+      "billing_receipt_print_limit": "This receipt was printed or downloaded {limit} times in the last 24 hours.",
+      "billing_order_filter_invalid": "Invalid filter.",
+      "billing_adjustment_invalid": "Lessons must not be 0 and a reason is required (at most 300 characters).",
+      "billing_account_not_found": "This order has no lesson ledger yet (not fully paid).",
+      "identity_cannot_reset_self": "Change your own password on your Account page.",
+      "identity_account_shared_with_other_centers": "This person also works for another center: their password and two-step sign-in are shared, so only they can reset them (Forgot password).",
+      "identity_two_factor_not_enabled": "This person has not turned on two-step sign-in.",
+      "identity_account_not_found": "Account not found.",
+      "identity_password_too_weak": "Use both letters and digits, and not a common password.",
+      "identity_password_too_long": "The password is too long.",
       "crm_export_too_large": "The list has {total} rows, more than the {limit} allowed per export. Filter it down and export again.",
       "crm_export_limit_reached": "You exported or printed {limit} times in the last 24 hours. Ask an administrator if you need more.",
       "crm_student_active": "The student is still active: deactivate the record before anonymizing it.",
@@ -810,6 +950,105 @@
       "search": "Search name, phone, email, guardian",
       "open": "Open"
     },
+    "receipts": {
+      "receiptTitle": "Receipt {code}",
+      "refundTitle": "Refund voucher {code}",
+      "back": "Billing",
+      "print": "Print",
+      "download": "Download PDF",
+      "voided": "Voided receipt (payment entered by mistake)",
+      "center": "Center",
+      "branch": "Branch",
+      "date": "Date",
+      "student": "Student",
+      "package": "Package",
+      "amount": "Amount",
+      "inWords": "In words",
+      "method": "Method",
+      "reference": "Transaction reference",
+      "reason": "Refund reason",
+      "issuedBy": "Issued by",
+      "credits": "Lessons",
+      "creditsValue": "{paid} unused paid lessons refunded · {bonus} bonus lessons not refundable",
+      "prints": "Print and download log",
+      "noPrints": "Nobody has printed or downloaded this yet.",
+      "printLine": "{who} · {action} · {when}",
+      "actions": {
+        "print": "printed",
+        "download": "downloaded"
+      },
+      "audiences": {
+        "staff": "staff",
+        "learn": "learner"
+      },
+      "notice": "Every print and download is logged; the PDF shows who printed it (partly masked)."
+    },
+    "security": {
+      "title": "Account security",
+      "description": "Lock / unlock accounts, reset passwords and read the center's sign-in log. Staff accounts are managed on the Staff page.",
+      "accounts": "Student and parent accounts",
+      "accountsHint": "A locked person is signed out at once and cannot sign in; unlock any time.",
+      "noAccounts": "No learner accounts yet.",
+      "username": "Username",
+      "lastSeen": "Last used",
+      "lockedOut": "Locked after wrong attempts",
+      "temporaryPassword": "Temporary password",
+      "resetPassword": "Reset password",
+      "resetPasswordFor": "Reset the password of {name}",
+      "resetPasswordHint": "Creates a temporary password (shown once) to hand over; they must change it at sign-in. Every signed-in device is signed out.",
+      "resetStaffPasswordHint": "Creates a temporary password (shown once); they must change it at sign-in and are signed out everywhere. With an email they can also use “Forgot password”.",
+      "lock": "Lock",
+      "lockConfirm": "Lock this account? They are signed out at once and cannot sign in until unlocked.",
+      "unlock": "Unlock",
+      "signOut": "Sign out everywhere",
+      "signOutConfirm": "Sign this person out of every device?",
+      "signOutHint": "For a leaked password or a shared computer left signed in.",
+      "twoFactor": "Two-step sign-in",
+      "resetTwoFactor": "Remove two-step sign-in",
+      "resetTwoFactorHint": "For someone who lost their phone: removes two-step sign-in (logged); they sign in with the password and turn it on again.",
+      "resetTwoFactorConfirm": "Remove this person's two-step sign-in? They are signed out of every device.",
+      "log": "Security log",
+      "logHint": "The latest 200 events: sign-ins, wrong passwords, locks, password resets, two-step sign-in.",
+      "kind": "Event",
+      "allKinds": "All events",
+      "filter": "Filter",
+      "noEvents": "No events yet.",
+      "when": "When",
+      "account": "Account",
+      "by": "By",
+      "ip": "IP",
+      "kinds": {
+        "SignInSucceeded": "Signed in",
+        "SignInFailed": "Sign-in failed",
+        "AccountLockedOut": "Locked after failed attempts",
+        "AccountSuspended": "Account locked",
+        "AccountReactivated": "Account unlocked",
+        "PasswordChanged": "Password changed",
+        "PasswordResetByAdmin": "Password reset by an administrator",
+        "PasswordResetRequested": "Reset link requested",
+        "PasswordResetCompleted": "Password reset with a link",
+        "TwoFactorEnabled": "Two-step sign-in turned on",
+        "TwoFactorDisabled": "Two-step sign-in turned off",
+        "TwoFactorResetByAdmin": "Two-step sign-in removed by an administrator",
+        "RecoveryCodesRegenerated": "New recovery codes",
+        "RecoveryCodeUsed": "Recovery code used",
+        "SignedOut": "Signed out",
+        "SessionRevoked": "Signed out one device",
+        "SignedOutEverywhere": "Signed out everywhere"
+      },
+      "details": {
+        "unknown_account": "no such account",
+        "wrong_password": "wrong password",
+        "locked": "temporarily locked",
+        "suspended": "account locked",
+        "no_staff_role": "no staff role",
+        "no_learner_role": "no learner role",
+        "wrong_code": "wrong code",
+        "throttled": "too many in one hour",
+        "staff": "staff",
+        "learn": "learner"
+      }
+    },
     "list": {
       "loading": "Loading…",
       "reset": "Clear filters",
@@ -924,7 +1163,8 @@
     "theme": "Toggle light/dark theme",
     "menu": "Open menu",
     "logout": "Sign out",
-    "close": "Close"
+    "close": "Close",
+    "account": "Account & security"
   },
   "siteNav": {
     "brand": "Center",
@@ -1045,12 +1285,79 @@
     "templates": {
       "lead_created": "New lead",
       "learner_welcome": "Student welcome",
+      "identity_password_reset": "Password reset link",
       "credit_low": "Lessons running out",
       "enrollment_activated": "Enrollment confirmed",
       "session_rescheduled": "Session moved",
       "session_cancelled": "Session cancelled",
       "session_reminder": "Session reminder",
       "payroll_locked": "Pay period closed"
+    }
+  },
+  "account": {
+    "title": "Account & security",
+    "description": "Password, two-step sign-in and the devices signed in to your account.",
+    "password": {
+      "title": "Change password",
+      "hint": "Other signed-in devices will be signed out; this one stays.",
+      "required": "You are using a temporary password. Choose a new one to continue.",
+      "current": "Current password",
+      "next": "New password",
+      "policy": "At least 8 characters, letters and digits.",
+      "confirm": "Repeat the new password",
+      "mismatch": "The two passwords differ.",
+      "submit": "Save password",
+      "done": "Password changed."
+    },
+    "twoFactor": {
+      "title": "Two-step sign-in",
+      "description": "Besides the password, each sign-in asks for a 6-digit code from an authenticator app on your phone.",
+      "on": "On",
+      "off": "Off",
+      "requiredHint": "Your role requires two-step sign-in.",
+      "enable": "Turn on two-step sign-in",
+      "scan": "Scan the QR code with your authenticator app (or type the secret key), then enter the 6-digit code it shows.",
+      "qrAlt": "QR code to add the account to an authenticator app",
+      "secret": "Secret key",
+      "code": "6-digit code",
+      "verify": "Confirm and turn on",
+      "codesTitle": "Recovery codes",
+      "codesHint": "Keep these somewhere safe. If you lose your phone, each one replaces the 6-digit code once. They are shown only now.",
+      "copy": "Copy all",
+      "copied": "Copied",
+      "codesLeft": "{count, plural, one {# recovery code} other {# recovery codes}} left.",
+      "regenerate": "New recovery codes",
+      "regenerateHint": "The old codes stop working. Enter the current 6-digit code to confirm.",
+      "disable": "Turn off two-step sign-in",
+      "disableHint": "Enter your password and the current 6-digit code (or a recovery code).",
+      "password": "Password"
+    },
+    "sessions": {
+      "title": "Signed-in devices",
+      "description": "Sign out a device you do not recognize, then change your password.",
+      "current": "This device",
+      "unknownDevice": "Unknown device",
+      "realm_staff": "Staff",
+      "realm_learn": "Learner",
+      "detail": "Signed in {signedIn} · last used {lastSeen} · IP {ip}",
+      "revoke": "Sign out"
+    },
+    "errors": {
+      "unknown": "Something went wrong, please try again.",
+      "unauthorized": "Your session ended, please sign in again.",
+      "identity_invalid_credentials": "The current password is wrong.",
+      "identity_account_locked": "Locked after too many wrong attempts. Try again in 15 minutes.",
+      "identity_code_invalid": "Wrong or already used code.",
+      "identity_sign_in_expired": "The sign-in took too long, please sign in again.",
+      "identity_two_factor_already_enabled": "Two-step sign-in is already on.",
+      "identity_two_factor_not_enabled": "Two-step sign-in is off.",
+      "identity_two_factor_required": "Your role requires two-step sign-in.",
+      "identity_session_not_found": "Session not found.",
+      "identity_account_not_found": "Account not found.",
+      "identity_password_too_short": "The password needs at least 8 characters.",
+      "identity_password_too_long": "The password can be at most 128 characters.",
+      "identity_password_too_weak": "Use both letters and digits, and not a common password.",
+      "identity_password_unchanged": "The new password must differ from the current one."
     }
   }
 }

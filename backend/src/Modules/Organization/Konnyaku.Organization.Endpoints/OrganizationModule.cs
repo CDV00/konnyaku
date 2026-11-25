@@ -82,6 +82,6 @@ public sealed class OrganizationModule : IModule
                 ApiResults.From(await handlers.SetRoomActiveAsync(id, true, ct), Results.Ok))
             .RequirePermission(Permissions.Rooms);
 
-        group.MapChangeHistory<OrganizationDbContext>();
+        group.MapChangeHistory<OrganizationDbContext>(Permissions.Branches, Permissions.Rooms, Permissions.Holidays);
     }
 }
