@@ -21,6 +21,8 @@ public sealed class CrmModule : IModule
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddCrmInfrastructure(configuration, Name);
+        services.AddSingleton(configuration.GetSection(CaptchaOptions.Section).Get<CaptchaOptions>() ?? new CaptchaOptions());
+        services.AddScoped<CaptchaService>();
         services.AddScoped<SubmitLeadHandler>();
         services.AddScoped<LeadQueries>();
         services.AddScoped<ChangeLeadStatusHandler>();
@@ -31,6 +33,10 @@ public sealed class CrmModule : IModule
 
     public void MapEndpoints(RouteGroupBuilder group)
     {
+        // Proof-of-work challenge for the public form (tenant from host); 204 when the captcha is switched off.
+        group.MapGet("/public/captcha", (CaptchaService captcha) =>
+            captcha.Enabled ? ApiResults.From(captcha.Issue(), Results.Ok) : Results.NoContent());
+
         // Public registration form of the tenant site (tenant from host). Always 202 so bots learn nothing.
         group.MapPost("/public/leads", async (SubmitLeadCommand command, SubmitLeadHandler handler, CancellationToken ct) =>
                 ApiResults.From(await handler.HandleAsync(command, ct), _ => Results.Accepted()))

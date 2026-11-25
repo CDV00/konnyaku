@@ -21,6 +21,9 @@ x-backend-env: &backend-env
   Auth__SigningKey: ${AUTH_SIGNING_KEY:?}
   Platform__AdminKey: ${PLATFORM_ADMIN_KEY:?}
   Platform__BaseDomain: ${BASE_DOMAIN:?}
+  # HMAC key of the public-form captcha (proof of work); CAPTCHA_ENABLED=false only for a private test stack.
+  Captcha__Key: ${CAPTCHA_KEY:?}
+  Captcha__Enabled: ${CAPTCHA_ENABLED:-true}
 
 x-logging: &logging
   driver: json-file

@@ -26,6 +26,7 @@ done
 
 docker run -d --name kk-smoke-api -p 18080:8080 "${db_env[@]}" \
   -e Auth__SigningKey=smoke-test-signing-key-0123456789abcdef \
+  -e Captcha__Key=smoke-test-captcha-key-0123456789abcdef \
   -e Platform__AdminKey=smoke -e Platform__BaseDomain=localhost \
   "$prefix-api:$tag" > /dev/null
 docker run -d --name kk-smoke-web -p 13000:3000 "$prefix-web:$tag" > /dev/null

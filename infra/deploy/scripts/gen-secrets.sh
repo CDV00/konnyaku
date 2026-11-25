@@ -14,3 +14,5 @@ done
 echo "AUTH_SIGNING_KEY=$(secret 64)"
 # X-Platform-Key for platform operations (creating tenants); the API is not reachable from the internet.
 echo "PLATFORM_ADMIN_KEY=$(secret)"
+# HMAC key signing the proof-of-work captcha of public forms (>= 32 bytes), shared by every API replica.
+echo "CAPTCHA_KEY=$(secret 64)"

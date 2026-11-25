@@ -1,0 +1,26 @@
+{
+  "notFound": {
+    "title": "Không tìm thấy trang",
+    "body": "Trang bạn tìm có thể đã được đổi địa chỉ hoặc không còn nữa. Hãy kiểm tra lại đường dẫn hoặc quay về trang chủ.",
+    "home": "Về trang chủ",
+    "register": "Đăng ký tư vấn",
+    "zoneHome": "Về trang chính"
+  },
+  "error": {
+    "title": "Đã có lỗi xảy ra",
+    "body": "Hệ thống gặp sự cố khi hiển thị trang này. Bạn thử tải lại, nếu vẫn lỗi hãy quay lại sau ít phút.",
+    "retry": "Thử lại",
+    "home": "Về trang chủ",
+    "zoneHome": "Về trang chính",
+    "reference": "Mã tham chiếu: {digest}"
+  },
+  "unknownCenter": {
+    "title": "Không tìm thấy trung tâm",
+    "body": "Địa chỉ {host} chưa gắn với trung tâm nào. Hãy kiểm tra lại đường dẫn trung tâm gửi cho bạn, hoặc liên hệ trung tâm để được hỗ trợ."
+  },
+  "seo": {
+    "homeDescription": "{center}: khóa học ngoại ngữ trực tuyến và tại cơ sở, lớp nhỏ, kiểm tra trình độ và học thử miễn phí.",
+    "registerTitle": "Đăng ký tư vấn",
+    "registerDescription": "Để lại thông tin để {center} gọi lại tư vấn khóa học phù hợp, kiểm tra trình độ và học thử miễn phí."
+  }
+}

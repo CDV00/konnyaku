@@ -22,6 +22,7 @@ Usage: python infra/scripts/seed_review.py [--base-domain localhost]
 """
 import argparse
 import datetime as dt
+import hashlib
 import json
 import os
 import sys
@@ -52,6 +53,19 @@ def call(method, path, body=None, headers=None):
             return e.code, (json.loads(text) if text else None)
         except json.JSONDecodeError:
             return e.code, text
+
+
+def solve_captcha(headers):
+    """Solves the public-form proof of work like the browser does (None when the API has the captcha switched off)."""
+    status, challenge = call("GET", "/api/crm/public/captcha", None, headers)
+    if status == 204:
+        return None
+    if status != 200:
+        sys.exit(f"captcha challenge failed: {status} {challenge}")
+    for n in range(challenge["maxNumber"] + 1):
+        if hashlib.sha256(f"{challenge['salt']}{n}".encode()).hexdigest() == challenge["challenge"]:
+            return {"salt": challenge["salt"], "challenge": challenge["challenge"], "signature": challenge["signature"], "number": n}
+    sys.exit("captcha challenge has no solution")
 
 
 def must(result, what):
@@ -243,10 +257,10 @@ def main():
              ("Khách Vy (demo)", "zh-Hans", "Thi HSK 3"), ("Khách Nam (demo)", "ko", "Du học Hàn Quốc"),
              ("Khách Hòa (demo)", "en", "Tiếng Anh cho con 8 tuổi"), ("Khách Sơn (demo)", "ja", "JLPT N3")]
     for i, (name, lang, goal) in enumerate(leads, start=1):
-        call("POST", "/api/crm/public/leads", {
+        must(call("POST", "/api/crm/public/leads", {
             "studentName": name, "phone": f"+84 91 000 {i:04d}", "email": f"lead{i:02d}@review.example.com",
-            "languageCode": lang, "goal": goal, "preferredBranchId": q1["id"], "consentVersion": "2026-01",
-            "consentGiven": True, "locale": "vi"}, host)
+            "languageCode": lang, "goal": goal, "preferredBranchId": q1["id"], "consentVersion": "2026-11",
+            "consentGiven": True, "locale": "vi", "captcha": solve_captcha(host)}, host), "lead")
     consultant = {**host, "Authorization": f"Bearer {staff_token('consultant@review.example.com')}"}
     lead_rows = wait_for("leads", lambda: get("/api/crm/leads", "leads", consultant))
     for lead, status in zip(lead_rows, ["Contacted", "Contacted", "Converted", "Lost"]):

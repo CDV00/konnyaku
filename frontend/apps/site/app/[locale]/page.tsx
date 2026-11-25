@@ -1,9 +1,14 @@
-import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
+import type { Metadata } from "next";
+import { hasLocale } from "next-intl";
+import { getLocale, getTranslations } from "next-intl/server";
 import { ArrowRight, CalendarCheck, MessageCircleQuestion, PlayCircle, Sparkles } from "lucide-react";
 import { apiFetch, tenantInfo } from "@konnyaku/session";
 import { BubbleBackground } from "@konnyaku/ui/components/animate-ui/backgrounds/bubble";
 import { Fade } from "@konnyaku/ui/components/animate-ui/primitives/effects/fade";
 import { EmptyState } from "@konnyaku/ui/kk/blocks";
+import { routing } from "@/i18n/routing";
+import { pageMetadata } from "../seo";
+import { publicLocale } from "./guard";
 
 type Program = {
   id: string;
@@ -34,9 +39,16 @@ const steps = [
   { key: "learn", icon: PlayCircle },
 ] as const;
 
-export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
-  setRequestLocale(locale);
+  if (!hasLocale(routing.locales, locale)) return {};
+  const t = await getTranslations({ locale, namespace: "status.seo" });
+  const tenant = await tenantInfo();
+  return pageMetadata({ locale, href: "/", description: t("homeDescription", { center: tenant?.name ?? "" }), tenant });
+}
+
+export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
+  const locale = await publicLocale(params);
   const t = await getTranslations("site");
   const response = await apiFetch("/api/academic/public/programs");
   const programs = response.ok ? ((await response.json()) as Program[]) : [];
