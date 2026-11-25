@@ -1,4 +1,5 @@
 using Konnyaku.Academic.Contracts;
+using Konnyaku.Application.Authorization;
 using Konnyaku.Application.Messaging;
 using Konnyaku.Billing.Contracts;
 using Konnyaku.Crm.Contracts;
@@ -56,9 +57,7 @@ public sealed class NotificationModule : IModule
 
     public void MapEndpoints(RouteGroupBuilder group)
     {
-        var admin = group.MapGroup("").RequireAuthorization(p => p.RequireAuthenticatedUser()
-            .RequireClaim(KonnyakuClaims.Audience, Audiences.Staff)
-            .RequireRole("TenantAdmin"));
+        var admin = group.MapGroup("").RequirePermission(Permissions.Notifications);
 
         admin.MapGet("/messages", async (string? status, int? take, NotificationLog log, CancellationToken ct) =>
             Results.Ok(await log.ListAsync(status, take, ct)));
