@@ -123,7 +123,7 @@ public sealed class ScheduleClassHandler(
         {
             await db.SaveChangesAsync(ct);
         }
-        catch (DbUpdateException ex) when (errors.IsExclusionViolation(ex))
+        catch (DbUpdateException ex) when (errors.IsExclusionViolation(ex) || errors.IsDeadlock(ex))
         {
             return SchedulingErrors.ResourceConflict;
         }
@@ -270,7 +270,7 @@ public sealed class SessionChangeHandler(
             await db.SaveChangesAsync(ct);
             return session.ToDto();
         }
-        catch (DbUpdateException ex) when (errors.IsExclusionViolation(ex))
+        catch (DbUpdateException ex) when (errors.IsExclusionViolation(ex) || errors.IsDeadlock(ex))
         {
             return SchedulingErrors.ResourceConflict;
         }

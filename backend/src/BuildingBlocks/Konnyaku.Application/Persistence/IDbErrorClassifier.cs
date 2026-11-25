@@ -7,4 +7,10 @@ public interface IDbErrorClassifier
     bool IsExclusionViolation(Exception exception);
 
     bool IsUniqueViolation(Exception exception);
+
+    /// <summary>
+    /// The database aborted this transaction to break a deadlock. Two concurrent writes checking the same exclusion
+    /// constraint can end this way instead of with <see cref="IsExclusionViolation"/>: the other one won.
+    /// </summary>
+    bool IsDeadlock(Exception exception) => false;
 }
