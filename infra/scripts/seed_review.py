@@ -17,6 +17,8 @@ Creates tenant "review" (host review.<base domain>, e.g. http://review.localhost
 - the platform super-admin (console at http://admin.<base domain>:4000/platform), when none exists yet:
     OPERATOR_EMAIL / OPERATOR_PASSWORD, TOTP secret OPERATOR_TOTP_SECRET (add it to an authenticator app,
     or print the current code with: python infra/scripts/seed_review.py --totp)
+- two-step sign-in (TOTP) turned on for accountant@: the script prints its secret key (new on every run); add it to
+  an authenticator app or print the current code with: python infra/scripts/seed_review.py --totp <secret>
 
 Every API call goes to KONNYAKU_API (default http://localhost:5080) with the platform key KONNYAKU_PLATFORM_KEY
 (default dev-platform-key). The Worker must be running: enrollments, rooms, attendance and timesheets come from events.
@@ -112,10 +114,11 @@ def last_weekday_on_or_before(day, weekday):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-domain", default="localhost", help="Platform:BaseDomain of the API (default localhost)")
-    parser.add_argument("--totp", action="store_true", help="only print the current TOTP code of the dev super-admin")
+    parser.add_argument("--totp", nargs="?", const=OPERATOR_TOTP_SECRET, metavar="SECRET",
+                        help="only print the current TOTP code of a secret (default: the dev super-admin's)")
     args = parser.parse_args()
     if args.totp:
-        print(totp(OPERATOR_TOTP_SECRET))
+        print(totp(args.totp))
         return
     host = {"X-Tenant-Host": f"{SLUG}.{args.base_domain}"}
     platform = {"X-Platform-Key": PLATFORM_KEY}
@@ -347,11 +350,18 @@ def main():
     call("POST", "/api/hr/payroll-periods", {
         "from": first_this_month.isoformat(), "to": (next_month - dt.timedelta(days=1)).isoformat()}, admin)
 
+    # --- two-step sign-in for the accountant (the last step: the accountant signs in with a code from now on) --------
+    accountant = {**host, "Authorization": f"Bearer {staff_token('accountant@review.example.com')}"}
+    secret = must(call("POST", "/api/identity/me/2fa/setup", None, accountant), "2fa setup")["secret"]
+    must(call("POST", "/api/identity/me/2fa/enable", {"code": totp(secret)}, accountant), "2fa enable")
+
     print(f"tenant '{SLUG}' ready at http://{SLUG}.{args.base_domain}:4000")
     print(f"  {len(held_jp)} online + {len(held_en)} offline lessons held with confirmed attendance")
     print(f"  staff (password {STAFF_PASSWORD}): admin, manager, coordinator, consultant, accountant,")
     print("    accountant.hn (Cau Giay branch only), teacher.ja, teacher.en, teacher.zh  @review.example.com")
     print(f"  learners (password {LEARNER_PASSWORD}): hv-review01..hv-review12, parent ph-review01")
+    print(f"  accountant@ signs in with two-step sign-in, TOTP secret {secret}")
+    print(f"    current code: python infra/scripts/seed_review.py --totp {secret}")
     print(f"platform console at http://admin.{args.base_domain}:4000/platform")
     print(f"  {OPERATOR_EMAIL} / {OPERATOR_PASSWORD}, TOTP secret {OPERATOR_TOTP_SECRET} (code now: {totp(OPERATOR_TOTP_SECRET)})")
 

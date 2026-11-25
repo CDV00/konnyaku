@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { requireMe, tenantInfo } from "@konnyaku/session";
+import { SessionWatch } from "@konnyaku/session/session-watch";
 import { appFont } from "@konnyaku/ui/kk/font";
 import { Logo } from "@konnyaku/ui/kk/logo";
 import { AppProviders } from "@konnyaku/ui/kk/providers";
@@ -26,6 +27,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const links: NavLink[] = [
     { href: "/ops", label: t("nav.home"), icon: "home", exact: true },
     ...sections.map((section) => ({ href: `/ops/${section}`, label: t(`nav.${section}`), icon: section })),
+    ...(access.can("identity.accounts") ? [{ href: "/ops/security", label: t("nav.security"), icon: "security" as const }] : []),
     ...(access.any("notification.messages")
       ? [{ href: "/ops/notifications", label: t("nav.notifications"), icon: "notifications" as const }]
       : []),
@@ -40,8 +42,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               links={links}
               user={{ name: me.displayName, detail: me.roles.map((r) => (roles.has(r) ? roles(r) : r)).join(", ") }}
               logoutAction="/api/session/staff/logout"
-              labels={{ theme: shell("theme"), menu: shell("menu"), logout: shell("logout"), close: shell("close") }}
+              accountHref="/ops/account"
+              labels={{ theme: shell("theme"), menu: shell("menu"), logout: shell("logout"), close: shell("close"), account: shell("account") }}
             >
+              <SessionWatch realm="staff" />
               {children}
             </SidebarShell>
           </NextIntlClientProvider>

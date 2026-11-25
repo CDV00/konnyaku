@@ -3,8 +3,9 @@ import { ShieldCheck } from "lucide-react";
 import { requireMe } from "@konnyaku/session";
 import { ChangePasswordForm } from "./change-password-form";
 
-export default async function ChangePasswordPage() {
+export default async function ChangePasswordPage({ searchParams }: { searchParams: Promise<{ required?: string }> }) {
   await requireMe("learn");
+  const { required } = await searchParams;
   const t = await getTranslations("password");
   return (
     <div className="mx-auto max-w-md space-y-6 py-6">
@@ -13,7 +14,7 @@ export default async function ChangePasswordPage() {
           <ShieldCheck className="size-6" />
         </span>
         <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("required")}</p>
+        <p className="text-sm text-muted-foreground">{t(required === "1" ? "required" : "hint")}</p>
       </div>
       <div className="rounded-2xl border bg-card p-6 shadow-sm">
         <ChangePasswordForm />

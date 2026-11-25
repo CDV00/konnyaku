@@ -145,6 +145,8 @@ Ký hiệu: ✅ có và dùng được · 🟡 có một phần · ❌ chưa có
 | S3 | **Không khóa được tài khoản** | `MembershipStatus.Suspended` không được thao tác nào đặt |
 | S4 | **Endpoint mô phỏng buổi học tồn tại ở production** | `POST /api/workspace/dev/sessions/{id}/simulate` chỉ chặn theo provider (`Fake`), không theo môi trường: trung tâm đặt provider Fake có thể tự tạo dữ liệu tham gia, kéo theo điểm danh và công |
 
+S2, S3, S4 đã sửa trong P2 + P3 (phase 11 ở README): phiên đăng nhập thu hồi được, khoá tài khoản, endpoint mô phỏng chỉ bật ở Development.
+
 ## 9.4 Thiếu gì để đạt chuẩn production
 
 | Nhóm | Hiện có | Còn thiếu |

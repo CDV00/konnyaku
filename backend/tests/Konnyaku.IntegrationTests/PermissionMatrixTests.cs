@@ -133,7 +133,10 @@ public sealed class PermissionMatrixTests(PostgresFixture db) : IAsyncDisposable
         (await teacher.GetAsync("/api/crm/students", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         (await teacher.GetAsync("/api/crm/leads", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         (await c.Admin.GetFromJsonAsync<IdView[]>("/api/academic/classes", Ct))!.Length.ShouldBe(2);
-        (await teacher.GetAsync($"/api/academic/history/{classA}", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        // Change history may hold contact details: it needs a permission of the module, a teacher has none.
+        (await teacher.GetAsync($"/api/academic/history/{classA}", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await teacher.GetAsync($"/api/crm/history/{studentId}", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await accountant.GetAsync($"/api/academic/history/{classA}", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
         (await teacher.GetAsync("/api/identity/staff", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         (await accountant.GetAsync("/api/identity/staff", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
         (await teacher.PutAsJsonAsync($"/api/academic/classes/{classA}", classEdit, Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);

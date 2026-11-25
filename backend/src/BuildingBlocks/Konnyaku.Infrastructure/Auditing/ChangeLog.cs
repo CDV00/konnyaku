@@ -226,11 +226,20 @@ public static class ChangeHistoryEndpoints
     /// <c>GET /history/{id}</c>: the change log of a record and of everything logged under it, newest first.
     /// Any staff member may read it (teachers included); writing is checked where the change happens.
     /// </summary>
-    public static RouteHandlerBuilder MapChangeHistory<TContext>(this RouteGroupBuilder group) where TContext : ModuleDbContext
+    /// <summary>
+    /// Change history of a record. Old and new values may hold contact details, so it needs one of <paramref name="anyOf"/>
+    /// (the permissions that change the module's records), never just a staff sign-in.
+    /// </summary>
+    public static RouteHandlerBuilder MapChangeHistory<TContext>(this RouteGroupBuilder group, params string[] anyOf) where TContext : ModuleDbContext
     {
+        if (anyOf.Length == 0)
+        {
+            throw new ArgumentException("Name the permissions that may read this history.", nameof(anyOf));
+        }
+
         // A delegate variable (not a lambda) keeps the route analyzer away from the generic context type.
         Delegate handler = new Func<Guid, TContext, CancellationToken, Task<IResult>>(HistoryAsync);
-        return group.MapGet("/history/{id:guid}", handler).RequireAuthorization(Policies.Staff);
+        return group.MapGet("/history/{id:guid}", handler).RequirePermission(anyOf);
     }
 
     private static async Task<IResult> HistoryAsync<TContext>(Guid id, TContext db, CancellationToken ct) where TContext : ModuleDbContext =>

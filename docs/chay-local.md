@@ -86,7 +86,7 @@ Mở `http://review.localhost:4000/login`. Mật khẩu chung: nhân viên `Revi
 | Quản lý cơ sở (BranchManager) | `manager@review.example.com` | `/ops` | 3 cơ sở (Online, Quận 1, Cầu Giấy), phòng học, ngày nghỉ |
 | Điều phối (Coordinator) | `coordinator@review.example.com` | `/ops` | 5 lớp; lớp `KO-T1-ON3` chưa xếp lịch để thử xếp |
 | Tư vấn (Consultant) | `consultant@review.example.com` | `/ops` | Lead ở đủ trạng thái (mới, đã liên hệ, đã chuyển đổi, mất) |
-| Kế toán (Accountant) | `accountant@review.example.com` | `/ops` | Đơn đã trả, trả một nửa, chưa trả, một đơn chờ hoàn tiền vì lớp đầy và một đơn đã hoàn (phiếu chi `PC-000001`) |
+| Kế toán (Accountant) | `accountant@review.example.com` | `/ops` | Đơn đã trả, trả một nửa, chưa trả, một đơn chờ hoàn tiền vì lớp đầy và một đơn đã hoàn (phiếu chi `PC-000001`). **Đã bật xác thực 2 bước**: seed in ra khoá bí mật (mỗi lần seed một khoá mới); lấy mã 6 số hiện tại bằng `python infra/scripts/seed_review.py --totp <khoá>` hoặc thêm khoá vào ứng dụng xác thực |
 | Kế toán Cầu Giấy | `accountant.hn@review.example.com` | `/ops` | Kế toán giao theo cơ sở: chỉ thu tiền, hoàn tiền, in phiếu cho đơn của cơ sở Cầu Giấy |
 | Giáo viên tiếng Nhật | `teacher.ja@review.example.com` | `/teach` | Lớp online `JP-N5-ON1` đã học khoảng 4 tuần, điểm danh đã xác nhận, công tháng này |
 | Giáo viên tiếng Anh | `teacher.en@review.example.com` | `/teach` | Lớp offline `EN-A2-Q1` (phòng P101), điểm danh tay |
@@ -94,6 +94,12 @@ Mở `http://review.localhost:4000/login`. Mật khẩu chung: nhân viên `Revi
 | Học viên | `hv-review01` … `hv-review12` | `/learn` | `hv-review01`–`05`: lớp tiếng Nhật, số buổi đã trừ, video xem lại; `06`–`09`: lớp tiếng Anh offline; `10`: lớp tiếng Trung; `11`: đơn mới trả một nửa; `12`: đơn chưa trả |
 | Phụ huynh | `ph-review01` | `/learn` | Chưa gắn với học viên nào (tính năng liên kết phụ huynh chưa có) |
 
+Bảo mật tài khoản khi chạy local (`appsettings.Development.json` của Api):
+
+- `Auth:TwoFactor:Enforce` là `false`: Quản trị và Kế toán đăng nhập được bằng mật khẩu (để seed chạy). Muốn thử bắt buộc 2FA như production: chạy API với `Auth__TwoFactor__Enforce=true`.
+- Quên mật khẩu: email "Đặt lại mật khẩu" đi qua module Notification như mọi email khác (đọc trong Mailpit, Worker phải chạy); địa chỉ link theo `Notification:SiteUrlTemplate`. Nhật ký `/ops/notifications` không hiện link.
+- API cache kết quả kiểm tra phiên 30 giây (`Auth:SessionCacheSeconds`): khoá tài khoản hay đăng xuất ở nơi khác có hiệu lực trên process API khác trong tối đa chừng ấy thời gian; trang đang mở tự về trang đăng nhập trong khoảng một phút.
+- Endpoint mô phỏng buổi học (`/api/workspace/dev/...`) chỉ bật ở Development; nơi khác cần `Workspace__DevTools=true`.
 ### Người vận hành nền tảng (super-admin)
 
 `seed_review.py` cũng tạo người vận hành nền tảng đầu tiên (nếu database chưa có ai). Bảng điều khiển chỉ mở trên host quản trị `http://admin.localhost:4000/platform` (trên host trung tâm `/platform` trả 404):

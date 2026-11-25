@@ -30,7 +30,7 @@ export function ChangePasswordForm() {
       return;
     }
     const body = (await response.json().catch(() => ({}))) as { code?: string };
-    const key = `errors.${(body.code ?? "unknown").replace(".", "_")}`;
+    const key = `errors.${(body.code ?? "unknown").replaceAll(".", "_")}`;
     setError(t.has(key) ? t(key) : t("errors.unknown"));
     setPending(false);
   }

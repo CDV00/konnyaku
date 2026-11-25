@@ -139,6 +139,13 @@ Cũng trong trang của từng trung tâm: **tạm khóa / mở lại** (khi kh�
 
 Mặc định `admin.BASE_DOMAIN`. Muốn dùng host khác: đặt cùng một giá trị cho `Platform__AdminHost` (api, worker) và `KONNYAKU_ADMIN_HOST` (web) trong `compose.yaml`, và trỏ DNS host đó về server. Muốn hạn chế thêm theo IP (VPN văn phòng), thêm khối `@admin host admin.<domain>` + `remote_ip` trong `Caddyfile`.
 
+Bảo mật tài khoản ở production (mặc định, không cần đặt biến):
+
+- Quản trị và Kế toán **bắt buộc xác thực 2 bước**: lần đăng nhập đầu tiên, quản trị viên vừa tạo được hướng dẫn quét mã QR và lưu mã khôi phục. Tắt bắt buộc (không khuyến khích): `Auth__TwoFactor__Enforce=false`; đổi danh sách vai trò: `Auth__TwoFactor__RequiredRoles__0=…`.
+- Khoá TOTP lưu mã hoá AES-GCM bằng khoá suy ra từ `Auth__SecretKey` (nếu không đặt thì từ `Auth__SigningKey`). Đổi khoá này làm mọi 2FA đã bật không dùng được nữa.
+- Email quên mật khẩu gửi qua module Notification (cần SMTP như các email khác); link là `Notification:SiteUrlTemplate` của trung tâm + `/login/reset`. Link không được lưu lại sau khi gửi và không hiện trong nhật ký thông báo.
+- Endpoint mô phỏng buổi học (`/api/workspace/dev/...`) tắt; chỉ bật cho staging bằng `Workspace__DevTools=true`.
+
 ## Backup
 
 ```bash

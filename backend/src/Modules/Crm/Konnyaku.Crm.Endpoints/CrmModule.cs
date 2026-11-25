@@ -78,6 +78,6 @@ public sealed class CrmModule : IModule
             .RequirePermission(Permissions.Students);
 
         // Student and lead history holds old and new contact details: same audience as the records themselves.
-        group.MapChangeHistory<CrmDbContext>().RequirePermission(Permissions.Students, Permissions.Leads);
+        group.MapChangeHistory<CrmDbContext>(Permissions.Students, Permissions.Leads);
     }
 }

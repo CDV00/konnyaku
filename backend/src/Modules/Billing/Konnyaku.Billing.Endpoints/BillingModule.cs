@@ -43,12 +43,10 @@ public sealed class BillingModule : IModule
 
     public void MapEndpoints(RouteGroupBuilder group)
     {
-        var finance = group.MapGroup("").RequireAuthorization(p => p.RequireAuthenticatedUser()
-            .RequireClaim(KonnyakuClaims.Audience, Audiences.Staff)
-            .RequireRole("TenantAdmin", "Accountant"));
-        var sales = group.MapGroup("").RequireAuthorization(p => p.RequireAuthenticatedUser()
-            .RequireClaim(KonnyakuClaims.Audience, Audiences.Staff)
-            .RequireRole("TenantAdmin", "Accountant", "Consultant"));
+        // Live permissions (not the roles written in the token): a role removed a minute ago no longer counts.
+        // Revenue of every branch: center-wide only (a branch accountant handles the money of their branches).
+        var finance = group.MapGroup("").RequireCenterPermission(Permissions.Finance);
+        var sales = group.MapGroup("").RequirePermission(Permissions.Sales);
 
         // Packages are center-wide: a branch accountant reads them but does not change prices.
         var packages = group.MapGroup("").RequireCenterPermission(Permissions.Packages);
@@ -76,7 +74,7 @@ public sealed class BillingModule : IModule
             ApiResults.From(await handlers.VoidPaymentAsync(id, ct), Results.Ok));
         sales.MapGet("/orders/{id:guid}/payments", async (Guid id, BillingQueries queries, CancellationToken ct) =>
             Results.Ok(await queries.ListPaymentsAsync(id, ct)));
-        sales.MapChangeHistory<BillingDbContext>();
+        group.MapChangeHistory<BillingDbContext>(Permissions.Sales, Permissions.Orders, Permissions.Payments, Permissions.Packages);
         sales.MapPost("/orders", async (CreateOrderCommand command, OrderHandlers handlers, CancellationToken ct) =>
             ApiResults.From(await handlers.CreateOrderAsync(command, ct), o => Results.Created($"orders/{o.Id}", o)));
         sales.MapGet("/orders", async (Guid? studentId, string? status, BillingQueries queries, CancellationToken ct) =>

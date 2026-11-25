@@ -39,6 +39,13 @@ builder.Services.AddRateLimiter(options =>
             PermitLimit = context.RequestServices.GetRequiredService<IConfiguration>().GetValue("RateLimits:PublicFormsPerMinute", 10),
             Window = TimeSpan.FromMinutes(1),
         }));
+    options.AddPolicy(RateLimitPolicies.PasswordReset, context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = context.RequestServices.GetRequiredService<IConfiguration>().GetValue("RateLimits:PasswordResetPerMinute", 5),
+            Window = TimeSpan.FromMinutes(1),
+        }));
 });
 builder.Services.AddOpenApi();
 // Enums travel as names ("Online", "Regular") in requests and responses.
@@ -55,6 +62,8 @@ app.UseAuthentication();
 // /health is liveness for container health checks: it must not depend on PostgreSQL (tenant lookup).
 app.UseWhen(context => !context.Request.Path.StartsWithSegments("/health"),
     branch => branch.UseMiddleware<TenantResolutionMiddleware>());
+// After the tenant is known (sessions are tenant data): a revoked or expired sign-in session makes the token anonymous.
+app.UseMiddleware<SessionValidationMiddleware>();
 app.UseAuthorization();
 app.UseRateLimiter();
 

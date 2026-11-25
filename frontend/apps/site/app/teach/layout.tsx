@@ -10,7 +10,7 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const t = await getTranslations("teach");
   return (
-    <ZoneLayout realm="staff" zone={t("zone")} links={[{ href: "/teach", label: t("nav.home"), icon: "home", exact: true }]}>
+    <ZoneLayout realm="staff" zone={t("zone")} accountHref="/teach/account" links={[{ href: "/teach", label: t("nav.home"), icon: "home", exact: true }]}>
       {children}
     </ZoneLayout>
   );

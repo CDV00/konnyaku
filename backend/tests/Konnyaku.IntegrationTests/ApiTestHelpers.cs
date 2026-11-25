@@ -31,6 +31,10 @@ public sealed class KonnyakuApiFactory(PostgresFixture db, bool captcha = false)
         builder.UseSetting("Platform:AdminKey", PlatformKey);
         builder.UseSetting("Platform:BaseDomain", BaseDomain);
         builder.UseSetting("RateLimits:PublicFormsPerMinute", "1000");
+        builder.UseSetting("RateLimits:PasswordResetPerMinute", "1000");
+        // Seeded flows sign in with a password alone; AccountSecurityTests turn 2FA enforcement on where they test it.
+        builder.UseSetting("Auth:TwoFactor:Enforce", "false");
+        builder.UseSetting("Workspace:DevTools", "true");
         builder.UseSetting("Captcha:Enabled", captcha ? "true" : "false");
         builder.UseSetting("Captcha:Key", CaptchaKey);
         builder.UseSetting("Rtc:SignalingSecret", RtcSecret);
@@ -136,6 +140,7 @@ public sealed class KonnyakuApiFactory(PostgresFixture db, bool captcha = false)
 
 public sealed record TenantDto(Guid Id, string Slug, string Name, string DefaultLocale, string[] EnabledLocales, string TimeZone, string[] Hosts);
 
-public sealed record SignInDto(string AccessToken, string Audience, DateTimeOffset ExpiresAt, string DisplayName, string[] Roles, bool MustChangePassword);
+public sealed record SignInDto(string AccessToken, string Audience, DateTimeOffset ExpiresAt, string DisplayName, string[] Roles, bool MustChangePassword,
+    string? Challenge = null, string? NextStep = null);
 
 public sealed record ErrorDto(string Code);
