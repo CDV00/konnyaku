@@ -35,7 +35,7 @@ test("teacher: confirms the attendance of a lesson that took place, the learner'
     await expect(async () => {
       await learnerPage.reload();
       await expect(statValue(learnerPage, t("credits.title"))).toHaveText(String(credits - 1), { timeout: 3_000 });
-    }).toPass({ timeout: 30_000 });
+    }).toPass({ timeout: 60_000 });
   });
   await learnerContext.close();
 

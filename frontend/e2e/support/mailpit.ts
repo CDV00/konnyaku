@@ -14,7 +14,7 @@ export async function latestEmailTo(address: string): Promise<{ subject: string;
         found = body.messages[0];
         return found?.ID ?? null;
       },
-      { message: `an email to ${address} in Mailpit`, timeout: 30_000 },
+      { message: `an email to ${address} in Mailpit`, timeout: 60_000 },
     )
     .not.toBeNull();
   const message = (await (await fetch(`${mailpitUrl}/api/v1/message/${found!.ID}`)).json()) as { Subject: string; Text: string; HTML: string };

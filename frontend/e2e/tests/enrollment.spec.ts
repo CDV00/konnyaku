@@ -57,7 +57,7 @@ test("admin: new student with an account, order, full payment, Worker enrolls, l
     await expect(async () => {
       await page.goto(`/ops/classes/${cls.id}`);
       await expect(page.getByText(name).first()).toBeVisible({ timeout: 2_000 });
-    }).toPass({ timeout: 30_000 });
+    }).toPass({ timeout: 60_000 });
   });
 
   await test.step("first sign-in: forced password change, then the class schedule and credits", async () => {

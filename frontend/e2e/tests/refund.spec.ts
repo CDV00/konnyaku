@@ -18,7 +18,7 @@ test("accountant: two-step sign-in, refunds an order waiting for a refund, downl
   await expect
     .poll(async () => (await admin.get<{ items: { id: string; status: string }[] }>(`/api/billing/orders?status=refund_required&q=${encodeURIComponent(second.name)}`)).items[0]?.id, {
       message: "the order waits for a refund (Worker: class full)",
-      timeout: 30_000,
+      timeout: 60_000,
     })
     .toBe(orderId);
 

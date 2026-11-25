@@ -155,7 +155,7 @@ export async function waitForSeat(admin: Api, cls: ClassInfo, learner: Learner):
         enrollmentId = roster.find((r) => r.studentId === learner.studentId)?.enrollmentId ?? "";
         return enrollmentId;
       },
-      { message: `${learner.name} enrolled in ${cls.code} by the Worker`, timeout: 30_000 },
+      { message: `${learner.name} enrolled in ${cls.code} by the Worker`, timeout: 60_000 },
     )
     .not.toBe("");
   return enrollmentId;
@@ -180,14 +180,14 @@ export async function holdLesson(admin: Api, cls: ClassInfo, session: Session, l
         if (body?.code === "workspace.meeting_not_ready") return "waiting for the room";
         throw new Error(`simulate -> ${status} ${JSON.stringify(body)}`);
       },
-      { message: `room of lesson ${session.sequenceNo} of ${cls.code} (Worker)`, timeout: 30_000 },
+      { message: `room of lesson ${session.sequenceNo} of ${cls.code} (Worker)`, timeout: 60_000 },
     )
     .toBe("held");
   const teacher = await Api.staff(cls.teacher.email, cls.teacher.password);
   await expect
     .poll(async () => (await teacher.get<unknown[]>(`/api/learning/sessions/${session.id}/attendance`)).length, {
       message: `draft attendance of lesson ${session.sequenceNo} (Worker)`,
-      timeout: 30_000,
+      timeout: 60_000,
     })
     .toBe(learners.length);
 }

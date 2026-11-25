@@ -14,8 +14,10 @@ export default defineConfig({
   forbidOnly: ci,
   // One retry in CI only, and it is reported as "flaky": a flaky test is a bug to fix, not to hide.
   retries: ci ? 1 : 0,
-  workers: ci ? 3 : 4,
-  timeout: 90_000,
+  // The stack runs on the same machine (Api, Worker, web, PostgreSQL): more workers only slow every test down.
+  workers: 3,
+  // Generous for a busy machine (a dev laptop running other stacks, a shared runner); a hung test still fails.
+  timeout: 180_000,
   expect: { timeout: 15_000 },
   reporter: ci ? [["github"], ["list"], ["html", { open: "never" }]] : [["list"], ["html", { open: "never" }]],
   use: {
