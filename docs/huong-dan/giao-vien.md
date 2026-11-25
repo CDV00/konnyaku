@@ -39,7 +39,7 @@ Lớp **Tại cơ sở** không có nút **Vào lớp**: dạy tại phòng ghi 
 Mỗi buổi phải được giáo viên **xác nhận điểm danh**. Chỉ khi xác nhận, học viên mới bị trừ buổi và bạn mới có công (lớp tại cơ sở).
 
 1. Sau buổi học, bấm **Điểm danh** cạnh buổi đó trong **Lịch dạy sắp tới**.
-2. Trang **Điểm danh buổi …** liệt kê học viên của buổi, mỗi người một nhóm nút: **Có mặt**, **Đi muộn**, **Về sớm**, **Vắng**, **Vắng có phép**. Dòng trên cùng "… / … học viên có mặt" cập nhật ngay khi bạn chọn.
+2. Trang **Điểm danh buổi …** liệt kê học viên **có chỗ trong buổi**, mỗi người một nhóm nút: **Có mặt**, **Đi muộn**, **Về sớm**, **Vắng**, **Vắng có phép**. Dòng trên cùng "… / … học viên có mặt" cập nhật ngay khi bạn chọn.
 3. Kiểm tra và chỉnh lại từng người nếu cần.
 4. Bấm **Xác nhận điểm danh**.
 
@@ -47,15 +47,17 @@ Mỗi buổi phải được giáo viên **xác nhận điểm danh**. Chỉ khi
 
 ![Điểm danh lớp online với đề xuất từ phòng học](images/diem-danh-online.webp)
 
-**Lớp tại cơ sở**: không có dữ liệu phòng học, trang chỉ ghi "Chưa có dữ liệu từ phòng học. Bạn có thể xác nhận để điểm danh thủ công (mặc định vắng)." và nút **Xác nhận điểm danh**.
+**Lớp tại cơ sở**: không có dữ liệu phòng học, nên mọi học viên mặc định **Vắng**. Chọn **Có mặt** (hoặc trạng thái khác) cho từng người rồi bấm **Xác nhận điểm danh**.
 
 ![Điểm danh lớp tại cơ sở](images/diem-danh-tai-co-so.webp)
 
-> **Hạn chế của phiên bản này:** với lớp tại cơ sở, trang **chưa hiện danh sách học viên** để chọn từng người (lỗi đã ghi nhận). Bấm **Xác nhận điểm danh** sẽ ghi **mọi học viên là Vắng** (trừ người đang bảo lưu được ghi Vắng có phép) và trừ mỗi người một buổi; bạn được ghi công đủ buổi. Vì vắng không phép cũng bị trừ buổi, số buổi của học viên vẫn đúng với người có mặt; chỉ có trạng thái có mặt / vắng là chưa đúng. Trong lúc chờ sửa:
->
-> 1. Ghi giấy (hoặc nhắn giáo vụ) tên học viên vắng **có phép** của buổi.
-> 2. Bấm **Xác nhận điểm danh** sau buổi học.
-> 3. Gửi danh sách vắng có phép cho kế toán để **cộng lại 1 buổi** cho từng người (**Điều chỉnh buổi**, cùng loại buổi với dòng **Học** của buổi đó trong sổ, lý do "Vắng có phép buổi …").
+**Danh sách lấy từ chỗ đã đặt của buổi**:
+
+- học viên đã **xin nghỉ** đúng hạn hoặc đang **bảo lưu** không có trong danh sách (không bị trừ buổi);
+- học viên lớp khác đến **học bù** có nhãn **Học bù**; nhóm nút của họ là **Học bù** (có mặt), **Vắng**, **Vắng có phép**. Học bù có mặt trừ một buổi trong gói lớp gốc của học viên;
+- dưới tên mỗi người có biểu tượng hình thức học của buổi đó: **Online** hoặc **Tại lớp** (lớp kết hợp).
+
+![Điểm danh có học viên học bù](images/diem-danh-hoc-bu.webp)
 
 **Xác nhận chỉ làm được một lần, không sửa trên giao diện.** Ngay sau đó:
 

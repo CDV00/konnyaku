@@ -12,7 +12,13 @@
 | **Khung trình độ** | Thang đo năng lực: CEFR (A1–C2), JLPT (N5–N1), HSK, TOPIK, IELTS… |
 | **Cấp độ** | Một chặng của chương trình (ví dụ Sơ cấp N5) với số buổi, phút/buổi và trình độ đầu ra |
 | **Lớp** | Một nhóm học viên học một cấp độ ở một cơ sở, theo một lịch, với sĩ số tối đa |
-| **Hình thức** | Online (trực tuyến), Tại lớp (tại cơ sở), Kết hợp |
+| **Hình thức** | Online (trực tuyến), Tại lớp (tại cơ sở), Kết hợp (mỗi học viên chọn online hoặc tại cơ sở cho từng buổi) |
+| **Chỗ ngồi (của buổi)** | Chỗ của một học viên trong một buổi: online hoặc tại cơ sở. Danh sách điểm danh lấy từ chỗ ngồi |
+| **Xin nghỉ** | Học viên báo nghỉ một buổi trước hạn: không trừ buổi, nhận quyền học bù |
+| **Quyền học bù** | Quyền học một buổi cùng bài ở lớp khác, có hạn dùng |
+| **Học bù** | Buổi học ở lớp khác thay cho buổi đã xin nghỉ; có mặt thì trừ một buổi trong gói lớp gốc |
+| **Hàng chờ** | Danh sách chờ chỗ của một buổi đã đầy; chỗ trống được giữ có hạn cho người đầu hàng |
+| **Lớp linh hoạt** | Lớp không có lịch cố định cho từng học viên: mua gói rồi tự đặt từng buổi |
 | **Lịch tuần** | Các ngày trong tuần + giờ bắt đầu + giáo viên + phòng của lớp; hệ thống sinh các buổi từ đây |
 | **Buổi** | Một lần học cụ thể của lớp, gắn một bài theo thứ tự. Trạng thái: Đã xếp, Đã tạo phòng, Đang học, Đã học, Đã huỷ |
 | **Lead** (khách hàng tiềm năng) | Người để lại thông tin trên form đăng ký tư vấn, chưa là học viên. Trạng thái: Mới, Đã liên hệ, Đã nhập học, Không theo |

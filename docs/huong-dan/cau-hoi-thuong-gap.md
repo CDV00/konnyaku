@@ -60,6 +60,12 @@
 | "Lớp đã xếp lịch: đổi ngày bằng “Sửa lịch tuần”." | Ngày khai giảng khoá khi đã có lịch |
 | Thêm ngày nghỉ nhưng buổi học vẫn rơi vào ngày đó | Ngày nghỉ không tự dời buổi đã xếp. **Sửa lịch tuần** áp dụng từ trước ngày nghỉ |
 | Muốn đổi giờ / giáo viên một buổi | Chưa có; xem [Đổi lịch, đổi giáo viên](quy-trinh.md#4-đổi-lịch-đổi-giáo-viên) |
+| Học viên không thấy nút **Xin nghỉ** | Đã quá hạn xin nghỉ (mặc định 12 giờ trước buổi học), buổi là buổi học bù / lớp linh hoạt (dùng **Huỷ đặt**), hoặc đã xin nghỉ đủ số lần của khoá |
+| "Bạn đã xin nghỉ đủ … lần cho khoá này." | Đã dùng hết số lần xin nghỉ; nếu trung tâm đồng ý, giáo viên chọn **Vắng có phép** khi điểm danh |
+| **Chọn buổi học bù** trống | Không có lớp khác cùng cấp độ dạy bài đó còn chỗ trong hạn; bấm **Nhờ giáo vụ xếp** |
+| "Buổi này đã hết chỗ. Bạn có thể vào hàng chờ." | Bấm **Vào hàng chờ**; khi có người huỷ, chỗ được giữ 2 giờ ở đầu trang **Lịch học** |
+| Không thấy nút **Chuyển sang Tại cơ sở** | Phòng đã đủ chỗ, hoặc còn dưới 2 giờ trước buổi học |
+| Học viên đã xin nghỉ không có trong trang điểm danh | Đúng: buổi đã xin nghỉ không điểm danh, không trừ buổi |
 | Muốn thêm học viên vào lớp không qua đơn hàng (học thử, học bổng) | Chưa có; học viên chỉ vào lớp khi đơn gắn lớp được trả đủ |
 
 ## Quyền và dữ liệu

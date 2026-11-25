@@ -50,7 +50,7 @@ Mỗi trung tâm có một địa chỉ riêng (ví dụ `https://tentrungtam.ko
 | Khu vực | Đường dẫn | Ai dùng | Dùng để |
 | --- | --- | --- | --- |
 | Trang công khai | `/vi` (tiếng Việt), `/en` (tiếng Anh) | Khách, phụ huynh | Xem khoá học, đăng ký tư vấn, đọc chính sách, đăng nhập |
-| Học viên | `/learn` | Học viên, phụ huynh | Số buổi còn lại, lịch học, vào lớp, xem lại video, lịch sử thanh toán |
+| Học viên | `/learn` | Học viên, phụ huynh | Số buổi còn lại, lịch học, xin nghỉ, học bù, đặt buổi lớp linh hoạt, vào lớp, xem lại video, lịch sử thanh toán |
 | Giáo viên | `/teach` | Giáo viên | Lịch dạy, vào lớp, điểm danh, công tháng này |
 | Vận hành | `/ops` | Quản trị, quản lý cơ sở, điều phối, tư vấn, kế toán | Lead, học viên, thu phí, lớp, chương trình, nhân sự, cơ sở, kỳ lương, bảo mật, quyền riêng tư |
 
@@ -64,7 +64,8 @@ Người vận hành nền tảng Konnyaku dùng một địa chỉ riêng (`htt
 
 - Liên kết tài khoản phụ huynh với học viên (phụ huynh chưa xem được thông tin của con).
 - Đổi giờ, đổi giáo viên hay huỷ **từng buổi** (chỉ đổi được cả lịch tuần từ một ngày, xem [Đổi lịch, đổi giáo viên](quy-trinh.md#4-đổi-lịch-đổi-giáo-viên)).
-- Bảo lưu, chuyển lớp, học bù (chỉ có cho nghỉ hẳn bằng hoàn tiền, xem [Bảo lưu và nghỉ học](quy-trinh.md#5-bảo-lưu-và-nghỉ-học)).
+- Bảo lưu, chuyển lớp (chỉ có cho nghỉ hẳn bằng hoàn tiền, xem [Bảo lưu và nghỉ học](quy-trinh.md#5-bảo-lưu-và-nghỉ-học)). Xin nghỉ từng buổi và học bù đã có (xem [Học viên → Lịch học](hoc-vien.md#lịch-học-xin-nghỉ-học-bù-đổi-hình-thức)).
+- Email hay thông báo khi được mời từ hàng chờ (học viên thấy chỗ đang giữ trên trang **Lịch học**).
 - Thêm học viên vào lớp bằng tay (học viên chỉ vào lớp khi đơn hàng gắn lớp được trả đủ).
 - Sửa điểm danh sau khi đã xác nhận.
 - Thanh toán online, đăng nhập bằng Google, tự đăng ký tài khoản.
