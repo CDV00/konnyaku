@@ -2,7 +2,7 @@
 
 [← Mục lục](README.md)
 
-Cổng học viên (`/learn`) cho bạn biết còn bao nhiêu buổi, buổi kế tiếp lúc nào, có nút vào lớp online, video xem lại và lịch sử đóng học phí.
+Cổng học viên (`/learn`) cho bạn biết còn bao nhiêu buổi, buổi kế tiếp lúc nào, có nút vào lớp online, video xem lại và lịch sử đóng học phí. Mục **Lịch học** để xin nghỉ, đặt buổi bù, đổi học online / tại cơ sở và đặt buổi lớp linh hoạt.
 
 ## Đăng nhập lần đầu
 
@@ -31,6 +31,55 @@ Giờ học hiển thị theo giờ của trung tâm (cơ sở của lớp).
 Nếu số buổi âm, trang hiện dòng đỏ **Đang nợ … buổi — vui lòng gia hạn gói học.** Bạn vẫn học được, nhưng cần liên hệ trung tâm để mua gói mới. Khi chỉ còn 3 buổi trở xuống, bạn nhận email "Sắp hết buổi" (nếu hồ sơ có email).
 
 Thẻ **Cách dùng cổng học viên** ở đầu trang tóm tắt các việc trên; bấm **×** để ẩn, **Hướng dẫn nhanh** để hiện lại.
+
+## Lịch học: xin nghỉ, học bù, đổi hình thức
+
+Mục **Lịch học** liệt kê các buổi trong 60 ngày tới mà bạn có chỗ: buổi của lớp mình, buổi học bù và buổi đã đặt ở lớp linh hoạt. Mỗi buổi ghi lớp, số buổi, giờ, hình thức (**Trực tuyến** / **Tại cơ sở**) và trạng thái: **Đã đặt**, **Đã xin nghỉ**, **Đã học**, **Vắng**. Buổi học bù có thêm nhãn **Học bù**, buổi lớp linh hoạt có nhãn **Lớp linh hoạt**. Phụ huynh có nhiều con thấy thêm dòng "Cho …".
+
+![Lịch học của học viên](images/hoc-vien-lich-hoc.webp)
+
+### Xin nghỉ một buổi
+
+1. Ở buổi muốn nghỉ, bấm **Xin nghỉ**, rồi bấm **OK** để xác nhận.
+2. Buổi chuyển **Đã xin nghỉ**: buổi đó **không bị trừ**, và bạn nhận một **quyền học bù** trong khung **Quyền học bù**.
+
+Dưới mỗi buổi có dòng "Xin nghỉ trước …" cho biết hạn chót. Mặc định:
+
+- phải xin nghỉ **trước giờ học ít nhất 12 giờ**; quá hạn thì nút **Xin nghỉ** ẩn đi, dòng "Đã qua hạn xin nghỉ" hiện ra và nếu vắng, buổi vẫn bị trừ như bình thường;
+- mỗi khoá xin nghỉ **tối đa 3 lần**;
+- quyền học bù dùng trong **30 ngày**.
+
+Trung tâm có thể đổi các mốc này (xem [Quy tắc: xin nghỉ và học bù](quy-tac-nghiep-vu.md#xin-nghỉ-học-bù-và-chỗ-ngồi)).
+
+### Đặt buổi bù
+
+1. Trong khung **Quyền học bù**, ở quyền **Chưa dùng**, bấm **Đặt buổi bù**.
+2. Trang **Chọn buổi học bù** liệt kê các buổi **cùng bài** ở lớp khác (cùng chương trình, cùng cấp độ) trước khi quyền hết hạn, kèm số chỗ còn: online, tại cơ sở và chỗ học bù.
+3. Bấm **Đặt buổi này**. Lớp kết hợp có hai nút **Đặt (Tại cơ sở)** / **Đặt (Trực tuyến)**.
+
+![Chọn buổi học bù](images/hoc-vien-chon-buoi-bu.webp)
+
+Buổi bù hiện trong **Lịch học** với nhãn **Học bù** và có nút **Vào lớp** như buổi thường. Khi có mặt, buổi bù trừ **một buổi** trong gói của lớp mình.
+
+- Buổi đã hết chỗ ghi **Hết chỗ** và có nút **Vào hàng chờ**: khi có người huỷ, trung tâm giữ chỗ cho người đầu hàng **2 giờ**. Chỗ giữ hiện ở đầu trang **Lịch học** (khung **Chỗ đang giữ cho bạn**): bấm **Nhận chỗ** hoặc **Bỏ qua**. Hết 2 giờ không bấm thì chỗ chuyển cho người kế.
+- Không có buổi nào phù hợp: điền ghi chú (không bắt buộc) và bấm **Nhờ giáo vụ xếp**. Quyền học bù có nhãn **Đã nhờ giáo vụ xếp**; giáo vụ xếp tay rồi buổi hiện trong **Lịch học**.
+- Đổi ý: bấm **Huỷ đặt** ở buổi học bù (trước hạn xin nghỉ); quyền học bù quay lại để đặt buổi khác.
+
+### Đổi học online hoặc tại cơ sở (lớp kết hợp)
+
+Ở buổi của lớp **Kết hợp**, bấm **Chuyển sang Tại cơ sở** hoặc **Chuyển sang Trực tuyến**. Nút chỉ hiện khi hình thức kia **còn chỗ** và còn **trước giờ học 2 giờ**; dòng "Đổi trước … · còn … chỗ" cho biết hạn và số chỗ. Chỗ tại cơ sở không vượt sức chứa phòng học.
+
+### Lớp linh hoạt
+
+Lớp linh hoạt (câu lạc bộ nói, lớp giao tiếp) không có lịch cố định: bạn mua gói rồi tự đặt từng buổi.
+
+1. Trên **Lịch học**, bấm **Đặt buổi lớp linh hoạt** (chỉ hiện khi bạn đã ghi danh lớp linh hoạt).
+2. Trang **Lớp linh hoạt** liệt kê các buổi trong 4 tuần tới và số chỗ còn. Bấm **Đặt** ở buổi muốn học. Buổi đã đặt có nhãn **Đã đặt (…)** và nút **Huỷ đặt**.
+3. Buổi hết chỗ có nút **Vào hàng chờ**.
+
+![Lớp linh hoạt](images/hoc-vien-lop-linh-hoat.webp)
+
+Số buổi đặt trước không vượt số buổi còn trong gói; mỗi buổi có mặt trừ một buổi.
 
 ## Vào lớp online
 

@@ -6,7 +6,7 @@ Vai trò **Điều phối** lo lớp học và lịch: mở lớp, xếp lịch,
 
 | Được làm | Chỉ xem | Không có |
 | --- | --- | --- |
-| Lớp học: mở, sửa, xếp lịch, sửa lịch tuần, kết thúc, huỷ, mở lại. Phòng học, ngày nghỉ của cơ sở. Học viên: thêm, sửa, ngừng dùng, cấp tài khoản | Mọi lớp, chương trình, danh sách cơ sở | Lead, thu phí, nhân sự, kỳ lương, xuất CSV / in, bảo mật |
+| Lớp học: mở, sửa, xếp lịch, sửa lịch tuần, kết thúc, huỷ, mở lại. Phòng học, ngày nghỉ của cơ sở. Học bù: xếp tay, từ chối. Học viên: thêm, sửa, ngừng dùng, cấp tài khoản | Mọi lớp, chương trình, danh sách cơ sở, quy tắc đặt buổi, học viên xin nghỉ nhiều | Lead, thu phí, nhân sự, kỳ lương, xuất CSV / in, bảo mật, sửa quy tắc đặt buổi |
 
 ![Tổng quan của điều phối](images/dieu-phoi-tong-quan.webp)
 
@@ -19,7 +19,7 @@ Vai trò **Điều phối** lo lớp học và lịch: mở lớp, xếp lịch,
 ### Mở lớp
 
 1. Bấm **Mở lớp**.
-2. Điền **Mã** (duy nhất trong trung tâm), **Cấp độ** (theo chương trình), **Cơ sở** (lớp online chọn cơ sở Online), **Hình thức** (Online / Tại lớp / Kết hợp), **Sĩ số tối đa**, **Khai giảng**.
+2. Điền **Mã** (duy nhất trong trung tâm), **Cấp độ** (theo chương trình), **Cơ sở** (lớp online chọn cơ sở Online), **Hình thức** (Online / Tại lớp / Kết hợp), **Sĩ số tối đa**, **Khai giảng**, **Cách đặt buổi**: **Lịch cố định** (học viên của lớp học mọi buổi) hoặc **Linh hoạt (tự đặt buổi)** (học viên mua gói rồi tự đặt từng buổi, hợp với câu lạc bộ nói).
 3. Bấm **Lưu**. Lớp mới ở trạng thái **Đang tuyển** và chưa có lịch.
 
 ![Mở lớp](images/lop-hoc-mo-lop.webp)
@@ -55,7 +55,8 @@ Bấm **Sửa** trên trang chi tiết.
 
 ![Sửa lớp](images/lop-hoc-sua.webp)
 
-- **Mã**, **Hình thức** và **Sĩ số tối đa** đổi lúc nào cũng được. Sĩ số không nhỏ hơn số học viên đang giữ chỗ. Đổi hình thức (ví dụ Online → Tại lớp) áp cho mọi buổi chưa diễn ra.
+- **Mã**, **Hình thức** và **Sĩ số tối đa** đổi lúc nào cũng được. Sĩ số không nhỏ hơn số học viên đang giữ chỗ. Đổi hình thức (ví dụ Online → Tại lớp) áp cho mọi buổi chưa diễn ra; chỗ của học viên trong các buổi đó chuyển theo.
+- **Cách đặt buổi** chỉ đổi được khi lớp chưa có học viên.
 - **Cấp độ**, **Cơ sở**, **Khai giảng** chỉ đổi được **trước khi xếp lịch** (cấp độ còn cần lớp chưa có học viên); sau đó hiện "Đã khoá vì lớp đã xếp lịch hoặc có học viên". Muốn dời ngày bắt đầu khi đã có lịch: dùng **Sửa lịch tuần**.
 
 ### Sửa lịch tuần (đổi giờ, đổi ngày, đổi giáo viên, đổi phòng)
@@ -99,6 +100,32 @@ Ngày nghỉ chỉ được dùng khi **xếp** hoặc **xếp lại** lịch. B
 
 Điều phối thêm, sửa, ngừng dùng hồ sơ học viên và cấp tài khoản như mô tả ở [Khu vực Vận hành → Học viên](van-hanh-chung.md#học-viên).
 
-## Bảo lưu, chuyển lớp, học bù
+## Học bù và xin nghỉ
+
+Học viên tự xin nghỉ và tự đặt buổi bù trên cổng học viên (xem [Học viên → Lịch học](hoc-vien.md#lịch-học-xin-nghỉ-học-bù-đổi-hình-thức)). Mục **Học bù** ở thanh bên (ngay dưới **Lớp học**) dành cho các việc giáo vụ cần làm tay:
+
+![Màn Học bù và xin nghỉ](images/hoc-bu.webp)
+
+### Xếp học bù ngoại lệ
+
+Khung **Yêu cầu học bù cần xếp** liệt kê học viên không tìm được buổi cùng bài và đã bấm **Nhờ giáo vụ xếp**: học viên, lớp, buổi nghỉ, hạn quyền, ghi chú.
+
+1. Bấm **Xếp buổi bù**.
+2. Chọn **Buổi**: các buổi sắp tới cùng cấp độ ở lớp khác; buổi cùng bài ghi "cùng bài" và đứng đầu.
+3. Chọn **Hình thức** (để **Theo buổi học** nếu buổi chỉ có một hình thức), bấm **Xếp buổi bù**.
+
+![Xếp buổi bù bằng tay](images/hoc-bu-xep-tay.webp)
+
+Xếp tay được vượt số chỗ học bù của buổi và hạn của quyền học bù, nhưng buổi phải còn chỗ ngồi (báo "Buổi này đã hết chỗ." nếu đầy). Không xếp được thì bấm **Từ chối**: học viên không dùng quyền đó nữa.
+
+### Học viên xin nghỉ nhiều
+
+Khung **Học viên xin nghỉ nhiều** liệt kê học viên xin nghỉ **từ 2 lần trong 60 ngày** qua, kèm lớp, số lần và lần gần nhất: dấu hiệu sắp bỏ học, nên gọi hỏi thăm.
+
+### Quy tắc đặt buổi
+
+Khung **Quy tắc đặt buổi** cho xem các mốc đang áp dụng: hạn xin nghỉ, số lần xin nghỉ mỗi khoá, hạn quyền học bù, hạn đổi hình thức, số chỗ học bù mỗi buổi, thời gian giữ chỗ cho hàng chờ. Chỉ quản trị sửa được (xem [Quản trị → Quy tắc đặt buổi](quan-tri-trung-tam.md#quy-tắc-đặt-buổi)).
+
+## Bảo lưu, chuyển lớp
 
 Chưa có trên giao diện. Xem cách xử lý tạm thời ở [Quy trình: bảo lưu và nghỉ học](quy-trinh.md#5-bảo-lưu-và-nghỉ-học).

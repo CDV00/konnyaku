@@ -65,6 +65,7 @@ public sealed class AcademicDbContext(DbContextOptions<AcademicDbContext> option
             b.Property(x => x.Code).HasMaxLength(30);
             b.Property(x => x.TimeZone).HasMaxLength(64);
             b.Property(x => x.DeliveryMode).HasConversion<string>().HasMaxLength(20);
+            b.Property(x => x.BookingMode).HasConversion<string>().HasMaxLength(20);
             b.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
             b.HasIndex(x => new { x.TenantId, x.Code }).IsUnique();
             b.HasIndex(x => new { x.TenantId, x.BranchId, x.StartsOn });
@@ -77,6 +78,7 @@ public sealed class AcademicDbContext(DbContextOptions<AcademicDbContext> option
             b.HasKey(x => x.Id);
             b.Property(x => x.Type).HasConversion<string>().HasMaxLength(20);
             b.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+            b.Property(x => x.PreferredMode).HasMaxLength(20);
             b.Ignore(x => x.HoldsSeat);
             b.HasIndex(x => new { x.TenantId, x.ClassId });
             b.HasIndex(x => new { x.TenantId, x.StudentId });

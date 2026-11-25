@@ -22,6 +22,8 @@ Thanh bên của quản trị có thêm 3 mục **Quyền riêng tư**, **Bảo 
 | Lead | [Tư vấn](tu-van.md) |
 | Học viên | [Khu vực Vận hành → Học viên](van-hanh-chung.md#học-viên) |
 | Lớp, lịch | [Điều phối](dieu-phoi.md) |
+| Học bù ngoại lệ, học viên xin nghỉ nhiều | [Điều phối → Học bù và xin nghỉ](dieu-phoi.md#học-bù-và-xin-nghỉ) |
+| Quy tắc xin nghỉ, học bù, đổi hình thức | [Bên dưới](#quy-tắc-đặt-buổi) |
 | Gói học, đơn, thanh toán, hoàn tiền, kỳ lương | [Kế toán](ke-toan.md) |
 
 ## Cơ sở, phòng học, ngày nghỉ
@@ -96,6 +98,19 @@ Mở **Chương trình**. Mỗi chương trình là một thẻ: mã, tên, nhã
 | ![Thêm chương trình](images/chuong-trinh-them.webp) | ![Thêm cấp độ](images/cap-do-them.webp) |
 
 > Chưa có: bài học / giáo trình theo buổi, tài liệu, bài tập, bài kiểm tra.
+
+## Quy tắc đặt buổi
+
+Mục **Học bù** → khung **Quy tắc đặt buổi** → **Sửa quy tắc**. Áp dụng cho cả trung tâm, từ lúc lưu.
+
+| Ô | Mặc định | Nghĩa |
+| --- | --- | --- |
+| **Hạn xin nghỉ (giờ trước buổi học)** | 12 | Học viên xin nghỉ hoặc huỷ buổi đã đặt trước giờ học ít nhất chừng này giờ |
+| **Số lần xin nghỉ tối đa mỗi khoá** | 3 | Tính trên một ghi danh |
+| **Hạn dùng quyền học bù (ngày)** | 30 | Tính từ lúc xin nghỉ |
+| **Hạn đổi hình thức (giờ trước buổi học)** | 2 | Lớp kết hợp: đổi online / tại cơ sở |
+| **Chỗ học bù mỗi buổi** | 2 | Chỗ dành cho học viên lớp khác đến học bù, cộng thêm vào sĩ số; áp cho các buổi xếp lịch sau khi đổi |
+| **Giữ chỗ cho người trong hàng chờ (giờ)** | 2 | Thời gian chỗ trống được giữ cho người đầu hàng chờ |
 
 ## Bảo mật
 

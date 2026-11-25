@@ -6,12 +6,18 @@ Creates tenant "review" (host review.<base domain>, e.g. http://review.localhost
     teacher.ja@, teacher.en@, teacher.zh@ (Teacher, hourly rates set 90 days back)
 - learners hv-review01..hv-review12 (Student) and ph-review01 (Parent), password LEARNER_PASSWORD, no forced change
 - 3 branches (Online, Q1 HCM with 2 rooms, Ha Noi with 1 room), a branch holiday, Fake meeting provider with 3 hosts
-- 4 programs (Japanese JLPT, English CEFR, Chinese HSK, Korean TOPIK), 5 classes:
+- 4 programs (Japanese JLPT, English CEFR, Chinese HSK, Korean TOPIK), 9 classes:
     JP-N5-ON1  online, started 4 weeks ago   -> past sessions held on the Fake provider, attendance confirmed
     EN-A2-Q1   offline Q1 room, started 3 weeks ago -> past attendance taken by the teacher
     ZH-HSK1-HN offline Ha Noi, starts next week
     JP-N4-ON2  online, starts in 2 weeks, capacity 2 and full -> a third paid order waits for a refund
     KO-T1-ON3  online, no schedule yet (for the coordinator to schedule)
+    EN-A2-HY   hybrid Q1 room P102 (8 seats), starts next week: classroom and online seats, mode switches
+    EN-CLUB-FX flexible offline club (Saturday mornings): learners buy a package and book each session
+    ZH-HSK1-ON5 online, same level as ZH-HSK1-HN one day later: hosts a booked make-up
+    JP-N5-ON4  online, same level as JP-N5-ON1, starts next week: staff place exceptional make-ups there
+- bookings: hv-review10 took leave for ZH-HSK1-HN lesson 1 and booked the make-up in ZH-HSK1-ON5;
+  hv-review01 took leave twice in JP-N5-ON1 (frequent-leave list) and asked staff to place a make-up
 - packages, orders (paid, partially paid, unpaid, one refunded, one waiting for a refund), leads in every status
 - timesheets from the held sessions, last month's payroll period locked, this month's open
 - the platform super-admin (console at http://admin.<base domain>:4000/platform), when none exists yet:
@@ -168,7 +174,7 @@ def main():
     hn = post("/api/organization/branches", {
         "code": "HN-CG", "name": {"vi": "Cơ sở Cầu Giấy", "en": "Cau Giay campus"}, "timeZone": TZ, "isVirtual": False}, "branch")
     room_q1 = post(f"/api/organization/branches/{q1['id']}/rooms", {"code": "P101", "capacity": 12}, "room")
-    post(f"/api/organization/branches/{q1['id']}/rooms", {"code": "P102", "capacity": 8}, "room")
+    room_q1b = post(f"/api/organization/branches/{q1['id']}/rooms", {"code": "P102", "capacity": 8}, "room")
     room_hn = post(f"/api/organization/branches/{hn['id']}/rooms", {"code": "P201", "capacity": 10}, "room")
     post("/api/organization/holidays", {
         "date": (TODAY + dt.timedelta(days=45)).isoformat(), "name": {"vi": "Nghỉ bảo trì cơ sở", "en": "Campus maintenance"},
@@ -218,10 +224,10 @@ def main():
                  [("T1-A", "TOPIK1", "TOPIK I", "TOPIK I", 20)])
 
     # --- classes and schedules --------------------------------------------------------------------------------------
-    def klass(code, level, branch, mode, capacity, starts):
+    def klass(code, level, branch, mode, capacity, starts, booking_mode="Fixed"):
         return post("/api/academic/classes", {
             "code": code, "courseLevelId": level["id"], "branchId": branch["id"], "deliveryMode": mode,
-            "capacity": capacity, "startsOn": starts.isoformat()}, f"class {code}")
+            "capacity": capacity, "startsOn": starts.isoformat(), "bookingMode": booking_mode}, f"class {code}")
 
     def schedule(cls, days, start, teacher, room=None):
         return post(f"/api/scheduling/classes/{cls['id']}/schedule", {
@@ -232,12 +238,20 @@ def main():
     zh_hn = klass("ZH-HSK1-HN", zh["HSK1-A"], hn, "Offline", 10, TODAY + dt.timedelta(days=7))
     jp_on2 = klass("JP-N4-ON2", jp["N4-A"], online, "Online", 2, TODAY + dt.timedelta(days=14))
     klass("KO-T1-ON3", ko["T1-A"], online, "Online", 12, TODAY + dt.timedelta(days=21))
+    en_hy = klass("EN-A2-HY", en["A2-A"], q1, "Hybrid", 10, TODAY + dt.timedelta(days=7))
+    en_club = klass("EN-CLUB-FX", en["A2-A"], q1, "Offline", 6, TODAY + dt.timedelta(days=1), "Flexible")
+    zh_on5 = klass("ZH-HSK1-ON5", zh["HSK1-A"], online, "Online", 10, TODAY + dt.timedelta(days=7))
+    jp_on4 = klass("JP-N5-ON4", jp["N5-A"], online, "Online", 12, TODAY + dt.timedelta(days=7))
 
     # Days: 1 = Monday ... 7 = Sunday (same convention as the schedule API).
     jp_sessions = schedule(jp_on1, [2, 4], "19:00", teachers["ja"])
     en_sessions = schedule(en_q1, [1, 3, 5], "18:00", teachers["en"], room_q1["id"])
-    schedule(zh_hn, [6], "09:00", teachers["zh"], room_hn["id"])
+    zh_sessions = schedule(zh_hn, [6], "09:00", teachers["zh"], room_hn["id"])
     schedule(jp_on2, [3, 6], "20:00", teachers["ja"])
+    schedule(en_hy, [2, 4], "18:00", teachers["en"], room_q1b["id"])
+    club_sessions = schedule(en_club, [6], "10:00", teachers["en"], room_q1["id"])
+    zh_on5_sessions = schedule(zh_on5, [7], "09:00", teachers["zh"])
+    schedule(jp_on4, [1, 3], "17:00", teachers["ja"])
 
     # --- learners -----------------------------------------------------------------------------------------------------
     first_names = ["An", "Bình", "Chi", "Dũng", "Giang", "Hà", "Khoa", "Lan", "Minh", "Nga", "Phúc", "Quân"]
@@ -264,6 +278,7 @@ def main():
     pkg_jp = package("JP-24", "Gói tiếng Nhật 24 buổi", "Japanese, 24 lessons", 24, 2, 4800000)
     pkg_en = package("EN-30", "Gói tiếng Anh 30 buổi", "English, 30 lessons", 30, 0, 6000000)
     pkg_zh = package("ZH-20", "Gói tiếng Trung 20 buổi", "Chinese, 20 lessons", 20, 2, 3600000)
+    pkg_club = package("CLUB-8", "Câu lạc bộ nói 8 buổi", "Speaking club, 8 sessions", 8, 0, 1200000)
 
     def order(learner, pkg, cls, paid):
         o = post("/api/billing/orders", {"studentId": learner["student"], "packageId": pkg["id"], "classId": cls["id"]}, "order")
@@ -303,6 +318,42 @@ def main():
         return must(result, "refund")
     wait_for("refund", refund, 10)
 
+    # --- bookings: hybrid seats, flexible club, leave and make-ups ------------------------------------------------------
+    def learner_api(i):
+        token = must(call("POST", "/api/identity/learn/login", {"username": f"hv-review{i + 1:02d}", "password": LEARNER_PASSWORD},
+                          host), "learner login")["accessToken"]
+        return {**host, "Authorization": f"Bearer {token}"}
+
+    def bookings(as_):
+        return get("/api/scheduling/my/bookings", "bookings", as_)
+
+    # Hybrid class: P102 holds 8; staff enroll with each learner's preferred seat (Online / Offline).
+    for learner, mode in zip(learners[5:9], ["Offline", "Online", "Offline", None]):
+        post(f"/api/academic/classes/{en_hy['id']}/enrollments", {"studentId": learner["student"], "type": "Regular", "mode": mode},
+             "hybrid enrollment")
+    # Flexible club: a package per learner, then each books Saturday sessions one by one.
+    for learner in (learners[0], learners[5]):
+        order(learner, pkg_club, en_club, 1200000)
+    club_learner = learner_api(5)
+    wait_for("EN-CLUB-FX enrollment", lambda: get("/api/scheduling/my/flexible", "flexible", club_learner)["classes"])
+    for session in club_sessions[:2]:
+        post(f"/api/scheduling/my/sessions/{session['id']}/book", {}, "flexible booking", club_learner)
+
+    # hv-review10 asks leave for ZH-HSK1-HN lesson 1 and books the same lesson in ZH-HSK1-ON5 the next day.
+    zh_learner = learner_api(9)
+    first_zh = wait_for("ZH bookings", lambda: [b for b in bookings(zh_learner) if b["sessionId"] == zh_sessions[0]["id"]])[0]
+    leave = post(f"/api/scheduling/my/bookings/{first_zh['id']}/postpone", {}, "postpone", zh_learner)
+    post(f"/api/scheduling/my/makeups/{leave['entitlementId']}/book", {"sessionId": zh_on5_sessions[0]["id"]}, "book make-up",
+         zh_learner)
+
+    # hv-review01 asks leave for the next two JP-N5-ON1 lessons; no other class teaches them in time, so they ask staff.
+    jp_learner = learner_api(0)
+    upcoming = wait_for("JP bookings", lambda: [b for b in bookings(jp_learner) if b["kind"] == "Regular" and b["canPostpone"]
+                                               and b["classCode"] == "JP-N5-ON1"])
+    rights = [post(f"/api/scheduling/my/bookings/{b['id']}/postpone", {}, "postpone", jp_learner) for b in upcoming[:2]]
+    post(f"/api/scheduling/my/makeups/{rights[0]['entitlementId']}/request", {"note": "Em bận đi công tác, nhờ xếp lớp khác (demo)"},
+         "make-up request", jp_learner)
+
     # --- leads (public form, as a visitor would) ----------------------------------------------------------------------
     leads = [("Khách Lan (demo)", "ja", "Học giao tiếp để đi làm"), ("Khách Tú (demo)", "en", "IELTS 6.5"),
              ("Khách Vy (demo)", "zh-Hans", "Thi HSK 3"), ("Khách Nam (demo)", "ko", "Du học Hàn Quốc"),
@@ -334,7 +385,9 @@ def main():
             joined, left = (15, 90) if k == 3 else (0, 40) if (k == 2 and n % 3 == 0) else (0, 90)
             people.append({"userId": learner["user"], "displayName": learner["name"], "joinedMinute": joined, "leftMinute": left})
         wait_for("room for a past lesson", lambda s=session: _simulate(admin, s["id"], people))
-        wait_for("draft attendance", lambda s=session: get(f"/api/learning/sessions/{s['id']}/attendance", "attendance", teacher_ja))
+        # Before the meeting log arrives the roster shows unsaved rows; wait for the drafts made from it.
+        wait_for("draft attendance", lambda s=session: [a for a in get(f"/api/learning/sessions/{s['id']}/attendance", "attendance",
+                                                                       teacher_ja) if a["source"] == "Auto"])
         post(f"/api/learning/sessions/{session['id']}/attendance/confirm", {"overrides": None}, "confirm attendance", teacher_ja)
 
     # Offline class: no meeting log, so the teacher marks everyone (unmarked seats default to absent).
@@ -366,6 +419,7 @@ def main():
     print(f"  staff (password {STAFF_PASSWORD}): admin, manager, coordinator, consultant, accountant,")
     print("    accountant.hn (Cau Giay branch only), teacher.ja, teacher.en, teacher.zh  @review.example.com")
     print(f"  learners (password {LEARNER_PASSWORD}): hv-review01..hv-review12, parent ph-review01")
+    print("    hv-review01: leave + make-up request, hv-review06: hybrid seat + flexible club, hv-review10: booked make-up")
     print(f"  accountant@ signs in with two-step sign-in, TOTP secret {secret}")
     print(f"    current code: python infra/scripts/seed_review.py --totp {secret}")
     print(f"platform console at http://admin.{args.base_domain}:4000/platform")

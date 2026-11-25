@@ -11,7 +11,7 @@ Cách bật/tắt, cổng, biến môi trường: [docs/chay-local.md](../../doc
 | Đường dẫn | Nội dung |
 | --- | --- |
 | `tests/<luồng>.spec.ts` | Một file một luồng nghiệp vụ, đặt tên theo việc người dùng làm (`refund.spec.ts`, `password-reset.spec.ts`). Mỗi `test()` độc lập, chạy song song với các test khác |
-| `support/api.ts` | Tạo dữ liệu qua API (fixture): `Api.admin()`, `createStaff`, `createClass`, `createLearner`, `buyAndPay`, `waitForSeat`, `holdLesson`, `enableTwoFactor`… |
+| `support/api.ts` | Tạo dữ liệu qua API (fixture): `Api.admin()`, `Api.learner()`, `createStaff`, `createClass`, `createLearner`, `buyAndPay`, `waitForSeat`, `enroll`, `waitForBookings`, `holdLesson`, `enableTwoFactor`… |
 | `support/ui.ts` | Thao tác giao diện dùng chung: `signIn`, `fillLogin`, `signOut`, `openSheet`, `hydrated`, `statValue`, `fetchStatus` |
 | `support/i18n.ts` | `t("admin.billing.refund")`: chữ lấy từ catalog `packages/i18n/messages`, không gõ cứng |
 | `support/env.ts` | URL, tài khoản của seed, `uniqueTag()` |
@@ -60,7 +60,8 @@ Cách bật/tắt, cổng, biến môi trường: [docs/chay-local.md](../../doc
 
 - **Test tự tạo dữ liệu nó thay đổi**, qua API (`support/api.ts`), tên có `uniqueTag()`. Nhờ vậy test chạy song song và chạy lại được trên cùng database. Không sửa bản ghi của seed mà test khác đang đọc (ví dụ đừng hoàn tiền đơn có sẵn, đừng điểm danh lớp `JP-N5-ON1`).
 - Thiếu hàm tạo dữ liệu thì thêm vào `support/api.ts`, gọi đúng endpoint mà `seed_review.py` hoặc giao diện gọi. Cần dữ liệu nền mới cho mọi test (chương trình, gói học…) thì thêm vào `seed_review.py`.
-- Lớp: `createClass(admin, { mode: "Online" | "Offline", startedDaysAgo, capacity, schedule })` — giáo viên riêng, lớp online thêm một host vào pool, nên không trùng lịch với test khác. Buổi đã diễn ra trên provider Fake: `holdLesson(admin, cls, session, learners)`.
+- Lớp: `createClass(admin, { mode: "Online" | "Offline" | "Hybrid", startedDaysAgo, capacity, schedule, roomCapacity, bookingMode })` — giáo viên riêng, lớp online/kết hợp thêm một host vào pool, `roomCapacity` tạo phòng riêng (chỗ tại lớp không vượt sức chứa phòng), `startedDaysAgo` âm là lớp khai giảng sau vài ngày, `bookingMode: "Flexible"` là lớp tự đặt buổi. Buổi đã diễn ra trên provider Fake: `holdLesson(admin, cls, session, learners)`.
+- Ghi danh tay (không qua đơn): `enroll(admin, cls, learner, "Online" | "Offline")`; chờ Worker tạo chỗ ngồi trong các buổi: `waitForBookings(learner, cls)`; gọi API của học viên: `Api.learner(username)`.
 - Email (`*@example.com` theo quy tắc dự án): đọc bằng `latestEmailTo(address)`.
 
 ## Chờ cho đúng

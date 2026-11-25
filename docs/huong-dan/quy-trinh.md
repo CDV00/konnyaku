@@ -102,9 +102,9 @@ Sau khi sửa lịch tuần, học viên và giáo viên của các buổi bị 
 | Học viên nghỉ hẳn, không hoàn tiền | Một phần | **Ngừng dùng** hồ sơ (không mua / vào lớp mới được). Học viên vẫn nằm trong danh sách lớp; giáo viên điểm danh **Vắng có phép** để không trừ buổi, hoặc kế toán **Điều chỉnh buổi** trừ số buổi còn lại (ghi lý do) |
 | Bảo lưu (tạm nghỉ, giữ buổi) | **Chưa có** | Giáo viên điểm danh **Vắng có phép** cho học viên trong thời gian nghỉ (không trừ buổi). Khi học viên học lại ở lớp khác: kế toán **Điều chỉnh buổi** trừ ở đơn cũ, tạo đơn mới cho lớp mới và cộng lại bằng điều chỉnh (ghi rõ lý do ở cả hai) |
 | Chuyển lớp | **Chưa có** | Như trên |
-| Nghỉ một buổi có báo trước | Có | Giáo viên chọn **Vắng có phép** cho học viên khi điểm danh |
+| Nghỉ một buổi có báo trước | Có | Học viên bấm **Xin nghỉ** trên **Lịch học** trước giờ học 12 giờ: không trừ buổi, nhận quyền học bù, rồi **Đặt buổi bù** ở lớp khác cùng bài ([Học viên → Lịch học](hoc-vien.md#lịch-học-xin-nghỉ-học-bù-đổi-hình-thức)). Không có buổi cùng bài: học viên **Nhờ giáo vụ xếp**, giáo vụ xếp ở mục **Học bù** ([Điều phối](dieu-phoi.md#xếp-học-bù-ngoại-lệ)). Báo muộn hơn hạn: giáo viên chọn **Vắng có phép** khi điểm danh nếu trung tâm đồng ý |
 
-Hệ thống đã có trạng thái **Bảo lưu** trong danh sách lớp (học viên bảo lưu tự được ghi **Vắng có phép**), nhưng chưa có nút đặt bảo lưu trên giao diện.
+Hệ thống đã có trạng thái **Bảo lưu** trong danh sách lớp (học viên bảo lưu không có chỗ trong các buổi thuộc thời gian bảo lưu nên không bị trừ buổi), nhưng chưa có nút đặt bảo lưu trên giao diện.
 
 ## 6. Quên mật khẩu, khoá tài khoản, xác thực 2 bước
 

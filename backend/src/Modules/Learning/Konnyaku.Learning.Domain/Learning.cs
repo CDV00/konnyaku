@@ -107,6 +107,12 @@ public static class AttendancePolicy
     }
 
     public static bool IsBillable(AttendanceStatus status) => status is not (AttendanceStatus.ExcusedAbsent);
+
+    /// <summary>A make-up learner who attended (present, late or left early) is recorded as <see cref="AttendanceStatus.Makeup"/>.</summary>
+    public static AttendanceStatus ForBooking(string bookingKind, AttendanceStatus status) =>
+        bookingKind == "Makeup" && status is AttendanceStatus.Present or AttendanceStatus.Late or AttendanceStatus.LeftEarly
+            ? AttendanceStatus.Makeup
+            : status;
 }
 
 public enum RecordingAccessPolicy

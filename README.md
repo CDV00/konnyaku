@@ -44,7 +44,7 @@ python infra/scripts/seed_demo.py
 - Bảng điều khiển nền tảng (người vận hành Konnyaku): `http://admin.localhost:4000/platform`; tài khoản super-admin dev và secret TOTP trong [docs/chay-local.md](docs/chay-local.md) (tạo bởi `seed_review.py`).
 - API: `http://localhost:5080`, tài liệu API tại `/scalar`. Header `X-Platform-Key` (dev: `dev-platform-key`) chỉ dành cho script/seed tự động (tạo tenant, bootstrap); người vận hành dùng bảng điều khiển nền tảng.
 - Test backend: `cd backend && dotnet test --solution Konnyaku.slnx` (test tích hợp tự bật PostgreSQL bằng Testcontainers, cần Docker).
-- Test giao diện (Playwright, 8 luồng chính trên Chromium, stack riêng dựng từ đầu): `npx -y pnpm@10.34.9 --dir frontend e2e`; chi tiết trong [docs/chay-local.md](docs/chay-local.md#test-giao-diện-tự-động-playwright). CI chạy trong job `e2e`.
+- Test giao diện (Playwright, 11 luồng chính trên Chromium, stack riêng dựng từ đầu): `npx -y pnpm@10.34.9 --dir frontend e2e`; chi tiết trong [docs/chay-local.md](docs/chay-local.md#test-giao-diện-tự-động-playwright). CI chạy trong job `e2e`.
 - Thêm module mới: thêm dòng role/schema trong `infra/docker/postgres/init/01-modules.sql` rồi tạo lại volume dev (`docker compose ... down -v`).
 - Giao diện: package `frontend/packages/ui` (`@konnyaku/ui`) — Tailwind v4 (giữ 4.1.x vì Node 20.18 chưa hỗ trợ `require(esm)`), token màu sáng/tối trong `src/styles/globals.css`, component [animate-ui](https://animate-ui.com) + shadcn/ui chép vào `src/components` (code vendored, sửa tối thiểu), component riêng của Konnyaku trong `src/kk` (khung trang, thẻ thống kê, field, logo). Thêm component: `cd frontend/packages/ui && npx shadcn@latest add @animate-ui/<tên>` (registry khai báo trong `components.json`); sau đó kiểm tra import `cn` trỏ về `@konnyaku/ui/lib/utils`.
 
@@ -87,6 +87,7 @@ Hướng dẫn sử dụng cho người dùng cuối (trung tâm mới, quản t
 | [7. Đa trung tâm, đa cơ sở, đa ngôn ngữ](docs/07-multi-tenant-multi-language.md) | **Nguồn duy nhất** về quy tắc đa tenant; identity xuyên tenant, RLS, cấu hình kế thừa, khung năng lực, i18n, đăng nhập 2 tab & trang công khai |
 | [8. Đề xuất cải tiến](docs/08-de-xuat-cai-tien.md) | Việc nên làm tiếp (11/2026), xếp theo giá trị và công sức, để chọn đưa vào roadmap |
 | [9. Rà soát và kế hoạch production](docs/09-ra-soat-va-ke-hoach-production.md) | Đủ / thiếu theo từng vai trò, lỗi cần sửa ngay, khoảng cách tới chuẩn production, kế hoạch 4 giai đoạn |
+| [10. Học tập và đánh giá](docs/10-hoc-tap-va-danh-gia.md) | Đặt buổi, học bù, tự điểm danh, bài kiểm tra 4 kỹ năng, bài tập và chấm chéo, tài liệu, nhắn tin thời gian thực; đề xuất thêm và thứ tự làm |
 | [Xử lý dữ liệu cá nhân](docs/xu-ly-du-lieu-ca-nhan.md) | Che theo vai trò, nhật ký truy cập, xuất/in có kiểm soát, yêu cầu của chủ thể dữ liệu, ẩn danh hoá, lưu giữ (Nghị định 13/2023, Luật BVDLCN) |
 
 ## Thuật ngữ

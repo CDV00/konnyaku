@@ -159,6 +159,133 @@ namespace Konnyaku.Scheduling.Infrastructure.Migrations
                     b.ToTable("outbox_message", "scheduling");
                 });
 
+            modelBuilder.Entity("Konnyaku.Scheduling.Domain.BookingSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("EntitlementDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("entitlement_days");
+
+                    b.Property<int>("MakeupSeatsPerSession")
+                        .HasColumnType("integer")
+                        .HasColumnName("makeup_seats_per_session");
+
+                    b.Property<int>("MaxPostponesPerEnrollment")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_postpones_per_enrollment");
+
+                    b.Property<int>("ModeSwitchDeadlineHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("mode_switch_deadline_hours");
+
+                    b.Property<int>("PostponeDeadlineHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("postpone_deadline_hours");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<int>("WaitlistHoldHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("waitlist_hold_hours");
+
+                    b.HasKey("Id")
+                        .HasName("pk_booking_settings");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_booking_settings_tenant_id");
+
+                    b.ToTable("booking_settings", "scheduling");
+                });
+
+            modelBuilder.Entity("Konnyaku.Scheduling.Domain.MakeupEntitlement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ClassId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("class_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeclinedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("declined_at");
+
+                    b.Property<Guid>("EnrollmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("enrollment_id");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<Guid?>("LessonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lesson_id");
+
+                    b.Property<string>("RequestNote")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("request_note");
+
+                    b.Property<DateTimeOffset?>("RequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("requested_at");
+
+                    b.Property<Guid>("SourceBookingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_booking_id");
+
+                    b.Property<Guid>("SourceSessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_session_id");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("student_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid?>("UsedByBookingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("used_by_booking_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_makeup_entitlement");
+
+                    b.HasIndex("TenantId", "RequestedAt")
+                        .HasDatabaseName("ix_makeup_entitlement_tenant_id_requested_at");
+
+                    b.HasIndex("TenantId", "SourceBookingId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_makeup_entitlement_tenant_id_source_booking_id");
+
+                    b.HasIndex("TenantId", "StudentId", "ExpiresAt")
+                        .HasDatabaseName("ix_makeup_entitlement_tenant_id_student_id_expires_at");
+
+                    b.ToTable("makeup_entitlement", "scheduling");
+                });
+
             modelBuilder.Entity("Konnyaku.Scheduling.Domain.ResourceBooking", b =>
                 {
                     b.Property<Guid>("Id")
@@ -361,6 +488,225 @@ namespace Konnyaku.Scheduling.Infrastructure.Migrations
                         .HasDatabaseName("ix_session_tenant_id_class_id_starts_at");
 
                     b.ToTable("session", "scheduling");
+                });
+
+            modelBuilder.Entity("Konnyaku.Scheduling.Domain.SessionBooking", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ClassId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("class_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("EnrollmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("enrollment_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("mode");
+
+                    b.Property<Guid?>("PlacedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("placed_by");
+
+                    b.Property<DateTimeOffset?>("PostponedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("postponed_at");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("session_id");
+
+                    b.Property<Guid?>("SourceBookingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_booking_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("student_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_session_booking");
+
+                    b.HasIndex("TenantId", "EnrollmentId", "Status")
+                        .HasDatabaseName("ix_session_booking_tenant_id_enrollment_id_status");
+
+                    b.HasIndex("TenantId", "SessionId", "StudentId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_session_booking_tenant_id_session_id_student_id");
+
+                    b.HasIndex("TenantId", "StudentId", "Status")
+                        .HasDatabaseName("ix_session_booking_tenant_id_student_id_status");
+
+                    b.ToTable("session_booking", "scheduling");
+                });
+
+            modelBuilder.Entity("Konnyaku.Scheduling.Domain.SessionSeat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("MakeupBooked")
+                        .HasColumnType("integer")
+                        .HasColumnName("makeup_booked");
+
+                    b.Property<int>("MakeupCapacity")
+                        .HasColumnType("integer")
+                        .HasColumnName("makeup_capacity");
+
+                    b.Property<int>("OfflineBooked")
+                        .HasColumnType("integer")
+                        .HasColumnName("offline_booked");
+
+                    b.Property<int>("OfflineCapacity")
+                        .HasColumnType("integer")
+                        .HasColumnName("offline_capacity");
+
+                    b.Property<int>("OnlineBooked")
+                        .HasColumnType("integer")
+                        .HasColumnName("online_booked");
+
+                    b.Property<int>("OnlineCapacity")
+                        .HasColumnType("integer")
+                        .HasColumnName("online_capacity");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("session_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_session_seat");
+
+                    b.HasIndex("TenantId", "SessionId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_session_seat_tenant_id_session_id");
+
+                    b.ToTable("session_seat", "scheduling", t =>
+                        {
+                            t.HasCheckConstraint("ck_session_seat_counts", "online_booked >= 0 AND offline_booked >= 0 AND makeup_booked >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("Konnyaku.Scheduling.Domain.SessionWaitlistEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("EnrollmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("enrollment_id");
+
+                    b.Property<Guid?>("EntitlementId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entitlement_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("mode");
+
+                    b.Property<DateTimeOffset?>("OfferExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("offer_expires_at");
+
+                    b.Property<DateTimeOffset?>("OfferedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("offered_at");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("session_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("student_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_session_waitlist");
+
+                    b.HasIndex("Status", "OfferExpiresAt")
+                        .HasDatabaseName("ix_session_waitlist_status_offer_expires_at");
+
+                    b.HasIndex("TenantId", "SessionId", "StudentId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_session_waitlist_tenant_id_session_id_student_id")
+                        .HasFilter("status IN ('Waiting', 'Offered')");
+
+                    b.HasIndex("TenantId", "SessionId", "Status", "CreatedAt")
+                        .HasDatabaseName("ix_session_waitlist_tenant_id_session_id_status_created_at");
+
+                    b.ToTable("session_waitlist", "scheduling");
                 });
 #pragma warning restore 612, 618
         }

@@ -18,6 +18,7 @@ type Pattern = { daysOfWeek: number[]; startTime: string; teacherId: string | nu
 
 const isoDays = [1, 2, 3, 4, 5, 6, 7] as const;
 const deliveryModes = ["Online", "Offline", "Hybrid"] as const;
+const bookingModes = ["Fixed", "Flexible"] as const;
 
 export default async function ClassPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -110,7 +111,7 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
           </span>
         }
         description={t("classes.summary", {
-          mode: t(`modes.${cls.deliveryMode}`),
+          mode: cls.bookingMode === "Flexible" ? `${t(`modes.${cls.deliveryMode}`)} · ${t("bookingModes.Flexible")}` : t(`modes.${cls.deliveryMode}`),
           enrolled: cls.enrolledCount,
           capacity: cls.capacity,
           startsOn: cls.startsOn,
@@ -170,6 +171,11 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
                       ) : (
                         <Input name="startsOn" type="date" required defaultValue={cls.startsOn} />
                       )}
+                    </Field>
+                    <Field label={t("classes.bookingMode")} hint={t("classes.bookingModeHint")}>
+                      <NativeSelect name="bookingMode" defaultValue={cls.bookingMode ?? "Fixed"}>
+                        {bookingModes.map((m) => <option key={m} value={m}>{t(`bookingModes.${m}`)}</option>)}
+                      </NativeSelect>
                     </Field>
                   </ActionForm>
                 </FormSheet>

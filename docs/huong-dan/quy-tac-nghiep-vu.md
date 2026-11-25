@@ -16,7 +16,8 @@ Sau buổi học online, hệ thống đề xuất trạng thái từ thời gia
 | Vào phòng muộn **hơn 10 phút** so với giờ bắt đầu | **Đi muộn** |
 | Có mặt **từ 70%** thời lượng trở lên | **Có mặt** |
 | Có mặt từ 30% đến dưới 70% | **Về sớm** |
-| Học viên đang **bảo lưu** | **Vắng có phép** |
+
+Học viên **học bù** có mặt (Có mặt, Đi muộn hay Về sớm) được ghi **Học bù**. Học viên đã xin nghỉ hoặc đang bảo lưu không có trong danh sách điểm danh của buổi.
 
 Ví dụ buổi 90 phút: vào đúng giờ, ở 90 phút → Có mặt; vào phút thứ 18, ở 72 phút → Đi muộn; ở 20 phút → Vắng.
 
@@ -29,10 +30,12 @@ Khi giáo viên xác nhận điểm danh, mỗi học viên bị trừ **1 buổ
 | Trạng thái | Trừ buổi? |
 | --- | --- |
 | Có mặt, Đi muộn, Về sớm | Có |
+| **Học bù** | Có, trừ vào gói của lớp gốc của học viên |
 | **Vắng** (không phép) | **Có** |
 | **Vắng có phép** | Không |
+| Đã **xin nghỉ** đúng hạn (không có trong danh sách) | Không |
 
-Muốn học viên báo nghỉ không bị trừ: giáo viên chọn **Vắng có phép** cho học viên đó trước khi xác nhận.
+Muốn học viên báo nghỉ không bị trừ: học viên tự **Xin nghỉ** trên cổng học viên trước hạn (xem bên dưới), hoặc giáo viên chọn **Vắng có phép** cho học viên đó trước khi xác nhận.
 
 ### Thứ tự trừ: buổi trả phí trước, buổi tặng sau
 
@@ -47,6 +50,24 @@ Khi số buổi còn lại của một đơn **từ 3 trở xuống**, học vi�
 ### Sổ buổi học chỉ ghi thêm
 
 Mọi thay đổi số buổi (mua, tặng, học, hoàn, điều chỉnh) là một **dòng mới** trong sổ buổi học; không dòng nào bị sửa hay xoá. Điểm danh nhầm hay cần tặng thêm thì kế toán ghi **Điều chỉnh buổi** (xem [Kế toán → Sổ buổi học](ke-toan.md#sổ-buổi-học)).
+
+## Xin nghỉ, học bù và chỗ ngồi
+
+Mỗi buổi có **chỗ ngồi** riêng: danh sách học viên của buổi lấy từ chỗ đã đặt, không phải từ danh sách lớp.
+
+| Quy tắc | Mặc định |
+| --- | --- |
+| Số chỗ online của buổi | Sĩ số tối đa + chỗ học bù |
+| Số chỗ tại cơ sở | Như trên nhưng **không vượt sức chứa phòng**; lớp kết hợp có cả hai loại chỗ |
+| Học viên lớp kết hợp | Ngồi tại cơ sở khi phòng còn chỗ, hết chỗ thì học online (trừ khi đã chọn online) |
+| Xin nghỉ | Trước giờ học **12 giờ**, tối đa **3 lần** mỗi khoá; buổi không bị trừ, nhận một quyền học bù |
+| Quyền học bù | Dùng trong **30 ngày**, ở buổi **cùng bài** của lớp khác cùng cấp độ, khi buổi còn **chỗ học bù** (mặc định 2 chỗ mỗi buổi); không có thì nhờ giáo vụ xếp tay |
+| Đổi hình thức (lớp kết hợp) | Trước giờ học **2 giờ**, khi hình thức kia còn chỗ |
+| Hàng chờ | Khi có người huỷ, chỗ được giữ **2 giờ** cho người đầu hàng; không nhận thì chuyển người kế |
+| Lớp linh hoạt | Không có lịch cố định; học viên đặt từng buổi trong 4 tuần tới, không vượt số buổi còn trong gói |
+| Buổi bị huỷ hoặc lớp kết thúc | Chỗ của mọi người bị huỷ; quyền học bù đã dùng ở buổi đó được trả lại |
+
+Hai học viên cùng đặt chỗ cuối cùng một lúc: chỉ một người được, người kia nhận "Buổi này đã hết chỗ". Quản trị đổi các mốc trên ở [Quy tắc đặt buổi](quan-tri-trung-tam.md#quy-tắc-đặt-buổi).
 
 ## Ghi danh và sĩ số
 
@@ -108,6 +129,8 @@ Một người có thể giữ nhiều vai trò; quyền là hợp của các va
 | Học viên: xem danh sách (liên hệ che) | ✓ | ✓ | ✓ | ✓ | ✓ | |
 | Xuất CSV, in danh sách học viên / lead | ✓ | ✓ | | | | |
 | Lớp, lịch: mở, xếp, sửa, kết thúc | ✓ | ✓ (cơ sở mình) | ✓ (cơ sở mình) | | | |
+| Học bù: xếp tay, từ chối; xem học viên xin nghỉ nhiều | ✓ | ✓ (cơ sở mình) | ✓ (cơ sở mình) | | | |
+| Sửa quy tắc đặt buổi | ✓ | | | | | |
 | Lớp: xem mọi lớp | ✓ | ✓ | ✓ | ✓ | ✓ | |
 | Phòng học, ngày nghỉ cơ sở | ✓ | ✓ (cơ sở mình) | ✓ (cơ sở mình) | | | |
 | Cơ sở, ngày nghỉ toàn trung tâm | ✓ | | | | | |

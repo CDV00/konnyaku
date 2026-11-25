@@ -39,6 +39,11 @@ export class Api {
   }
 
   static admin = () => Api.staff(seed.admin);
+
+  static async learner(username: string, password: string = seed.learnerPassword): Promise<Api> {
+    const signIn = await new Api().post<{ accessToken: string }>("/api/identity/learn/login", { username, password });
+    return new Api(signIn.accessToken);
+  }
 }
 
 type Branch = { id: string; code: string };
@@ -92,32 +97,73 @@ export async function seedPackage(admin: Api, code = "ZH-20"): Promise<Package> 
 
 /**
  * A class of its own, Chinese HSK 1 (20 lessons, daily at 07:00), with a teacher of its own so no booking clashes with
- * other tests. Offline: Quận 1 campus without a room. Online: the Online campus on the Fake meeting provider, with one
- * more host in the pool for it. `startedDaysAgo` > 0 gives lessons that already took place.
+ * other tests. Offline / Hybrid: Quận 1 campus, in a room of its own when `roomCapacity` is set (classroom seats never
+ * exceed it). Online: the Online campus on the Fake meeting provider, with one more host in the pool for it.
+ * `startedDaysAgo` > 0 gives lessons that already took place; < 0 a class starting in that many days. `bookingMode`
+ * "Flexible": no fixed roster, learners book each session.
  */
 export async function createClass(
   admin: Api,
-  options: { capacity?: number; startedDaysAgo?: number; schedule?: boolean; mode?: "Offline" | "Online" } = {},
+  options: {
+    capacity?: number;
+    startedDaysAgo?: number;
+    schedule?: boolean;
+    mode?: "Offline" | "Online" | "Hybrid";
+    roomCapacity?: number;
+    bookingMode?: "Fixed" | "Flexible";
+  } = {},
 ): Promise<ClassInfo> {
-  const { capacity = 20, startedDaysAgo = 0, schedule = true, mode = "Offline" } = options;
+  const { capacity = 20, startedDaysAgo = 0, schedule = true, mode = "Offline", roomCapacity, bookingMode = "Fixed" } = options;
   const tag = uniqueTag().toUpperCase();
   const teacher = await createStaff(admin, ["Teacher"], "teacher");
-  if (mode === "Online") await admin.post("/api/workspace/hosts", { email: `e2e.host.${tag.toLowerCase()}@example.com` });
+  if (mode !== "Offline") await admin.post("/api/workspace/hosts", { email: `e2e.host.${tag.toLowerCase()}@example.com` });
+  const campus = await branch(admin, mode === "Online" ? "ONLINE" : "HCM-Q1");
+  const room = roomCapacity === undefined
+    ? null
+    : await admin.post<{ id: string }>(`/api/organization/branches/${campus.id}/rooms`, { code: `R-${tag}`, capacity: roomCapacity });
   const starts = new Date(Date.now() - startedDaysAgo * 86_400_000).toISOString().slice(0, 10);
   const cls = await admin.post<{ id: string; code: string }>("/api/academic/classes", {
     code: `E2E-${tag}`,
     courseLevelId: (await level(admin, "ZH-HSK", "HSK1-A")).id,
-    branchId: (await branch(admin, mode === "Online" ? "ONLINE" : "HCM-Q1")).id,
+    branchId: campus.id,
     deliveryMode: mode,
     capacity,
     startsOn: starts,
+    bookingMode,
   });
   const sessions = schedule
     ? await admin.post<Session[]>(`/api/scheduling/classes/${cls.id}/schedule`, {
-        daysOfWeek: [1, 2, 3, 4, 5, 6, 7], startTime: "07:00", teacherId: teacher.userId, roomId: null,
+        daysOfWeek: [1, 2, 3, 4, 5, 6, 7], startTime: "07:00", teacherId: teacher.userId, roomId: room?.id ?? null,
       })
     : [];
   return { id: cls.id, code: cls.code, teacher, sessions };
+}
+
+/** Enrolls a student by hand (as a coordinator does, no order); `mode`: the preferred seat in a hybrid class. */
+export async function enroll(admin: Api, cls: ClassInfo, learner: Learner, mode?: "Online" | "Offline"): Promise<string> {
+  const created = await admin.post<{ enrollmentId: string }>(`/api/academic/classes/${cls.id}/enrollments`, {
+    studentId: learner.studentId, type: "Regular", mode,
+  });
+  return created.enrollmentId;
+}
+
+export type Booking = { id: string; sessionId: string; mode: string; kind: string; status: string };
+
+/** Waits until the Worker has given the learner their seats in the class's sessions; resolves with the bookings. */
+export async function waitForBookings(learner: Learner, cls: ClassInfo): Promise<Booking[]> {
+  const api = await Api.learner(learner.username, learner.password);
+  const ids = new Set(cls.sessions.map((s) => s.id));
+  let bookings: Booking[] = [];
+  await expect
+    .poll(
+      async () => {
+        bookings = (await api.get<Booking[]>("/api/scheduling/my/bookings")).filter((b) => ids.has(b.sessionId));
+        return bookings.length;
+      },
+      { message: `${learner.name} booked into ${cls.code} by the Worker`, timeout: 60_000 },
+    )
+    .toBeGreaterThan(0);
+  return bookings;
 }
 
 /** A student record with a learner account whose password is already changed (like the seed's hv-review*). */
@@ -184,8 +230,10 @@ export async function holdLesson(admin: Api, cls: ClassInfo, session: Session, l
     )
     .toBe("held");
   const teacher = await Api.staff(cls.teacher.email, cls.teacher.password);
+  // Before the meeting log arrives the list shows the booked roster (unsaved rows): wait for the drafts made from it.
   await expect
-    .poll(async () => (await teacher.get<unknown[]>(`/api/learning/sessions/${session.id}/attendance`)).length, {
+    .poll(async () => (await teacher.get<{ source: string }[]>(`/api/learning/sessions/${session.id}/attendance`))
+      .filter((a) => a.source === "Auto").length, {
       message: `draft attendance of lesson ${session.sequenceNo} (Worker)`,
       timeout: 60_000,
     })

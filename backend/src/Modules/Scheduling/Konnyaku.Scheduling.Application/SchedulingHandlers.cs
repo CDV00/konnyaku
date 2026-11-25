@@ -18,7 +18,15 @@ public interface ISchedulingDbContext
     DbSet<SchedulePattern> Patterns { get; }
     DbSet<Session> Sessions { get; }
     DbSet<ResourceBooking> Bookings { get; }
+    DbSet<SessionSeat> Seats { get; }
+    DbSet<SessionBooking> SessionBookings { get; }
+    DbSet<MakeupEntitlement> Entitlements { get; }
+    DbSet<SessionWaitlistEntry> Waitlist { get; }
+    DbSet<BookingSettings> Settings { get; }
     DatabaseFacade Database { get; }
+
+    /// <summary>Adds the seat row of a session unless one exists (INSERT ... ON CONFLICT DO NOTHING, outside tracked changes).</summary>
+    Task InsertSeatIfMissingAsync(SessionSeat seat, CancellationToken cancellationToken);
 
     void Publish(IIntegrationEvent integrationEvent, string? correlationId = null);
 
@@ -60,7 +68,7 @@ public sealed record ScheduleClassCommand(int[] DaysOfWeek, TimeOnly StartTime, 
 /// <summary>Materializes every lesson of a class into sessions, skipping days off, and books teacher and room.</summary>
 public sealed class ScheduleClassHandler(
     ISchedulingDbContext db, IAcademicApi academic, IOrganizationApi organization, ResourceValidator validator,
-    IDbErrorClassifier errors, TimeProvider clock, IAccessControl access)
+    IDbErrorClassifier errors, TimeProvider clock, IAccessControl access, BookingSync bookings)
 {
     public async Task<Result<IReadOnlyList<SessionDto>>> HandleAsync(Guid classId, ScheduleClassCommand command, CancellationToken ct)
     {
@@ -115,11 +123,13 @@ public sealed class ScheduleClassHandler(
         {
             await db.SaveChangesAsync(ct);
         }
-        catch (DbUpdateException ex) when (errors.IsExclusionViolation(ex))
+        catch (Exception ex) when (errors.IsExclusionViolation(ex) || errors.IsDeadlock(ex))
         {
             return SchedulingErrors.ResourceConflict;
         }
 
+        // Learners enrolled before the schedule existed get their seats now.
+        await bookings.SyncClassAsync(classId, ct);
         return sessions.Select(s => s.ToDto()).ToList();
     }
 
@@ -147,7 +157,8 @@ public sealed record CancelSessionCommand(string Reason);
 /// Changes one session (move, teacher, cancel) — branch managers and coordinators for sessions of their branches. Each
 /// change is written to the class's change log.
 /// </summary>
-public sealed class SessionChangeHandler(ISchedulingDbContext db, ResourceValidator validator, IDbErrorClassifier errors, IAccessControl access)
+public sealed class SessionChangeHandler(
+    ISchedulingDbContext db, ResourceValidator validator, IDbErrorClassifier errors, IAccessControl access, BookingSync bookings)
 {
     public async Task<Result<SessionDto>> RescheduleAsync(Guid sessionId, RescheduleCommand command, CancellationToken ct)
     {
@@ -226,6 +237,7 @@ public sealed class SessionChangeHandler(ISchedulingDbContext db, ResourceValida
             booking.Release();
         }
 
+        await bookings.ReleaseSessionsAsync([session.Id], ct);
         db.Publish(new SessionCancelledV1(session.Id, session.CancelReason!));
         Log(session, ("status", nameof(SessionStatus.Scheduled), nameof(SessionStatus.Cancelled)), ("cancelReason", null, session.CancelReason));
         return await SaveAsync(session, ct);
@@ -258,7 +270,7 @@ public sealed class SessionChangeHandler(ISchedulingDbContext db, ResourceValida
             await db.SaveChangesAsync(ct);
             return session.ToDto();
         }
-        catch (DbUpdateException ex) when (errors.IsExclusionViolation(ex))
+        catch (Exception ex) when (errors.IsExclusionViolation(ex) || errors.IsDeadlock(ex))
         {
             return SchedulingErrors.ResourceConflict;
         }
@@ -269,8 +281,30 @@ public sealed class SessionChangeHandler(ISchedulingDbContext db, ResourceValida
     }
 }
 
-public sealed class SchedulingQueries(ISchedulingDbContext db, ICrmApi crm, IAcademicApi academic) : ISchedulingApi
+public sealed class SchedulingQueries(ISchedulingDbContext db, ICrmApi crm, IAcademicApi academic, BookingSync sync) : ISchedulingApi
 {
+    public async Task<IReadOnlyList<SessionRosterEntryDto>> GetSessionRosterAsync(Guid sessionId, CancellationToken cancellationToken)
+    {
+        var session = await db.Sessions.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken);
+        if (session is null)
+        {
+            return [];
+        }
+
+        // A session scheduled before bookings existed has no seat row: its Regular bookings are made on first read.
+        if (!await db.Seats.AnyAsync(s => s.SessionId == sessionId, cancellationToken))
+        {
+            await sync.SyncClassAsync(session.ClassId, cancellationToken, sessionId);
+        }
+
+        return await db.SessionBookings.AsNoTracking()
+            .Where(b => b.SessionId == sessionId &&
+                        (b.Status == BookingStatus.Booked || b.Status == BookingStatus.Attended || b.Status == BookingStatus.NoShow))
+            .OrderBy(b => b.CreatedAt)
+            .Select(b => new SessionRosterEntryDto(b.Id, b.EnrollmentId, b.StudentId, b.Kind.ToString(), b.Mode.ToString(), b.Status.ToString()))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<SessionDto?> GetSessionAsync(Guid sessionId, CancellationToken cancellationToken) =>
         (await db.Sessions.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken))?.ToDto();
 
@@ -298,7 +332,10 @@ public sealed class SchedulingQueries(ISchedulingDbContext db, ICrmApi crm, IAca
             .OrderBy(s => s.StartsAt).ToListAsync(ct))
         .Select(s => s.ToDto()).ToList();
 
-    /// <summary>Sessions of the classes where the signed-in learner (or the students linked to them) hold a seat.</summary>
+    /// <summary>
+    /// Sessions the signed-in learner (or the students linked to them) attends: those of their fixed classes except the ones
+    /// they asked leave for, plus the make-up and flexible sessions they booked.
+    /// </summary>
     public async Task<IReadOnlyList<SessionDto>> ListLearnerSessionsAsync(Guid userId, DateTimeOffset from, DateTimeOffset to, CancellationToken ct)
     {
         var students = await crm.ListStudentsOfUserAsync(userId, ct);
@@ -307,11 +344,19 @@ public sealed class SchedulingQueries(ISchedulingDbContext db, ICrmApi crm, IAca
             return [];
         }
 
-        var classIds = (await academic.ListClassIdsOfStudentsAsync(students.Select(s => s.Id).ToList(), ct)).ToArray();
-        return (await db.Sessions.AsNoTracking()
-                .Where(s => classIds.Contains(s.ClassId) && s.StartsAt >= from && s.StartsAt < to && s.Status != SessionStatus.Cancelled)
-                .OrderBy(s => s.StartsAt).ToListAsync(ct))
-            .Select(s => s.ToDto()).ToList();
+        var studentIds = students.Select(s => s.Id).ToArray();
+        var classIds = (await academic.ListClassIdsOfStudentsAsync(studentIds, ct)).ToArray();
+        var bookings = await (from b in db.SessionBookings.AsNoTracking()
+                              join s in db.Sessions.AsNoTracking() on b.SessionId equals s.Id
+                              where studentIds.Contains(b.StudentId) && s.StartsAt >= @from && s.StartsAt < to
+                              select new { b.SessionId, b.Status }).ToListAsync(ct);
+        var away = bookings.Where(b => b.Status is BookingStatus.Postponed or BookingStatus.Cancelled).Select(b => b.SessionId).ToHashSet();
+        var booked = bookings.Where(b => b.Status is not (BookingStatus.Postponed or BookingStatus.Cancelled)).Select(b => b.SessionId).ToArray();
+        away.ExceptWith(booked);
+        var sessions = await db.Sessions.AsNoTracking()
+            .Where(s => (classIds.Contains(s.ClassId) || booked.Contains(s.Id)) && s.StartsAt >= from && s.StartsAt < to && s.Status != SessionStatus.Cancelled)
+            .OrderBy(s => s.StartsAt).ToListAsync(ct);
+        return sessions.Where(s => booked.Contains(s.Id) || !away.Contains(s.Id)).Select(s => s.ToDto()).ToList();
     }
 }
 
