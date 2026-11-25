@@ -34,7 +34,7 @@ Bảng dưới là **danh sách module chuẩn** của Konnyaku; các chương k
 | `Crm` | `crm` | Lead, hồ sơ học viên, phụ huynh, placement test, consent | `ICrmApi` |
 | `Academic` | `academic` | Chương trình, giáo trình, lớp, ghi danh, sĩ số & chỗ học bù | `IAcademicApi` (roster, enrollment) |
 | `Scheduling` | `scheduling` | Pattern, buổi học, đặt chỗ GV/phòng (`resource_booking`) | `ISchedulingApi` |
-| `Workspace` | `workspace` | **Meeting Engine**: kết nối Google Workspace của tenant, host pool & lease, meeting space, recording, participant log | — (chỉ phát event) |
+| `Workspace` | `workspace` | **Meeting Engine**: kết nối Google Workspace của tenant, host pool & lease, meeting space, recording, participant log; phòng học có sẵn (provider `Konnyaku`, nhận vào/ra phòng từ service signaling `services/signaling` qua endpoint nội bộ) | — (chỉ phát event) |
 | `Learning` | `learning` | Điểm danh, feedback, homework, skill score, chính sách quyền xem recording | `ILearningApi` |
 | `Billing` | `billing` | Bảng giá, gói học, đơn hàng, hóa đơn, thanh toán, **credit ledger & số dư buổi** | `IBillingApi` (số dư) |
 | `Hr` | `hr` | Hồ sơ GV, năng lực, availability, đơn giá, timesheet, kỳ lương | `IHrApi` (năng lực, availability) |

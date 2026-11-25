@@ -14,3 +14,6 @@ done
 echo "AUTH_SIGNING_KEY=$(secret 64)"
 # X-Platform-Key for platform operations (creating tenants); the API is not reachable from the internet.
 echo "PLATFORM_ADMIN_KEY=$(secret)"
+# Built-in classroom: tickets between API and signaling (>= 32 bytes), and coturn's TURN REST shared secret.
+echo "SIGNALING_SECRET=$(secret 48)"
+echo "TURN_SECRET=$(secret 48)"

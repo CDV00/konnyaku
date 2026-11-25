@@ -74,6 +74,29 @@ Nút **Vào lớp** hiện bên cạnh buổi học trực tuyến khi phòng h�
 
 Không cần tự điểm danh: hệ thống ghi nhận thời gian có mặt trong phòng, giáo viên xác nhận sau buổi học, rồi số buổi mới được trừ. Vắng có phép không bị trừ buổi.
 
+### Phòng học trực tuyến của Konnyaku
+
+Nếu trung tâm dùng phòng học có sẵn của Konnyaku (không cần Google Meet), **Vào lớp** mở phòng học ngay trong trang của trung tâm. Cần trình duyệt Chrome, Edge, Firefox hoặc Safari bản mới, trên máy tính hoặc điện thoại.
+
+1. **Kiểm tra thiết bị.** Trang đầu tiên hiện hình từ camera và thanh **Âm lượng micro**. Lần đầu, trình duyệt hỏi quyền dùng camera và micro: chọn **Cho phép**. Có nhiều camera/micro thì chọn trong ô **Micro**, **Camera**. Bấm nút micro, camera dưới khung hình để vào phòng với micro hoặc camera đang tắt.
+2. Bấm **Vào phòng**. Mỗi người là một ô hình, có tên; giáo viên có nhãn **Giáo viên**, người tắt micro có biểu tượng micro gạch chéo.
+3. Thanh nút dưới cùng:
+
+   | Nút | Tác dụng |
+   | --- | --- |
+   | Micro | Bật/tắt micro. Nút đỏ là đang tắt. |
+   | Camera | Bật/tắt camera. Tắt camera thì người khác thấy chữ cái đầu tên bạn. |
+   | Chia sẻ màn hình | Chọn cửa sổ hoặc toàn màn hình để mọi người xem; màn hình được chia sẻ hiện to. Bấm lần nữa (hoặc **Dừng chia sẻ** của trình duyệt) để thôi. Chỉ có trên máy tính. |
+   | Trò chuyện | Mở khung chat. Số đỏ là tin chưa đọc. Tin nhắn chỉ tới người đang trong phòng và không được lưu sau buổi học. |
+   | **Rời phòng** | Ra khỏi phòng. Buổi học chưa kết thúc thì bấm **Vào lớp** để vào lại. |
+
+4. **Rớt mạng**: phòng hiện **Mất kết nối, đang kết nối lại…** và tự vào lại khi có mạng, không cần bấm gì. Thời gian có mặt vẫn được tính tiếp.
+5. Khi giáo viên kết thúc buổi học, mọi người thấy **Buổi học đã kết thúc**; phòng đóng hẳn, không vào lại được.
+
+**Giới hạn số người.** Phòng kết nối trực tiếp giữa các máy (mỗi người gửi hình tới từng người khác), nên mỗi phòng tối đa **6 người, gồm giáo viên** (trung tâm có thể đổi con số này). Một chỗ luôn được giữ cho giáo viên. Phòng đầy thì người vào sau thấy **Phòng đã đủ người**. Từ 4 người trở lên, hình được tự giảm chất lượng để mạng yếu vẫn theo kịp. Một người chỉ vào phòng ở một nơi: mở phòng ở tab hay máy khác thì nơi cũ bị ngắt.
+
+Phòng học có sẵn **chưa ghi hình**: buổi học trong phòng này không có video xem lại.
+
 ### Đổi mật khẩu
 
 Lần đăng nhập đầu tiên, hệ thống mở trang **Đổi mật khẩu**. Nhập **Mật khẩu hiện tại** (mật khẩu tạm), **Mật khẩu mới** từ 8 ký tự, rồi bấm **Lưu mật khẩu**.
@@ -94,6 +117,13 @@ Bảng **Công tháng này** bên phải liệt kê từng buổi: ngày, số p
 ### Vào lớp
 
 Trong **Lịch dạy sắp tới**, bấm **Vào lớp** cạnh buổi học trực tuyến. Nút chỉ hiện khi phòng đã được tạo, và chỉ giáo viên của buổi đó vào được.
+
+Với phòng học có sẵn của Konnyaku, cách dùng giống phần [Phòng học trực tuyến của Konnyaku](#phòng-học-trực-tuyến-của-konnyaku) của học viên, thêm nút **Kết thúc buổi học** (chỉ giáo viên và giáo vụ thấy):
+
+1. Hết giờ, bấm **Kết thúc buổi học** rồi xác nhận. Mọi người bị đưa ra khỏi phòng, phòng đóng hẳn.
+2. Hệ thống gửi thời gian vào/ra của từng người sang điểm danh và bảng công. Bấm **Xem điểm danh nháp** để kiểm tra rồi xác nhận như mục [Điểm danh](#điểm-danh).
+
+Quên bấm kết thúc: phòng tự đóng khi không còn ai sau giờ kết thúc buổi học, hoặc 30 phút sau giờ kết thúc nếu vẫn còn người. Rời phòng (**Rời phòng**) không kết thúc buổi học cho người khác.
 
 ### Điểm danh
 
@@ -217,6 +247,9 @@ Bước tô đậm là bước không hoàn tác được: sau khi giáo viên x
 | Đăng nhập đúng nhưng bị đưa về trang đăng nhập | Kiểm tra đã chọn đúng tab chưa: học viên dùng tab Học viên · Phụ huynh, giáo viên và nhân viên dùng tab còn lại. |
 | Quên mật khẩu tạm của học viên | Mật khẩu tạm chỉ hiện một lần và chưa cấp lại được trên giao diện; liên hệ quản trị kỹ thuật. |
 | Không thấy nút **Vào lớp** | Phòng học chưa được tạo, hoặc buổi học ở cơ sở. Nếu đã gần giờ học, báo giáo vụ. |
+| Phòng học không có hình/tiếng của mình | Trình duyệt đang chặn camera/micro: bấm biểu tượng ổ khoá cạnh địa chỉ trang → cho phép Camera và Micro → tải lại trang. Kiểm tra máy không có ứng dụng khác đang giữ camera. |
+| “Phòng đã đủ người” | Phòng học có sẵn giới hạn số người (mặc định 6, gồm giáo viên). Báo giáo viên hoặc trung tâm. |
+| Thấy người khác nhưng ô của họ cứ “Đang kết nối…” | Mạng của một trong hai bên chặn kết nối trực tiếp. Thử mạng khác (4G); nếu cả lớp bị, báo quản trị kỹ thuật kiểm tra máy chủ TURN. |
 | Đã thanh toán nhưng học viên chưa vào lớp | Tải lại trang sau vài giây. Nếu đơn chuyển sang **Cần hoàn tiền**, lớp đã đầy: tạo đơn mới cho lớp khác. |
 | “Giáo viên hoặc phòng bị trùng lịch” khi xếp lịch | Giáo viên đã có buổi khác cùng giờ. Đổi giờ bắt đầu, ngày học hoặc giáo viên. |
 | Xác nhận điểm danh nhầm | Không sửa được trên giao diện; liên hệ quản trị để điều chỉnh số buổi. |

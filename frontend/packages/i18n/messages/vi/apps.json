@@ -548,6 +548,77 @@
     "Student": "Học viên",
     "Parent": "Phụ huynh"
   },
+  "room": {
+    "title": "Phòng học trực tuyến",
+    "rejoin": "Vào lại phòng",
+    "home": "Về trang chủ",
+    "lobby": {
+      "heading": "Kiểm tra camera và micro trước khi vào lớp",
+      "hint": "Chọn thiết bị, nói thử để xem thanh âm lượng, rồi bấm Vào phòng. Trong phòng vẫn bật/tắt micro và camera được.",
+      "microphone": "Micro",
+      "camera": "Camera",
+      "defaultDevice": "Mặc định của máy",
+      "deviceNumber": "Thiết bị {number}",
+      "level": "Âm lượng micro",
+      "cameraOff": "Camera đang tắt",
+      "cameraDenied": "Trình duyệt chưa cho phép dùng camera",
+      "cameraMissing": "Không tìm thấy camera",
+      "micMissing": "Không tìm thấy micro: bạn vẫn vào phòng để xem, nghe và chat được.",
+      "permissionDenied": "Trình duyệt đang chặn camera/micro. Bấm biểu tượng ổ khoá cạnh địa chỉ trang để cho phép rồi tải lại trang, hoặc cứ vào phòng để xem, nghe và chat.",
+      "join": "Vào phòng",
+      "limit": "Phòng học trực tuyến kết nối trực tiếp giữa các máy nên giới hạn số người để giữ chất lượng hình ảnh (thường tối đa 6 người, gồm giáo viên)."
+    },
+    "controls": {
+      "micOn": "Tắt micro",
+      "micOff": "Bật micro",
+      "camOn": "Tắt camera",
+      "camOff": "Bật camera",
+      "share": "Chia sẻ màn hình",
+      "stopShare": "Dừng chia sẻ màn hình",
+      "chat": "Trò chuyện",
+      "leave": "Rời phòng",
+      "end": "Kết thúc buổi học",
+      "endConfirm": "Kết thúc buổi học cho tất cả mọi người? Sau đó không ai vào lại được phòng này."
+    },
+    "status": {
+      "connecting": "Đang kết nối…",
+      "reconnecting": "Mất kết nối, đang kết nối lại…",
+      "participants": "{count}/{capacity}",
+      "participantsHint": "Số người trong phòng / số chỗ tối đa",
+      "you": "{name} (bạn)",
+      "host": "Giáo viên",
+      "screen": "Đang chia sẻ màn hình",
+      "muted": "Đã tắt micro",
+      "peerConnecting": "Đang kết nối…"
+    },
+    "chat": {
+      "title": "Trò chuyện",
+      "placeholder": "Nhập tin nhắn…",
+      "send": "Gửi",
+      "close": "Đóng",
+      "me": "Bạn",
+      "empty": "Chưa có tin nhắn. Tin nhắn chỉ gửi tới những người đang trong phòng và không được lưu lại."
+    },
+    "ended": {
+      "title": "Buổi học đã kết thúc",
+      "body": "Thời gian tham gia của mọi người đã được ghi lại để điểm danh và chấm công.",
+      "attendance": "Xem điểm danh nháp"
+    },
+    "left": {
+      "title": "Bạn đã rời phòng",
+      "body": "Bạn có thể vào lại phòng nếu buổi học chưa kết thúc."
+    },
+    "errors": {
+      "title": "Không vào được phòng",
+      "room_full": "Phòng đã đủ người. Phòng học trực tuyến giới hạn số người để giữ chất lượng hình ảnh; hãy báo giáo viên hoặc trung tâm.",
+      "replaced": "Bạn vừa mở phòng này ở một tab hoặc thiết bị khác, nên tab này đã ngắt kết nối.",
+      "workspace_room_not_found": "Không tìm thấy phòng học, hoặc bạn không có chỗ trong lớp này.",
+      "workspace_room_not_configured": "Máy chủ chưa cấu hình phòng học trực tuyến. Hãy báo quản trị viên của trung tâm.",
+      "session_expired": "Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại rồi bấm Vào lớp.",
+      "unknown": "Có lỗi khi kết nối phòng học. Hãy thử lại.",
+      "media": "Không mở được camera, micro hoặc màn hình. Kiểm tra quyền của trình duyệt rồi thử lại."
+    }
+  },
   "notifications": {
     "title": "Nhật ký thông báo",
     "description": "Email hệ thống tự gửi cho học viên, giáo viên và nhân viên. Lỗi tạm thời được thử lại tự động; lỗi vĩnh viễn (địa chỉ sai, hộp thư không tồn tại) dừng lại để bạn kiểm tra và gửi lại.",

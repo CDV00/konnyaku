@@ -548,6 +548,77 @@
     "Student": "Student",
     "Parent": "Parent"
   },
+  "room": {
+    "title": "Online classroom",
+    "rejoin": "Rejoin the room",
+    "home": "Back to home",
+    "lobby": {
+      "heading": "Check your camera and microphone before class",
+      "hint": "Pick your devices, speak to see the level bar, then press Join. You can turn the mic and camera on or off in the room too.",
+      "microphone": "Microphone",
+      "camera": "Camera",
+      "defaultDevice": "System default",
+      "deviceNumber": "Device {number}",
+      "level": "Microphone level",
+      "cameraOff": "Camera is off",
+      "cameraDenied": "The browser does not allow the camera",
+      "cameraMissing": "No camera found",
+      "micMissing": "No microphone found: you can still join to watch, listen and chat.",
+      "permissionDenied": "The browser is blocking the camera/microphone. Click the lock icon next to the address to allow them and reload, or just join to watch, listen and chat.",
+      "join": "Join",
+      "limit": "The online classroom connects devices directly to each other, so rooms are limited to keep video quality (usually up to 6 people, teacher included)."
+    },
+    "controls": {
+      "micOn": "Mute microphone",
+      "micOff": "Unmute microphone",
+      "camOn": "Turn camera off",
+      "camOff": "Turn camera on",
+      "share": "Share screen",
+      "stopShare": "Stop sharing screen",
+      "chat": "Chat",
+      "leave": "Leave",
+      "end": "End class",
+      "endConfirm": "End the class for everyone? Nobody can enter this room again afterwards."
+    },
+    "status": {
+      "connecting": "Connecting…",
+      "reconnecting": "Connection lost, reconnecting…",
+      "participants": "{count}/{capacity}",
+      "participantsHint": "People in the room / seats",
+      "you": "{name} (you)",
+      "host": "Teacher",
+      "screen": "Sharing screen",
+      "muted": "Microphone off",
+      "peerConnecting": "Connecting…"
+    },
+    "chat": {
+      "title": "Chat",
+      "placeholder": "Type a message…",
+      "send": "Send",
+      "close": "Close",
+      "me": "You",
+      "empty": "No messages yet. Messages only reach people in the room right now and are not saved."
+    },
+    "ended": {
+      "title": "The class has ended",
+      "body": "Everyone's time in the room has been recorded for attendance and timesheets.",
+      "attendance": "Review draft attendance"
+    },
+    "left": {
+      "title": "You left the room",
+      "body": "You can rejoin while the class is still going."
+    },
+    "errors": {
+      "title": "Could not join the room",
+      "room_full": "The room is full. Online classrooms are limited to keep video quality; please tell your teacher or the center.",
+      "replaced": "You opened this room in another tab or device, so this tab was disconnected.",
+      "workspace_room_not_found": "Room not found, or you do not have a seat in this class.",
+      "workspace_room_not_configured": "The online classroom is not configured on the server. Please tell the center's administrator.",
+      "session_expired": "Your sign-in has expired. Sign in again, then press Join class.",
+      "unknown": "Something went wrong connecting to the room. Please try again.",
+      "media": "Could not open the camera, microphone or screen. Check the browser's permissions and try again."
+    }
+  },
   "notifications": {
     "title": "Notification log",
     "description": "Emails the system sends to students, teachers and staff. Temporary failures are retried automatically; permanent ones (wrong address, unknown mailbox) stop so you can check and resend.",
