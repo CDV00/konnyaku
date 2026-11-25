@@ -1,3 +1,9 @@
+Konnyaku.Academic.Contracts.ClassClosedV1
+  Guid ClassId
+  String Status
+Konnyaku.Academic.Contracts.ClassDeliveryModeChangedV1
+  Guid ClassId
+  String DeliveryMode
 Konnyaku.Academic.Contracts.ClassDto
   DateOnly StartsOn
   Guid BranchId
@@ -114,6 +120,7 @@ Konnyaku.Crm.Contracts.StudentContactDto
   String Email
   String FullName
 Konnyaku.Crm.Contracts.StudentDto
+  Boolean IsActive
   Guid Id
   Nullable`1 BirthYear
   Nullable`1 HomeBranchId
@@ -194,6 +201,7 @@ Konnyaku.Organization.Contracts.BranchCreatedV1
   String Code
   String TimeZone
 Konnyaku.Organization.Contracts.BranchDto
+  Boolean IsActive
   Boolean IsVirtual
   Guid Id
   IReadOnlyDictionary`2 Name
@@ -209,6 +217,7 @@ Konnyaku.Organization.Contracts.IOrganizationApi
   Task`1 GetRoomAsync(Guid, CancellationToken)
   Task`1 ListHolidaysAsync(Guid, DateOnly, DateOnly, CancellationToken)
 Konnyaku.Organization.Contracts.RoomDto
+  Boolean IsActive
   Guid BranchId
   Guid Id
   Int32 Capacity
@@ -230,7 +239,9 @@ Konnyaku.Platform.Contracts.TenantInfo
   String Slug
   String TimeZone
 Konnyaku.Scheduling.Contracts.ISchedulingApi
+  Task`1 CountClassSessionsAsync(Guid, CancellationToken)
   Task`1 GetSessionAsync(Guid, CancellationToken)
+  Task`1 ListClassIdsOfTeacherAsync(Guid, CancellationToken)
 Konnyaku.Scheduling.Contracts.SessionCancelledV1
   Guid SessionId
   String Reason

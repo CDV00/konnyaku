@@ -3,7 +3,7 @@ using Konnyaku.SharedKernel;
 namespace Konnyaku.Scheduling.Domain;
 
 /// <summary>Weekly rule of a class (days + local start time in the class time zone).</summary>
-public sealed class SchedulePattern : Entity, ITenantOwned
+public sealed class SchedulePattern : Entity, ITenantOwned, IAuditable
 {
     private SchedulePattern()
     {
@@ -36,6 +36,20 @@ public sealed class SchedulePattern : Entity, ITenantOwned
     public Guid? TeacherId { get; private set; }
     public Guid? RoomId { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
+
+    /// <summary>Logged under the class: the class page shows its schedule history.</summary>
+    Guid IAuditable.AuditSubjectId => ClassId;
+
+    /// <summary>The weekly rule from <paramref name="effectiveFrom"/> on (sessions before it keep their time and teacher).</summary>
+    public void Replan(IReadOnlyCollection<int> isoDays, TimeOnly startTime, int durationMinutes, DateOnly effectiveFrom, Guid? teacherId, Guid? roomId)
+    {
+        IsoDays = isoDays.Distinct().Order().ToList();
+        StartTime = startTime;
+        DurationMinutes = durationMinutes;
+        EffectiveFrom = effectiveFrom;
+        TeacherId = teacherId;
+        RoomId = roomId;
+    }
 }
 
 public enum SessionStatus
@@ -118,6 +132,25 @@ public sealed class Session : Entity, ITenantOwned
         return this;
     }
 
+    /// <summary>A new slot, teacher and room from a re-planned weekly schedule (the planned teacher changes too).</summary>
+    public Result<Session> Replan(PlannedSlot slot, Guid? teacherId, Guid? roomId)
+    {
+        if (!IsChangeable)
+        {
+            return Error.Conflict("scheduling.session_not_changeable");
+        }
+
+        StartsAt = slot.StartsAt;
+        EndsAt = slot.EndsAt;
+        LocalDate = slot.LocalDate;
+        PlannedTeacherId = teacherId;
+        ActualTeacherId = teacherId;
+        RoomId = roomId;
+        return this;
+    }
+
+    public void ChangeDeliveryMode(string deliveryMode) => DeliveryMode = deliveryMode;
+
     public void MarkProvisioned()
     {
         if (Status == SessionStatus.Scheduled)
@@ -188,6 +221,10 @@ public sealed record PlannedSlot(DateOnly LocalDate, DateTimeOffset StartsAt, Da
 public static class SchedulePlanner
 {
     public const int MaxDaysAhead = 3 * 366;
+
+    /// <summary>Today's date in a time zone.</summary>
+    public static DateOnly Today(DateTimeOffset now, string timeZone) =>
+        DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, TimeZoneInfo.FindSystemTimeZoneById(timeZone)).DateTime);
 
     public static PlannedSlot Slot(DateOnly date, TimeOnly start, int durationMinutes, string timeZone)
     {

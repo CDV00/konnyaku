@@ -3,7 +3,7 @@ using Konnyaku.SharedKernel;
 namespace Konnyaku.Crm.Domain;
 
 /// <summary>A prospective student who filled the public registration form (or was entered by staff).</summary>
-public sealed class Lead : Entity, ITenantOwned
+public sealed class Lead : Entity, ITenantOwned, IAuditable
 {
     public static readonly TimeSpan CallBackWithin = TimeSpan.FromMinutes(15);
 
@@ -33,6 +33,31 @@ public sealed class Lead : Entity, ITenantOwned
     public DateTimeOffset UpdatedAt { get; private set; }
 
     public bool IsOpen => Status is LeadStatus.New or LeadStatus.Contacted;
+
+    Guid IAuditable.AuditSubjectId => Id;
+
+    /// <summary>Staff correct the details of an open lead (a closed lead is history) and may hand it to another consultant.</summary>
+    public Result<Lead> Edit(LeadDetails details, Guid? consultantId, DateTimeOffset now)
+    {
+        if (!IsOpen)
+        {
+            return Error.Conflict("crm.lead_closed");
+        }
+
+        var validation = Validate(details, now);
+        if (validation is not null)
+        {
+            return validation;
+        }
+
+        Apply(details with { Utm = Utm, Locale = Locale }, now);
+        if (consultantId != AssignedConsultantId)
+        {
+            AssignTo(consultantId, now);
+        }
+
+        return this;
+    }
 
     public static Result<Lead> Create(LeadDetails details, string source, string consentVersion, DateTimeOffset now)
     {
@@ -168,7 +193,7 @@ public enum LeadStatus
 }
 
 /// <summary>Student record of a tenant. Linked to a sign-in account (Identity user) when one is issued.</summary>
-public sealed class StudentProfile : Entity, ITenantOwned
+public sealed class StudentProfile : Entity, ITenantOwned, IAuditable
 {
     private StudentProfile()
     {
@@ -185,6 +210,36 @@ public sealed class StudentProfile : Entity, ITenantOwned
     public string CommunicationLocale { get; private set; } = "vi";
     public Guid? LeadId { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
+
+    /// <summary>An inactive student (left the center) keeps enrollments, orders and history but cannot buy or enroll again.</summary>
+    public bool IsActive { get; private set; } = true;
+
+    Guid IAuditable.AuditSubjectId => Id;
+
+    public Result<StudentProfile> Update(string fullName, int? birthYear, string? guardianName, string? phone, string? email,
+        Guid? homeBranchId, string communicationLocale, DateTimeOffset now)
+    {
+        if (string.IsNullOrWhiteSpace(fullName))
+        {
+            return Error.Validation("crm.student_name_required");
+        }
+
+        if (birthYear is { } year && now.Year - year is < 0 or > 120)
+        {
+            return Error.Validation("crm.birth_year_invalid");
+        }
+
+        FullName = fullName.Trim();
+        BirthYear = birthYear;
+        GuardianName = string.IsNullOrWhiteSpace(guardianName) ? null : guardianName.Trim();
+        Phone = Lead.NormalizePhone(phone);
+        Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim().ToLowerInvariant();
+        HomeBranchId = homeBranchId;
+        CommunicationLocale = string.IsNullOrWhiteSpace(communicationLocale) ? CommunicationLocale : communicationLocale;
+        return this;
+    }
+
+    public void SetActive(bool active) => IsActive = active;
 
     public static Result<StudentProfile> Create(
         string fullName, int? birthYear, string? guardianName, string? phone, string? email, Guid? homeBranchId,
@@ -206,6 +261,7 @@ public sealed class StudentProfile : Entity, ITenantOwned
             CommunicationLocale = communicationLocale,
             LeadId = leadId,
             CreatedAt = now,
+            IsActive = true,
         };
     }
 

@@ -44,8 +44,13 @@ public sealed class AdminListTests(PostgresFixture db) : IAsyncDisposable
             .StatusCode.ShouldBe(HttpStatusCode.Created);
         (await admin.GetFromJsonAsync<PackageView[]>("/api/billing/packages", Ct))!.Single().Code.ShouldBe("P10");
 
-        // Teachers cannot list staff; another tenant sees none of this.
-        var teacher = _api.ClientFor(tenant.Slug, (await _api.StaffLoginAsync(tenant.Slug, teacherEmail, Password)).AccessToken);
+        // A coordinator lists staff (to pick teachers); a teacher-only member cannot; another tenant sees none of this.
+        var coordinator = _api.ClientFor(tenant.Slug, (await _api.StaffLoginAsync(tenant.Slug, teacherEmail, Password)).AccessToken);
+        (await coordinator.GetAsync("/api/identity/staff", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        var onlyTeacherEmail = $"t-{Guid.NewGuid():N}@example.com";
+        (await admin.PostAsJsonAsync("/api/identity/staff",
+            new { email = onlyTeacherEmail, displayName = "Bao Teacher", initialPassword = Password, roles = new[] { "Teacher" } }, Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        var teacher = _api.ClientFor(tenant.Slug, (await _api.StaffLoginAsync(tenant.Slug, onlyTeacherEmail, Password)).AccessToken);
         (await teacher.GetAsync("/api/identity/staff", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         var otherEmail = $"admin-{Guid.NewGuid():N}@example.com";

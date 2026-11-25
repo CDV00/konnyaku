@@ -3,7 +3,7 @@ using Konnyaku.SharedKernel;
 namespace Konnyaku.Identity.Domain;
 
 /// <summary>A person, platform-wide. Children may have no email; they sign in with a center-issued account.</summary>
-public sealed class User : Entity
+public sealed class User : Entity, IAuditable
 {
     private User()
     {
@@ -22,7 +22,20 @@ public sealed class User : Entity
         CreatedAt = DateTimeOffset.UtcNow,
     };
 
+    Guid IAuditable.AuditSubjectId => Id;
+
     public static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
+
+    public Result<User> Rename(string displayName)
+    {
+        if (string.IsNullOrWhiteSpace(displayName))
+        {
+            return Error.Validation("identity.staff_invalid");
+        }
+
+        DisplayName = displayName.Trim();
+        return this;
+    }
 }
 
 /// <summary>Shared lockout rule: 5 failed attempts lock the credential for 15 minutes.</summary>
@@ -99,7 +112,7 @@ public sealed class LocalCredential : LockableCredential, ITenantOwned
     public static string NormalizeUsername(string username) => username.Trim().ToLowerInvariant();
 }
 
-public sealed class Membership : Entity, ITenantOwned
+public sealed class Membership : Entity, ITenantOwned, IAuditable
 {
     private Membership()
     {
@@ -118,6 +131,8 @@ public sealed class Membership : Entity, ITenantOwned
     public DateTimeOffset CreatedAt { get; private set; }
     public List<RoleAssignment> Roles { get; private set; } = [];
 
+    Guid IAuditable.AuditSubjectId => UserId;
+
     public void Grant(string role, ScopeType scopeType = ScopeType.Tenant, Guid? scopeId = null)
     {
         if (!Roles.Any(r => r.Role == role && r.ScopeType == scopeType && r.ScopeId == scopeId))
@@ -125,6 +140,23 @@ public sealed class Membership : Entity, ITenantOwned
             Roles.Add(new RoleAssignment(Id, role, scopeType, scopeId));
         }
     }
+
+    /// <summary>Replaces the staff roles (learner roles are kept). A role with a branch is limited to that branch.</summary>
+    public void ReplaceStaffRoles(IReadOnlyCollection<(string Role, Guid? BranchId)> grants)
+    {
+        Roles.RemoveAll(r => Domain.Roles.Staff.Contains(r.Role) &&
+                             !grants.Any(g => g.Role == r.Role && g.BranchId == r.ScopeId && ScopeOf(g.BranchId) == r.ScopeType));
+        foreach (var (role, branchId) in grants)
+        {
+            Grant(role, ScopeOf(branchId), branchId);
+        }
+    }
+
+    public void Suspend() => Status = MembershipStatus.Suspended;
+
+    public void Activate() => Status = MembershipStatus.Active;
+
+    private static ScopeType ScopeOf(Guid? branchId) => branchId is null ? ScopeType.Tenant : ScopeType.Branch;
 }
 
 public enum MembershipStatus
@@ -180,4 +212,7 @@ public static class Roles
     };
 
     public static readonly IReadOnlySet<string> Learn = new HashSet<string> { Student, Parent };
+
+    /// <summary>Roles that may be limited to chosen branches; the others always cover the whole center.</summary>
+    public static readonly IReadOnlySet<string> BranchScoped = new HashSet<string> { BranchManager, Coordinator };
 }

@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { EmptyState, PageHeader, Panel, StatusBadge } from "@konnyaku/ui/kk/blocks";
 import { Field, NativeSelect } from "@konnyaku/ui/kk/field";
 import { ActionForm, FormSheet } from "../action-form";
-import { getJson, localized, statusTone, type Branch, type ClassRow, type Program } from "../lib";
+import { getAccess, getJson, localized, statusTone, type Branch, type ClassRow, type Program } from "../lib";
 
 const deliveryModes = ["Online", "Offline", "Hybrid"] as const;
 
@@ -15,12 +15,16 @@ export default async function ClassesPage() {
   const { token } = await requireMe("staff");
   const t = await getTranslations("admin");
   const locale = await getLocale();
-  const [classes, programs, branches] = await Promise.all([
+  const [classes, programs, branches, access] = await Promise.all([
     getJson<ClassRow[]>("/api/academic/classes", token, []),
     getJson<Program[]>("/api/academic/programs", token, []),
     getJson<Branch[]>("/api/organization/branches", token, []),
+    getAccess(token),
   ]);
   const levels = programs.flatMap((p) => p.levels.map((level) => ({ ...level, program: p })));
+  // New classes: active levels of active programs, in active branches the member runs.
+  const openLevels = levels.filter((l) => l.isActive && l.program.isActive);
+  const openBranches = branches.filter((b) => b.isActive && access.can("academic.classes", b.id));
   const levelName = new Map(levels.map((l) => [l.id, `${l.program.code} · ${localized(l.name, locale)}`]));
   const branchName = new Map(branches.map((b) => [b.id, localized(b.name, locale)]));
 
@@ -30,17 +34,18 @@ export default async function ClassesPage() {
         title={t("classes.title")}
         description={t("classes.description")}
         actions={
+          openBranches.length > 0 && (
           <FormSheet triggerLabel={t("classes.create")} title={t("classes.create")} description={t("classes.createHint")}>
             <ActionForm api="academic/classes" submitLabel={t("save")}>
               <Field label={t("fields.code")}><Input name="code" required /></Field>
               <Field label={t("classes.level")}>
                 <NativeSelect name="courseLevelId" required>
-                  {levels.map((l) => <option key={l.id} value={l.id}>{levelName.get(l.id)}</option>)}
+                  {openLevels.map((l) => <option key={l.id} value={l.id}>{levelName.get(l.id)}</option>)}
                 </NativeSelect>
               </Field>
               <Field label={t("classes.branch")}>
                 <NativeSelect name="branchId" required>
-                  {branches.map((b) => <option key={b.id} value={b.id}>{localized(b.name, locale)}</option>)}
+                  {openBranches.map((b) => <option key={b.id} value={b.id}>{localized(b.name, locale)}</option>)}
                 </NativeSelect>
               </Field>
               <div className="grid grid-cols-2 gap-3">
@@ -54,6 +59,7 @@ export default async function ClassesPage() {
               <Field label={t("classes.startsOn")}><Input name="startsOn" type="date" required /></Field>
             </ActionForm>
           </FormSheet>
+          )
         }
       />
       <Panel bodyClassName="p-0">

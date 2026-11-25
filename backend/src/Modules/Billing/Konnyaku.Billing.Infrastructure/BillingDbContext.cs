@@ -2,6 +2,7 @@ using Konnyaku.Application.Tenancy;
 using Konnyaku.Billing.Application;
 using Konnyaku.Billing.Contracts;
 using Konnyaku.Billing.Domain;
+using Konnyaku.Infrastructure.Auditing;
 using Konnyaku.Infrastructure.Persistence;
 using Konnyaku.Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -88,6 +89,7 @@ public sealed class BillingDbContext(DbContextOptions<BillingDbContext> options,
             b.HasIndex(x => new { x.TenantId, x.StudentId });
             b.HasIndex(x => x.EnrollmentId).IsUnique().HasFilter("enrollment_id IS NOT NULL");
         });
+        modelBuilder.AddChangeLog();
     }
 }
 

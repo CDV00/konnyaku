@@ -1,5 +1,6 @@
 using System.Reflection;
 using Konnyaku.Application.Tenancy;
+using Konnyaku.Infrastructure.Auditing;
 using Konnyaku.Infrastructure.Messaging;
 using Konnyaku.SharedKernel;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +31,15 @@ public abstract class ModuleDbContext(DbContextOptions options, ITenantContext t
     /// <summary>For platform-level modules that act on behalf of a tenant without being in its context.</summary>
     public void PublishFor(Guid tenantId, IIntegrationEvent integrationEvent, string? correlationId = null) =>
         OutboxMessages.Add(OutboxMessage.Create(integrationEvent, tenantId, correlationId));
+
+    /// <summary>
+    /// Adds a change log entry the automatic capture cannot see (a collection such as a member's roles). The module must
+    /// have called <see cref="ChangeLogModelExtensions.AddChangeLog"/>.
+    /// </summary>
+    public void LogChange(string entityType, Guid entityId, Guid subjectId, string action,
+        IReadOnlyList<(string Field, string? Old, string? New)> changes) =>
+        Set<ChangeLogEntry>().Add(new ChangeLogEntry(entityType, entityId, subjectId, action,
+            changes.Select(c => new FieldChange(c.Field, c.Old, c.New)).ToList()));
 
     /// <summary>Records that <paramref name="consumer"/> handled <paramref name="eventId"/>; false if it already did.</summary>
     public async Task<bool> TryAcceptAsync(Guid eventId, string consumer, CancellationToken cancellationToken)
@@ -79,7 +89,8 @@ public abstract class ModuleDbContext(DbContextOptions options, ITenantContext t
         modelBuilder.Entity<TEntity>().HasQueryFilter(e => e.TenantId == CurrentTenantId);
     }
 
-    private void ApplyTenantRules()
+    /// <summary>Assigns the tenant to new rows and blocks tenant changes; also called after audit entries are added.</summary>
+    internal void ApplyTenantRules()
     {
         foreach (var entry in ChangeTracker.Entries<ITenantOwned>())
         {
