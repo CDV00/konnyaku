@@ -9,6 +9,8 @@
 	on_demand_tls {
 		ask http://web:3000/api/internal/tls-ask
 	}
+	# Request rate, errors and latency for Prometheus (monitoring profile), served on :2020 below.
+	metrics
 }
 
 (web) {
@@ -23,6 +25,15 @@
 
 	request_body {
 		max_size 10MB
+	}
+
+	# Grafana (monitoring profile) on the platform admin host only, behind Grafana's own login.
+	@grafana {
+		host admin.{$BASE_DOMAIN}
+		path /grafana /grafana/*
+	}
+	handle @grafana {
+		reverse_proxy grafana:3000
 	}
 
 	# Signaling of the built-in classroom (WebSocket /rtc/ws), on every tenant host.
@@ -59,4 +70,9 @@ https:// {
 
 http:// {
 	redir https://{host}{uri} permanent
+}
+
+# Prometheus scrapes caddy:2020/metrics on the internal network; the port is not published.
+:2020 {
+	metrics
 }

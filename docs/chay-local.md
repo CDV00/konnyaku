@@ -11,7 +11,7 @@ Hệ thống local gồm 3 phần: hạ tầng trong Docker, backend .NET (API +
 | Worker | 5090 | Xử lý outbox (ghi danh sau thanh toán, tạo phòng học, trừ buổi, công) |
 | PostgreSQL | 5433 | User `konnyaku` / `konnyaku_dev`, DB `konnyaku` |
 | Signaling phòng học (`services/signaling`) | 5100 | WebSocket `ws://localhost:5100/rtc/ws`, sức khoẻ `/rtc/health`; container `signaling` trong docker compose |
-| Redis | 6380 | |
+| Redis | 6380 | Không bắt buộc: dev đếm giới hạn tần suất trong RAM (xem [Giới hạn tần suất, giám sát, bắt lỗi](#giới-hạn-tần-suất-giám-sát-bắt-lỗi)) |
 | Mailpit (xem email gửi đi) | 8025 (web), 1025 (SMTP) | `http://localhost:8025` |
 
 Frontend dùng 4000 để tránh trùng các dự án khác hay chạy ở 3000/3001. Cần đổi thì sửa đồng thời: `frontend/apps/site/package.json` (script `dev`, `start`), `.claude/launch.json` và tài liệu này.
@@ -171,6 +171,36 @@ Thêm hoặc sửa luồng (bắt buộc với PR đổi điều người dùng 
 4. Không cần TURN khi thử trên một máy. Secret dùng chung giữa API (`Rtc:SignalingSecret` trong `appsettings.Development.json`) và container (`SIGNALING_SECRET`) phải giống nhau.
 5. Test của service: cần Rust (hoặc chạy trong Docker), `cd services/signaling && cargo test && cargo clippy --all-targets -- -D warnings`.
 
+## Giới hạn tần suất, giám sát, bắt lỗi
+
+Ở dev cả ba đều **tắt hoặc chạy chế độ đơn giản**, không cần cấu hình gì:
+
+| Phần | Dev mặc định | Thử như production |
+| --- | --- | --- |
+| Giới hạn tần suất (form công khai 10/phút/IP, quên/đặt lại mật khẩu 5/phút/IP) | Đếm trong RAM của process API | Chạy API với `Redis__ConnectionString=localhost:6380` (Redis của `docker-compose.yml`): bộ đếm dùng chung, khoá `kk:rl:*`. Tắt Redis giữa chừng: API tự đếm trong RAM, không lỗi. Vượt hạn mức: API trả `429` kèm `Retry-After` |
+| Trace và metric (OpenTelemetry) | Tắt (không có `OTEL_EXPORTER_OTLP_ENDPOINT`) | Dùng stack production local bên dưới |
+| Bắt lỗi (Sentry / GlitchTip) | Tắt (không có DSN) | `Sentry__Dsn=<dsn>` cho API/Worker, `SENTRY_DSN=<dsn>` cho web |
+
+**Stack production local có giám sát** (đúng như server: Caddy → web ×2 → api ×2, worker, Redis, profile `monitoring`). Cách dựng stack production trên máy dev ở [toi-uu-tai-nguyen.md](toi-uu-tai-nguyen.md#cách-đo); thêm vào `.env` của stack thử:
+
+```bash
+COMPOSE_PROFILES=monitoring
+OTEL_ENDPOINT=http://alloy:4318
+GRAFANA_LOCAL_PORT=3301                      # Grafana: http://localhost:3301/grafana/ (admin / GRAFANA_ADMIN_PASSWORD)
+GRAFANA_ROOT_URL=http://localhost:3301/grafana/
+GRAFANA_COOKIE_SECURE=false                  # stack thử chạy HTTP
+PROBE_PUBLIC_URL=http://caddy:80/api/health  # thay cho https://admin.BASE_DOMAIN khi Caddy chạy HTTP
+SMTP_HOST=mailpit                            # cảnh báo và email ứng dụng vào một Mailpit trong cùng stack
+SMTP_PORT=1025
+SMTP_SECURITY=None
+```
+
+và một file override (`-f compose.yaml -f override.yaml`) đổi cổng Caddy (ví dụ `8091:80`), tắt `coturn` (`profiles: [disabled]`) và thêm service `mailpit` (`axllent/mailpit`, mạng `app` + `monitoring`, cổng web tuỳ chọn). Đặt tên project riêng (`docker compose -p konnyaku-obs …`) để không đụng stack khác. Thử nhanh:
+
+- Trace: mở vài trang của trung tâm qua Caddy, rồi Grafana → Explore → Tempo → Search, service `konnyaku-web`: một trace gồm trang Next.js, `fetch` sang API, API và câu SQL.
+- Cảnh báo: `docker stop <project>-api-2` → sau ~3 phút Mailpit nhận "FIRING ApiReplicaMissing"; `docker start` lại → "RESOLVED".
+- Lần `up` đầu tiên trên volume mới, `migrator` và `postgres-monitor-role` có thể lỗi vì PostgreSQL còn đang khởi tạo: chạy `up -d` lần nữa.
+
 ## Tắt hệ thống
 
 1. Frontend, Worker, API: bấm **Ctrl+C** trong từng terminal.
@@ -209,6 +239,7 @@ for p in 4000 5080 5090; do lsof -ti tcp:$p | xargs -r kill; done
 | Đã thanh toán nhưng học viên chưa vào lớp, không có phòng học | Worker chưa chạy (bước 4) |
 | Trang báo không xác định được trung tâm | Đang mở `localhost:4000` thay vì `demo.localhost:4000`, hoặc chưa chạy seed |
 | Build frontend lỗi `require() of ES Module` | Tailwind bị nâng khỏi 4.1.18; trả về đúng bản đó |
+| `429 Too Many Requests` khi thử form công khai / quên mật khẩu nhiều lần | Đúng giới hạn tần suất; chờ hết phút (header `Retry-After`) hoặc nâng `RateLimits__PublicFormsPerMinute` / `RateLimits__PasswordResetPerMinute` cho API dev |
 | Seed báo tenant đã tồn tại | Database đã có dữ liệu demo; dùng tài khoản cũ hoặc `down -v` để làm lại |
 | Bảng điều khiển nền tảng báo mã không đúng | Mã vừa dùng rồi (chờ mã mới sau 30 giây) hoặc đồng hồ máy lệch quá 30 giây |
 | Trang trung tâm báo "tạm ngừng hoạt động" | Trung tâm bị tạm khóa trong bảng điều khiển nền tảng; mở lại ở `/platform` |
