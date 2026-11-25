@@ -7,6 +7,8 @@
     <ProjectReference Include="..\..\Academic\Konnyaku.Academic.Contracts\Konnyaku.Academic.Contracts.csproj" />
     <ProjectReference Include="..\..\Crm\Konnyaku.Crm.Contracts\Konnyaku.Crm.Contracts.csproj" />
     <ProjectReference Include="..\..\Learning\Konnyaku.Learning.Contracts\Konnyaku.Learning.Contracts.csproj" />
+    <ProjectReference Include="..\..\Organization\Konnyaku.Organization.Contracts\Konnyaku.Organization.Contracts.csproj" />
+    <ProjectReference Include="..\..\Platform\Konnyaku.Platform.Contracts\Konnyaku.Platform.Contracts.csproj" />
     <ProjectReference Include="..\Konnyaku.Billing.Domain\Konnyaku.Billing.Domain.csproj" />
     <ProjectReference Include="..\Konnyaku.Billing.Contracts\Konnyaku.Billing.Contracts.csproj" />
   </ItemGroup>

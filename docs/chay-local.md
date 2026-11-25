@@ -86,7 +86,8 @@ Mở `http://review.localhost:4000/login`. Mật khẩu chung: nhân viên `Revi
 | Quản lý cơ sở (BranchManager) | `manager@review.example.com` | `/ops` | 3 cơ sở (Online, Quận 1, Cầu Giấy), phòng học, ngày nghỉ |
 | Điều phối (Coordinator) | `coordinator@review.example.com` | `/ops` | 5 lớp; lớp `KO-T1-ON3` chưa xếp lịch để thử xếp |
 | Tư vấn (Consultant) | `consultant@review.example.com` | `/ops` | Lead ở đủ trạng thái (mới, đã liên hệ, đã chuyển đổi, mất) |
-| Kế toán (Accountant) | `accountant@review.example.com` | `/ops` | Đơn đã trả, trả một nửa, chưa trả, và một đơn chờ hoàn tiền vì lớp đầy |
+| Kế toán (Accountant) | `accountant@review.example.com` | `/ops` | Đơn đã trả, trả một nửa, chưa trả, một đơn chờ hoàn tiền vì lớp đầy và một đơn đã hoàn (phiếu chi `PC-000001`) |
+| Kế toán Cầu Giấy | `accountant.hn@review.example.com` | `/ops` | Kế toán giao theo cơ sở: chỉ thu tiền, hoàn tiền, in phiếu cho đơn của cơ sở Cầu Giấy |
 | Giáo viên tiếng Nhật | `teacher.ja@review.example.com` | `/teach` | Lớp online `JP-N5-ON1` đã học khoảng 4 tuần, điểm danh đã xác nhận, công tháng này |
 | Giáo viên tiếng Anh | `teacher.en@review.example.com` | `/teach` | Lớp offline `EN-A2-Q1` (phòng P101), điểm danh tay |
 | Giáo viên tiếng Trung | `teacher.zh@review.example.com` | `/teach` | Lớp `ZH-HSK1-HN` khai giảng tuần sau |

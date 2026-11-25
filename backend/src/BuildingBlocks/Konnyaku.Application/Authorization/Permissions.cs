@@ -20,6 +20,9 @@ public static class Permissions
     public const string Packages = "billing.packages";
     public const string Orders = "billing.orders";
     public const string Payments = "billing.payments";
+
+    /// <summary>Money paid back to a student (an order the class could not take, or a student leaving mid-course).</summary>
+    public const string Refunds = "billing.refunds";
     public const string Leads = "crm.leads";
     public const string Students = "crm.students";
 
@@ -28,8 +31,8 @@ public static class Permissions
 
     public static readonly IReadOnlyList<string> All =
     [
-        Programs, Classes, ClassesView, Schedules, Branches, Rooms, Holidays, Staff, PayRates, Packages, Orders, Payments, Leads,
-        Students, StudentsView,
+        Programs, Classes, ClassesView, Schedules, Branches, Rooms, Holidays, Staff, PayRates, Packages, Orders, Payments, Refunds,
+        Leads, Students, StudentsView,
     ];
 }
 
@@ -43,14 +46,17 @@ public static class StaffRoles
     public const string Accountant = "Accountant";
     public const string Teacher = "Teacher";
 
-    /// <summary>Roles that may be granted for chosen branches only; every other role applies to the whole center.</summary>
-    public static readonly IReadOnlySet<string> BranchScoped = new HashSet<string> { BranchManager, Coordinator };
+    /// <summary>
+    /// Roles that may be granted for chosen branches only; every other role applies to the whole center. A branch accountant
+    /// handles the orders, payments and refunds of their branches; packages and pay rates stay center-wide.
+    /// </summary>
+    public static readonly IReadOnlySet<string> BranchScoped = new HashSet<string> { BranchManager, Coordinator, Accountant };
 }
 
 /// <summary>
 /// The role → permission matrix. TenantAdmin changes everything; branch managers and coordinators run classes, schedules,
 /// rooms and days off of their branches and keep student records (branch managers also follow up the leads of their
-/// branches); accountants handle packages, orders, payments and pay rates and read the student list; consultants handle
+/// branches); accountants handle packages, orders, payments, refunds and pay rates and read the student list; consultants handle
 /// leads and student records; teachers change nothing and see only the classes they teach.
 /// </summary>
 public static class RolePermissions
@@ -70,7 +76,8 @@ public static class RolePermissions
         },
         [StaffRoles.Accountant] = new HashSet<string>
         {
-            Permissions.Packages, Permissions.Orders, Permissions.Payments, Permissions.PayRates, Permissions.ClassesView, Permissions.StudentsView,
+            Permissions.Packages, Permissions.Orders, Permissions.Payments, Permissions.Refunds, Permissions.PayRates, Permissions.ClassesView,
+            Permissions.StudentsView,
         },
         [StaffRoles.Consultant] = new HashSet<string> { Permissions.Leads, Permissions.Students, Permissions.StudentsView, Permissions.ClassesView },
         [StaffRoles.Teacher] = new HashSet<string>(),

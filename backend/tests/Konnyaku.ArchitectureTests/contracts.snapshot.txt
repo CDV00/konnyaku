@@ -75,6 +75,13 @@ Konnyaku.Billing.Contracts.OrderPaidV1
   Guid OrderId
   Guid StudentId
   Nullable`1 ClassId
+Konnyaku.Billing.Contracts.OrderRefundedV1
+  Decimal Amount
+  Guid OrderId
+  Guid StudentId
+  Nullable`1 ClassId
+  Nullable`1 EnrollmentId
+  String Currency
 Konnyaku.Catalog.Contracts.FrameworkDto
   IReadOnlyDictionary`2 Name
   IReadOnlyList`1 Levels

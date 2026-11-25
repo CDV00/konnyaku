@@ -68,6 +68,10 @@ Trang **Tổng quan** của học viên cho biết còn bao nhiêu buổi, buổ
 
 Nếu số buổi âm, trang hiện dòng cảnh báo màu đỏ **Đang nợ … buổi**. Khi đó học viên vẫn học được, nhưng cần liên hệ trung tâm để gia hạn gói.
 
+### Lịch sử thanh toán
+
+Mục **Thanh toán** liệt kê mọi lần đóng học phí và hoàn tiền của học viên (phụ huynh thấy của các con): số phiếu, ngày, gói học, số tiền. Bấm **Tải phiếu** để tải phiếu thu (hoặc phiếu chi khi được hoàn tiền) dạng PDF. Mỗi lần tải đều được trung tâm ghi lại.
+
 ### Vào lớp
 
 Nút **Vào lớp** hiện bên cạnh buổi học trực tuyến khi phòng học đã được tạo. Bấm nút để mở phòng học. Chỉ học viên có chỗ trong lớp mới vào được.
@@ -155,7 +159,7 @@ Ngăn kéo sửa có mục **Lịch sử thay đổi**: ai sửa, lúc nào, tr�
 | Quản trị | Mọi thứ, kể cả nhân sự, cơ sở, chương trình | Mọi thứ |
 | Quản lý cơ sở | Lớp, lịch học, phòng, ngày nghỉ, ghi danh của các cơ sở mình phụ trách (không chọn cơ sở nào = toàn trung tâm); lead của các cơ sở đó; hồ sơ học viên | Mọi lớp, danh sách học viên |
 | Điều phối | Lớp, lịch học, phòng, ngày nghỉ, ghi danh của các cơ sở mình phụ trách; hồ sơ học viên | Mọi lớp, danh sách học viên |
-| Kế toán | Gói học, đơn hàng, thanh toán, đơn giá giáo viên | Mọi lớp, danh sách học viên (không có số điện thoại, email) |
+| Kế toán | Gói học, đơn hàng, thanh toán, hoàn tiền, đơn giá giáo viên. Kế toán giao theo cơ sở chỉ thu tiền, hoàn tiền, điều chỉnh buổi và in phiếu cho đơn của cơ sở đó; không sửa gói học hay đơn giá | Mọi lớp, danh sách học viên (không có số điện thoại, email) |
 | Tư vấn | Lead, hồ sơ học viên | Mọi lớp |
 | Giáo viên | Không sửa gì trong `ops` | Chỉ các lớp mình dạy; không xem danh sách học viên, lead hay nhân sự (điểm danh trong `teach` vẫn có tên học viên của buổi) |
 
@@ -184,6 +188,22 @@ Muốn học viên đăng nhập được thì đánh dấu **Cấp tài khoản
 - **Ghi nhận** thanh toán trên từng đơn: Số tiền, Hình thức (Tiền mặt / Chuyển khoản / Thẻ), Mã giao dịch. Một đơn trả được nhiều lần.
 
 Khi đơn được trả đủ, học viên được cộng buổi và, nếu đơn gắn lớp, tự vào lớp sau vài giây. Lớp đã đầy thì đơn chuyển sang **Cần hoàn tiền**.
+
+Các nút phía trên bảng đơn lọc theo trạng thái: **Tất cả**, **Chờ thu** (chưa thu đồng nào), **Trả một phần**, **Đã trả**, **Chờ hoàn**, **Đã hoàn**.
+
+**Phiếu thu.** Mỗi lần ghi nhận thanh toán tạo một phiếu thu số `PT-000001`, `PT-000002`… tăng dần trong trung tâm, không trùng, không nhảy số; mỗi lần hoàn tiền tạo một phiếu chi `PC-…` với dãy số riêng. Trong **Chi tiết** đơn, bấm **Xem phiếu** cạnh từng lần thanh toán để xem phiếu: trung tâm, cơ sở, học viên, gói học, số tiền bằng số và bằng chữ, hình thức, người thu. **In** mở PDF để in, **Tải PDF** lưu file. Mỗi lần in hoặc tải được ghi vào **Nhật ký in / tải** (ai, lúc nào); PDF có dòng "In bởi" với tên người in đã che bớt. Một người in một phiếu tối đa 20 lần trong 24 giờ. Thanh toán đã huỷ vẫn giữ phiếu, in ra có dấu **ĐÃ HỦY**.
+
+**Hoàn tiền** (Kế toán, Quản trị). Nút **Hoàn tiền** có trên đơn Chờ hoàn (lớp đầy), đơn Đã trả (học viên nghỉ giữa khoá) và đơn Trả một phần (nghỉ khi chưa trả đủ). Ngăn kéo hiện cách tính:
+
+| Trường hợp | Số tiền đề xuất |
+| --- | --- |
+| Lớp không nhận được học viên, hoặc chưa học buổi nào | Toàn bộ số đã thu |
+| Nghỉ giữa khoá | Số buổi trả phí chưa dùng × đơn giá một buổi (giá đơn ÷ số buổi trả phí). Buổi tặng không hoàn. Buổi cộng thêm bằng điều chỉnh không hoàn |
+| Nghỉ khi chưa trả đủ | Số đã thu |
+
+Có thể sửa số tiền (ví dụ trừ phí), nhưng không quá số đã thu; **Lý do** luôn bắt buộc và được in trên phiếu chi. Chọn hình thức, mã giao dịch rồi **Xác nhận hoàn tiền**. Mỗi đơn chỉ hoàn một lần, không hoàn tác được: đơn chuyển sang **Đã hoàn tiền**, số buổi còn lại bị trừ hết bằng dòng **Hoàn** trong sổ buổi học, học viên được cho nghỉ lớp và chỗ trong lớp được nhả. Phần chênh giữa giá trị buổi chưa dùng và số hoàn (phí giữ lại) được tính vào doanh thu ghi nhận ngày hoàn, cho cơ sở thu tiền.
+
+**Sổ buổi học.** Trong **Chi tiết** đơn đã trả có mục **Sổ buổi học**: mọi dòng Mua, Tặng, Học, Hoàn, Điều chỉnh theo thời gian. Sổ chỉ ghi thêm, không sửa: muốn cộng hoặc trừ buổi thì mở **Điều chỉnh buổi**, nhập số buổi (âm để trừ), loại buổi (tặng / trả phí) và lý do, bấm **Ghi bút toán**.
 
 Sửa và điều chỉnh (Kế toán, Quản trị):
 
@@ -216,7 +236,7 @@ Sửa lớp trên trang chi tiết:
 
 - **Thêm nhân sự**: Họ tên, Email, Mật khẩu ban đầu (bỏ trống nếu người này đã có tài khoản), và một hoặc nhiều vai trò: Quản trị, Quản lý cơ sở, Điều phối, Tư vấn, Kế toán, Giáo viên.
 - **Đặt đơn giá** cho giáo viên: Đơn giá mỗi giờ, Tiền tệ, Áp dụng từ. Đơn giá mới chỉ áp cho công còn nháp; công đã duyệt hoặc đã chốt không đổi. Trong cùng ngăn kéo, đơn giá nhập nhầm sửa hoặc xoá được khi chưa có công đã duyệt/chốt dùng nó.
-- **Sửa** nhân sự: họ tên và vai trò. Với Quản lý cơ sở và Điều phối, đánh dấu các cơ sở người đó phụ trách (không chọn = toàn trung tâm). Trung tâm luôn phải còn ít nhất một Quản trị.
+- **Sửa** nhân sự: họ tên và vai trò. Với Quản lý cơ sở, Điều phối và Kế toán, đánh dấu các cơ sở người đó phụ trách (không chọn = toàn trung tâm). Trung tâm luôn phải còn ít nhất một Quản trị.
 - **Ngừng dùng** khoá tài khoản ngay (kể cả phiên đang mở không lưu được gì); **Dùng lại** để mở. Không tự khoá tài khoản của mình.
 
 ### Cơ sở

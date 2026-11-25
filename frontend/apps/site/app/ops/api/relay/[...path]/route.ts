@@ -29,6 +29,8 @@ const writes: Record<"POST" | "PUT" | "DELETE", RegExp[]> = {
     route("billing/orders/{id}/payments"),
     route("billing/orders/{id}/cancel"),
     route("billing/payments/{id}/void"),
+    route("billing/orders/{id}/refunds"),
+    route("billing/accounts/{id}/adjustments"),
   ],
   PUT: [
     route("organization/branches/{id}"),
@@ -50,8 +52,13 @@ const writes: Record<"POST" | "PUT" | "DELETE", RegExp[]> = {
   DELETE: [route("organization/holidays/{id}"), route("hr/rates/{id}")],
 };
 
-/** Reads made from the browser (change history and payments shown inside a drawer). */
-const reads = [route("(academic|scheduling|organization|identity|hr|crm|billing)/history/{id}"), route("billing/orders/{id}/payments")];
+/** Reads made from the browser (change history, payments, refunds and the lesson ledger shown inside a drawer). */
+const reads = [
+  route("(academic|scheduling|organization|identity|hr|crm|billing)/history/{id}"),
+  route("billing/orders/{id}/(payments|refunds|refund-quote)"),
+  route("billing/accounts/{id}/ledger"),
+  route("billing/receipts/(receipt|refund)/{id}/prints"),
+];
 
 type Context = { params: Promise<{ path: string[] }> };
 

@@ -17,6 +17,8 @@ public class AccessRulesTests
     [InlineData("Coordinator", Permissions.Packages, false)]
     [InlineData("Accountant", Permissions.Orders, true)]
     [InlineData("Accountant", Permissions.Classes, false)]
+    [InlineData("Accountant", Permissions.Refunds, true)]
+    [InlineData("Consultant", Permissions.Refunds, false)]
     [InlineData("Consultant", Permissions.Students, true)]
     [InlineData("Consultant", Permissions.Rooms, false)]
     [InlineData("Teacher", Permissions.Classes, false)]

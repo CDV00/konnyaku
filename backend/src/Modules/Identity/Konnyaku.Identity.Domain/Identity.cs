@@ -214,5 +214,5 @@ public static class Roles
     public static readonly IReadOnlySet<string> Learn = new HashSet<string> { Student, Parent };
 
     /// <summary>Roles that may be limited to chosen branches; the others always cover the whole center.</summary>
-    public static readonly IReadOnlySet<string> BranchScoped = new HashSet<string> { BranchManager, Coordinator };
+    public static readonly IReadOnlySet<string> BranchScoped = new HashSet<string> { BranchManager, Coordinator, Accountant };
 }

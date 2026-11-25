@@ -184,7 +184,7 @@ public sealed class EditTests(PostgresFixture db) : IAsyncDisposable
         var (managerId, manager) = await c.AddStaffAsync("Coordinator");
 
         await (await c.Admin.PutAsJsonAsync($"/api/identity/staff/{managerId}",
-                new { displayName = "Quản lý CS-A", roles = new[] { new { role = "Accountant", branchId = (Guid?)c.BranchA } } }, Ct))
+                new { displayName = "Quản lý CS-A", roles = new[] { new { role = "Consultant", branchId = (Guid?)c.BranchA } } }, Ct))
             .ShouldFailWith(HttpStatusCode.BadRequest, "identity.role_scope_invalid");
         await (await c.Admin.PutAsJsonAsync($"/api/identity/staff/{managerId}",
             new { displayName = "Quản lý CS-A", roles = new[] { new { role = "BranchManager", branchId = (Guid?)c.BranchA } } }, Ct)).ShouldSucceed();

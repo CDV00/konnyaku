@@ -1,10 +1,13 @@
 using Konnyaku.Academic.Contracts;
+using Konnyaku.Application.Authorization;
 using Konnyaku.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 
 namespace Konnyaku.Billing.Application;
 
-public sealed record PaymentView(Guid Id, Guid OrderId, decimal Amount, string Method, string? Reference, DateTimeOffset ReceivedAt, DateTimeOffset? VoidedAt);
+public sealed record PaymentView(
+    Guid Id, Guid OrderId, decimal Amount, string Method, string? Reference, DateTimeOffset ReceivedAt, DateTimeOffset? VoidedAt, long ReceiptNo,
+    string ReceiptCode, string? ReceivedByName);
 
 public sealed record EditOrderCommand(decimal Amount, Guid? ClassId, Guid? BranchId);
 
@@ -12,7 +15,7 @@ public sealed record EditOrderCommand(decimal Amount, Guid? ClassId, Guid? Branc
 /// Corrections by accountants. Everything here acts before money turns into lesson credits: once an order is fully paid,
 /// the append-only ledger is the record and mistakes are fixed with an adjustment line.
 /// </summary>
-public sealed class BillingAdminHandlers(IBillingDbContext db, IAcademicApi academic, TimeProvider clock)
+public sealed class BillingAdminHandlers(IBillingDbContext db, IAcademicApi academic, IAccessControl access, TimeProvider clock)
 {
     public async Task<Result<PackageView>> UpdatePackageAsync(Guid packageId, CreatePackageCommand command, CancellationToken ct)
     {
@@ -70,6 +73,11 @@ public sealed class BillingAdminHandlers(IBillingDbContext db, IAcademicApi acad
             branchId ??= cls.BranchId;
         }
 
+        if (await access.EnsureAsync(Permissions.Orders, ct, order.BranchId, branchId) is { } forbidden)
+        {
+            return forbidden;
+        }
+
         var edited = order.Edit(command.Amount, command.ClassId, branchId);
         if (!edited.IsSuccess)
         {
@@ -86,6 +94,11 @@ public sealed class BillingAdminHandlers(IBillingDbContext db, IAcademicApi acad
         if (order is null)
         {
             return Error.NotFound("billing.order_not_found");
+        }
+
+        if (await access.EnsureAsync(Permissions.Orders, ct, order.BranchId) is { } forbidden)
+        {
+            return forbidden;
         }
 
         var cancelled = order.Cancel();
@@ -123,7 +136,7 @@ public sealed class BillingAdminHandlers(IBillingDbContext db, IAcademicApi acad
 
         payment.Correct(command.Amount, string.IsNullOrWhiteSpace(command.Method) ? payment.Method : command.Method.Trim(), command.Reference);
         await db.SaveChangesAsync(ct);
-        return ToView(payment);
+        return payment.ToView();
     }
 
     public async Task<Result<PaymentView>> VoidPaymentAsync(Guid paymentId, CancellationToken ct)
@@ -142,7 +155,7 @@ public sealed class BillingAdminHandlers(IBillingDbContext db, IAcademicApi acad
 
         payment.Void(clock.GetUtcNow());
         await db.SaveChangesAsync(ct);
-        return ToView(payment);
+        return payment.ToView();
     }
 
     private async Task<(Domain.Payment? Payment, Domain.Order? Order, Error? Error)> LoadPaymentAsync(Guid paymentId, CancellationToken ct)
@@ -158,8 +171,9 @@ public sealed class BillingAdminHandlers(IBillingDbContext db, IAcademicApi acad
             return (null, null, Error.Conflict("billing.payment_voided"));
         }
 
-        return (payment, await db.Orders.FirstAsync(o => o.Id == payment.OrderId, ct), null);
+        var order = await db.Orders.FirstAsync(o => o.Id == payment.OrderId, ct);
+        return await access.EnsureAsync(Permissions.Payments, ct, order.BranchId) is { } forbidden
+            ? (null, null, forbidden)
+            : (payment, order, null);
     }
-
-    private static PaymentView ToView(Domain.Payment p) => new(p.Id, p.OrderId, p.Amount, p.Method, p.Reference, p.ReceivedAt, p.VoidedAt);
 }

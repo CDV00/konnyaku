@@ -35,10 +35,24 @@
     "title": "Cổng học viên & phụ huynh",
     "zone": "Học viên",
     "nav": {
-      "home": "Tổng quan"
+      "home": "Tổng quan",
+      "payments": "Thanh toán"
     },
     "subtitle": "Lịch học, số buổi còn lại và video xem lại của bạn.",
-    "nextLesson": "Buổi học kế tiếp"
+    "nextLesson": "Buổi học kế tiếp",
+    "payments": {
+      "title": "Lịch sử thanh toán",
+      "description": "Các lần đóng học phí và hoàn tiền, kèm phiếu để tải về.",
+      "empty": "Chưa có thanh toán nào.",
+      "receipt": "Phiếu thu",
+      "refund": "Hoàn tiền",
+      "voided": "Đã huỷ",
+      "download": "Tải phiếu",
+      "code": "Số phiếu",
+      "date": "Ngày",
+      "package": "Gói học",
+      "amount": "Số tiền"
+    }
   },
   "teach": {
     "title": "Ứng dụng giáo viên",
@@ -330,7 +344,8 @@
       "PendingPayment": "Chờ thanh toán",
       "Paid": "Đã thanh toán",
       "Cancelled": "Đã huỷ",
-      "RefundRequired": "Cần hoàn tiền"
+      "RefundRequired": "Cần hoàn tiền",
+      "Refunded": "Đã hoàn tiền"
     },
     "result": {
       "username": "Tên đăng nhập:",
@@ -517,7 +532,64 @@
       "payments": "Các lần thanh toán",
       "editPackage": "Sửa gói {code}",
       "packageEditHint": "Giá mới áp dụng cho đơn tạo sau; đơn đã có giữ giá cũ.",
-      "deactivatePackageConfirm": "Ngừng bán gói này? Đơn đã có giữ nguyên."
+      "deactivatePackageConfirm": "Ngừng bán gói này? Đơn đã có giữ nguyên.",
+      "filters": {
+        "all": "Tất cả",
+        "unpaid": "Chờ thu",
+        "partial": "Trả một phần",
+        "paid": "Đã trả",
+        "refund_required": "Chờ hoàn",
+        "refunded": "Đã hoàn",
+        "cancelled": "Đã huỷ"
+      },
+      "filterLabel": "Lọc theo trạng thái",
+      "refunded": "Đã hoàn",
+      "refund": "Hoàn tiền",
+      "refundTitle": "Hoàn tiền cho {name}",
+      "refundDescription": "Hoàn buổi trả phí chưa dùng × đơn giá; buổi tặng không hoàn. Có thể sửa số tiền đề xuất, ghi rõ lý do.",
+      "refundKinds": {
+        "ClassUnavailable": "Lớp không nhận được học viên",
+        "Withdrawal": "Nghỉ giữa khoá",
+        "Cancellation": "Nghỉ khi chưa trả đủ"
+      },
+      "quoteReceived": "Đã thu",
+      "quotePaidLeft": "Buổi trả phí chưa dùng",
+      "quoteBonusLeft": "Buổi tặng (không hoàn)",
+      "quoteUnit": "Đơn giá một buổi",
+      "quoteSuggested": "Số tiền đề xuất",
+      "quoteNotRefundable": "Đơn này không ở trạng thái hoàn được.",
+      "refundAmount": "Số tiền hoàn",
+      "refundAmountHint": "Tối đa {max}. Khác số đề xuất thì ghi lý do bên dưới.",
+      "refundReason": "Lý do",
+      "refundReasonHint": "In trên phiếu chi và ghi vào sổ buổi học.",
+      "refundSubmit": "Xác nhận hoàn tiền",
+      "refunds": "Hoàn tiền",
+      "refundLine": "{code} · {amount} · {who}",
+      "viewReceipt": "Xem phiếu",
+      "collectedBy": "Người thu: {name}",
+      "ledger": "Sổ buổi học",
+      "ledgerEmpty": "Đơn chưa có buổi nào trong sổ (chưa thanh toán đủ).",
+      "ledgerHint": "Chỉ ghi thêm, không sửa: mọi thay đổi là một dòng mới.",
+      "entryTypes": {
+        "Purchase": "Mua",
+        "Bonus": "Tặng",
+        "Consume": "Học",
+        "Refund": "Hoàn",
+        "TransferOut": "Chuyển đi",
+        "TransferIn": "Chuyển đến",
+        "Expire": "Hết hạn",
+        "Adjust": "Điều chỉnh"
+      },
+      "creditKinds": {
+        "Paid": "trả phí",
+        "Bonus": "tặng"
+      },
+      "ledgerCredits": "{credits} buổi {kind}",
+      "adjust": "Điều chỉnh buổi",
+      "adjustCredits": "Số buổi (+ cộng, − trừ)",
+      "adjustKind": "Loại buổi",
+      "adjustReason": "Lý do",
+      "adjustSubmit": "Ghi bút toán"
     },
     "errors": {
       "unknown": "Không thực hiện được ({code}).",
@@ -611,7 +683,16 @@
       "billing_payment_not_found": "Không tìm thấy thanh toán.",
       "billing_payment_voided": "Thanh toán đã bị huỷ.",
       "billing_student_inactive": "Hồ sơ học viên đã ngừng dùng.",
-      "billing_student_unknown": "Học viên không tồn tại."
+      "billing_student_unknown": "Học viên không tồn tại.",
+      "billing_order_already_refunded": "Đơn này đã được hoàn tiền.",
+      "billing_order_not_refundable": "Đơn này không ở trạng thái hoàn được.",
+      "billing_refund_amount_invalid": "Số tiền hoàn phải lớn hơn 0 và không quá số đã thu ({max}).",
+      "billing_refund_reason_required": "Cần ghi lý do hoàn (tối đa {max} ký tự).",
+      "billing_receipt_not_found": "Không tìm thấy phiếu.",
+      "billing_receipt_print_limit": "Đã in/tải phiếu này {limit} lần trong 24 giờ.",
+      "billing_order_filter_invalid": "Bộ lọc không hợp lệ.",
+      "billing_adjustment_invalid": "Số buổi khác 0 và cần lý do (tối đa 300 ký tự).",
+      "billing_account_not_found": "Đơn chưa có sổ buổi học (chưa thanh toán đủ)."
     },
     "classStatus": {
       "Planned": "Dự kiến",
@@ -767,6 +848,39 @@
       "preferredSchedule": "Lịch mong muốn",
       "consultant": "Tư vấn viên",
       "noConsultant": "Chưa phân công"
+    },
+    "receipts": {
+      "receiptTitle": "Phiếu thu {code}",
+      "refundTitle": "Phiếu chi {code}",
+      "back": "Thu phí",
+      "print": "In",
+      "download": "Tải PDF",
+      "voided": "Phiếu đã huỷ (thanh toán nhập nhầm)",
+      "center": "Trung tâm",
+      "branch": "Cơ sở",
+      "date": "Ngày",
+      "student": "Học viên",
+      "package": "Gói học",
+      "amount": "Số tiền",
+      "inWords": "Bằng chữ",
+      "method": "Hình thức",
+      "reference": "Mã giao dịch",
+      "reason": "Lý do hoàn",
+      "issuedBy": "Người lập phiếu",
+      "credits": "Buổi học",
+      "creditsValue": "Hoàn {paid} buổi trả phí chưa dùng · {bonus} buổi tặng không hoàn",
+      "prints": "Nhật ký in / tải",
+      "noPrints": "Chưa ai in hoặc tải phiếu này.",
+      "printLine": "{who} · {action} · {when}",
+      "actions": {
+        "print": "in",
+        "download": "tải"
+      },
+      "audiences": {
+        "staff": "nhân viên",
+        "learn": "học viên"
+      },
+      "notice": "Mỗi lần in hoặc tải đều được ghi lại; PDF có dòng tên người in (đã che bớt)."
     }
   },
   "shell": {
