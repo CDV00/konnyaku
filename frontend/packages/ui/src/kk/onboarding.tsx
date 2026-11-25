@@ -2,7 +2,7 @@
 
 import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Circle, Lightbulb, X } from "lucide-react";
+import { ArrowRight, BookOpen, CheckCircle2, Circle, Lightbulb, X } from "lucide-react";
 import { cn } from "@konnyaku/ui/lib/utils";
 
 export type OnboardingStep = {
@@ -15,6 +15,9 @@ export type OnboardingStep = {
 };
 
 export type OnboardingLabels = { show: string; hide: string; progress?: string };
+
+/** Link to the full user guide, opened in a new tab. */
+export type OnboardingGuide = { href: string; label: string };
 
 function subscribe(onChange: () => void) {
   window.addEventListener("storage", onChange);
@@ -33,12 +36,13 @@ function readHidden(key: string): boolean {
  * First-run guide shown at the top of an area's home page: numbered steps with links, ticked off from real data
  * where possible. Hiding it is remembered per user in this browser; the "show" button brings it back at any time.
  */
-export function Onboarding({ storageKey, title, intro, steps, labels }: {
+export function Onboarding({ storageKey, title, intro, steps, labels, guide }: {
   storageKey: string;
   title: string;
   intro: string;
   steps: OnboardingStep[];
   labels: OnboardingLabels;
+  guide?: OnboardingGuide;
 }) {
   const key = `kk:onboarding:${storageKey}`;
   // null during server rendering and hydration: the flag lives in this browser's localStorage.
@@ -82,6 +86,17 @@ export function Onboarding({ storageKey, title, intro, steps, labels }: {
           <h2 className="font-semibold">{title}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{intro}</p>
           {labels.progress && <p className="mt-1 text-xs font-medium text-primary">{labels.progress}</p>}
+          {guide && (
+            <a
+              href={guide.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
+            >
+              <BookOpen className="size-4" />
+              {guide.label}
+            </a>
+          )}
         </div>
         <button
           type="button"

@@ -2,7 +2,7 @@
 
 SaaS Education ERP + LMS cho trung tâm ngoại ngữ: nhiều trung tâm (tenant), mỗi trung tâm nhiều cơ sở, dạy nhiều ngôn ngữ, giao diện `vi` / `en`. Học online qua Google Meet (dev dùng provider **Fake**), mở rộng Hybrid / tại cơ sở.
 
-Đọc thêm: [README.md](README.md) (chạy local, trạng thái từng phase, thuật ngữ, quyết định chính) và `docs/` (phân tích; `04-roadmap`, `06-evolution-strategy`, `07-multi-tenant-multi-language` là nguồn duy nhất cho phạm vi, module/event và quy tắc đa tenant). Hướng dẫn người dùng cuối: [docs/huong-dan-su-dung.md](docs/huong-dan-su-dung.md). Triển khai: [docs/trien-khai.md](docs/trien-khai.md).
+Đọc thêm: [README.md](README.md) (chạy local, trạng thái từng phase, thuật ngữ, quyết định chính) và `docs/` (phân tích; `04-roadmap`, `06-evolution-strategy`, `07-multi-tenant-multi-language` là nguồn duy nhất cho phạm vi, module/event và quy tắc đa tenant). Hướng dẫn người dùng cuối: [docs/huong-dan/](docs/huong-dan/README.md) (mỗi vai trò một trang, ảnh trong `docs/huong-dan/images/`). Triển khai: [docs/trien-khai.md](docs/trien-khai.md).
 
 ## Bố cục
 

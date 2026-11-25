@@ -2,7 +2,7 @@
 
 Bộ test các luồng người dùng chính trên Chromium thật, chạy với một hệ thống dựng từ đầu (PostgreSQL + Mailpit, Api, Worker, web build production, `infra/scripts/seed_review.py`). CI chạy trong job `e2e` của mỗi PR.
 
-**Quy tắc:** PR nào đổi điều người dùng nhìn thấy (màn hình, luồng, quyền, email, việc Worker làm mà người dùng thấy kết quả) phải thêm hoặc sửa luồng ở đây trong cùng PR, cùng với tài liệu bị ảnh hưởng (`docs/huong-dan-su-dung.md`, `docs/chay-local.md`…).
+**Quy tắc:** PR nào đổi điều người dùng nhìn thấy (màn hình, luồng, quyền, email, việc Worker làm mà người dùng thấy kết quả) phải thêm hoặc sửa luồng ở đây trong cùng PR, cùng với tài liệu bị ảnh hưởng (`docs/huong-dan/`, `docs/chay-local.md`…).
 
 Cách bật/tắt, cổng, biến môi trường: [docs/chay-local.md](../../docs/chay-local.md#test-giao-diện-tự-động-playwright).
 

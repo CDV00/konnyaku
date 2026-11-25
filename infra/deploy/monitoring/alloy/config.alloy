@@ -1,0 +1,202 @@
+// Grafana Alloy: the one collector of the stack (monitoring profile, docs/trien-khai.md#giám-sát-và-cảnh-báo).
+//   - OTLP from api, worker and web (OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4318): traces → Tempo, metrics → Prometheus.
+//   - Container logs of this compose project (Docker API) → Loki, labelled by compose service.
+//   - A probe per running container (replica health, names for cAdvisor series) → Prometheus.
+// Personal data: apps already drop query strings, client addresses and user agents; the transform below drops them
+// again so a forgotten attribute in a new library never reaches storage.
+
+otelcol.receiver.otlp "apps" {
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  output {
+    traces  = [otelcol.processor.transform.scrub.input]
+    metrics = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.transform "scrub" {
+  error_mode = "ignore"
+
+  trace_statements {
+    context    = "span"
+    statements = [
+      `delete_key(attributes, "url.query")`,
+      `delete_key(attributes, "client.address")`,
+      `delete_key(attributes, "client.port")`,
+      `delete_key(attributes, "http.client_ip")`,
+      `delete_key(attributes, "net.peer.ip")`,
+      `delete_key(attributes, "network.peer.address")`,
+      `delete_key(attributes, "user_agent.original")`,
+      `delete_key(attributes, "http.user_agent")`,
+      `delete_key(attributes, "enduser.id")`,
+      `replace_pattern(attributes["url.full"], "\\?.*", "")`,
+      `replace_pattern(attributes["http.url"], "\\?.*", "")`,
+      `replace_pattern(attributes["http.target"], "\\?.*", "")`,
+      `replace_pattern(name, "\\?\\S*", "")`,
+    ]
+  }
+
+  output {
+    traces = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.batch "default" {
+  output {
+    traces  = [otelcol.exporter.otlp.tempo.input]
+    metrics = [otelcol.exporter.otlphttp.prometheus.input]
+  }
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+
+    tls {
+      insecure = true
+    }
+  }
+}
+
+// Prometheus' own OTLP receiver (--web.enable-otlp-receiver): job = service.name, instance = service.instance.id.
+otelcol.exporter.otlphttp "prometheus" {
+  client {
+    endpoint = "http://prometheus:9090/api/v1/otlp"
+  }
+}
+
+discovery.docker "project" {
+  host = "unix:///var/run/docker.sock"
+
+  filter {
+    name   = "label"
+    values = ["com.docker.compose.project=" + sys.env("COMPOSE_PROJECT")]
+  }
+}
+
+discovery.relabel "project" {
+  targets = discovery.docker.project.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+}
+
+loki.source.docker "project" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.relabel.project.output
+  forward_to    = [loki.write.local.receiver]
+  refresh_interval = "15s"
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+// One probe per running container of the project, through blackbox: the health endpoint for api, web and signaling
+// (each replica on its own, by container name), blackbox's own health for the others (listed = running).
+// probe_success{job="containers", service, container, container_id} counts healthy replicas for the alerts and names
+// the raw cgroup series of cAdvisor (recording rules konnyaku:container_*).
+discovery.relabel "containers" {
+  targets = discovery.docker.project.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_id"]
+    target_label  = "container_id"
+  }
+
+  rule {
+    target_label = "__param_target"
+    replacement  = "http://localhost:9115/-/healthy"
+  }
+
+  rule {
+    source_labels = ["service", "container"]
+    regex         = "api;(.*)"
+    target_label  = "__param_target"
+    replacement   = "http://$1:8080/health"
+  }
+
+  rule {
+    source_labels = ["service", "container"]
+    regex         = "web;(.*)"
+    target_label  = "__param_target"
+    replacement   = "http://$1:3000/api/health"
+  }
+
+  rule {
+    source_labels = ["service", "container"]
+    regex         = "signaling;(.*)"
+    target_label  = "__param_target"
+    replacement   = "http://$1:5100/health"
+  }
+
+  rule {
+    target_label = "__param_module"
+    replacement  = "http_2xx"
+  }
+
+  rule {
+    target_label = "__metrics_path__"
+    replacement  = "/probe"
+  }
+
+  rule {
+    target_label = "__address__"
+    replacement  = "blackbox:9115"
+  }
+
+  rule {
+    source_labels = ["container"]
+    target_label  = "instance"
+  }
+}
+
+prometheus.scrape "containers" {
+  targets         = discovery.relabel.containers.output
+  job_name        = "containers"
+  scrape_interval = "15s"
+  forward_to      = [prometheus.relabel.containers.receiver]
+}
+
+prometheus.relabel "containers" {
+  forward_to = [prometheus.remote_write.prometheus.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "probe_success|probe_duration_seconds|up"
+    action        = "keep"
+  }
+}
+
+prometheus.remote_write "prometheus" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+}

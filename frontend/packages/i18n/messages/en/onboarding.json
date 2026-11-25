@@ -1,5 +1,6 @@
 {
   "show": "Quick guide",
+  "guide": "Full user guide (in Vietnamese)",
   "hide": "Hide guide",
   "progress": "{done} of {total} steps done",
   "ops": {

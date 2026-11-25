@@ -72,8 +72,10 @@ test("admin: new student with an account, order, full payment, Worker enrolls, l
     await expect(learner.getByRole("heading", { name: t("session.greeting", { name }) })).toBeVisible();
     await expect(statValue(learner, t("credits.title"))).toHaveText(String(pkg.paidCredits + pkg.bonusCredits));
     await expect(statValue(learner, t("credits.bonusLabel"))).toHaveText(String(pkg.bonusCredits));
-    // Lessons are daily at 07:00 (Vietnam) and the list starts 12 hours back: lesson 1 drops off later in the day.
-    await expect(learner.getByText(new RegExp(`^${t("schedule.lesson", { number: "\\d+" })}$`)).first()).toBeVisible();
+    // The schedule lists lessons from 12 hours ago on, so today's 07:00 lesson drops out in the evening: expect the
+    // first lesson the learner's schedule still shows rather than always lesson 1.
+    const shown = cls.sessions.find((x) => Date.parse(x.startsAt) >= Date.now() - 12 * 3_600_000) ?? cls.sessions[0]!;
+    await expect(learner.getByText(t("schedule.lesson", { number: shown.sequenceNo }), { exact: true }).first()).toBeVisible();
     await context.close();
   });
 });

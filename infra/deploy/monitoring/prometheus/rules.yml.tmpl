@@ -1,0 +1,287 @@
+# Alert rules (rendered by start.sh: ${API_REPLICAS}… come from .env). Severity: critical = users are affected now,
+# warning = will be soon or needs a look today. Alertmanager sends them by email (and Telegram when configured).
+# Runbook for each alert: docs/trien-khai.md#cảnh-báo.
+groups:
+  # cAdvisor series (cgroup id) named after the compose service and container of Alloy's probes.
+  - name: containers
+    rules:
+      - record: konnyaku:container_info
+        expr: max by (container_id, service, container) (probe_success{job="containers"}) * 0 + 1
+      - record: konnyaku:container_memory_working_set_bytes
+        expr: |
+          sum by (service, container) (
+            label_replace(container_memory_working_set_bytes, "container_id", "$1", "id", ".*([0-9a-f]{64}).*")
+            * on (container_id) group_left (service, container) konnyaku:container_info)
+      - record: konnyaku:container_spec_memory_limit_bytes
+        expr: |
+          sum by (service, container) (
+            label_replace(container_spec_memory_limit_bytes, "container_id", "$1", "id", ".*([0-9a-f]{64}).*")
+            * on (container_id) group_left (service, container) konnyaku:container_info)
+      - record: konnyaku:container_cpu_usage:rate5m
+        expr: |
+          sum by (service, container) (
+            label_replace(rate(container_cpu_usage_seconds_total[5m]), "container_id", "$1", "id", ".*([0-9a-f]{64}).*")
+            * on (container_id) group_left (service, container) konnyaku:container_info)
+      - record: konnyaku:container_start_time_seconds
+        expr: |
+          max by (service, container) (
+            label_replace(container_start_time_seconds, "container_id", "$1", "id", ".*([0-9a-f]{64}).*")
+            * on (container_id) group_left (service, container) konnyaku:container_info)
+
+  - name: availability
+    rules:
+      - alert: ServiceDown
+        expr: probe_success{job="probe-internal"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.service }} không trả lời trên mạng nội bộ"
+          description: "Health check {{ $labels.instance }} lỗi liên tục 1 phút: mọi bản sao {{ $labels.service }} đều hỏng hoặc đã dừng."
+
+      - alert: PublicSiteDown
+        expr: probe_success{job="probe-public"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "Trang công khai không truy cập được qua Caddy"
+          description: "{{ $labels.instance }} lỗi 2 phút (Caddy, DNS, chứng chỉ hoặc web)."
+
+      # Fewer healthy replicas than configured in .env (crashed, stopped, restarting or not answering /health).
+      # Alloy probes every container of the project on its own (job "containers").
+      - alert: ApiReplicaMissing
+        expr: (count(probe_success{job="containers", service="api"} == 1) or vector(0)) < ${API_REPLICAS}
+        for: 2m
+        labels: { severity: critical, service: api }
+        annotations:
+          summary: "API chỉ còn {{ $value }} / ${API_REPLICAS} bản sao chạy"
+          description: "docker compose ps api; docker compose logs --tail 200 api"
+
+      - alert: WebReplicaMissing
+        expr: (count(probe_success{job="containers", service="web"} == 1) or vector(0)) < ${WEB_REPLICAS}
+        for: 2m
+        labels: { severity: critical, service: web }
+        annotations:
+          summary: "Web chỉ còn {{ $value }} / ${WEB_REPLICAS} bản sao chạy"
+          description: "docker compose ps web; docker compose logs --tail 200 web"
+
+      - alert: WorkerMissing
+        expr: (count(probe_success{job="containers", service="worker"}) or vector(0)) < ${WORKER_REPLICAS}
+        for: 5m
+        labels: { severity: critical, service: worker }
+        annotations:
+          summary: "Worker không chạy: event giữa các module và email bị dừng"
+          description: "docker compose ps worker; docker compose logs --tail 200 worker"
+
+      - alert: ContainerRestarting
+        expr: max by (service) (changes(konnyaku:container_start_time_seconds[15m])) > 2
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.service }} khởi động lại {{ $value }} lần trong 15 phút"
+          description: "Thường do hết bộ nhớ (trần *_MEM_LIMIT) hoặc lỗi cấu hình: docker compose logs {{ $labels.service }}"
+
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels: { severity: critical, service: postgres }
+        annotations:
+          summary: "PostgreSQL không kết nối được"
+          description: "postgres-exporter không kết nối được database."
+
+      - alert: MonitoringTargetDown
+        expr: up{job=~"node|cadvisor|postgres|caddy|signaling|alloy|blackbox"} == 0
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Không thu được số liệu từ {{ $labels.job }}"
+          description: "Cảnh báo dựa trên {{ $labels.job }} không hoạt động cho tới khi sửa."
+
+  - name: performance
+    rules:
+      - alert: ApiHigh5xxRate
+        expr: |
+          sum(rate(http_server_request_duration_seconds_count{job="konnyaku-api", http_response_status_code=~"5.."}[5m]))
+            / sum(rate(http_server_request_duration_seconds_count{job="konnyaku-api"}[5m])) > 0.05
+          and sum(rate(http_server_request_duration_seconds_count{job="konnyaku-api"}[5m])) > 0.05
+        for: 5m
+        labels: { severity: critical, service: api }
+        annotations:
+          summary: "API trả lỗi 5xx cho {{ $value | humanizePercentage }} request"
+          description: "Xem panel 5xx theo endpoint và log lỗi trong Grafana; Sentry/GlitchTip nếu đã cấu hình."
+
+      - alert: SiteHigh5xxRate
+        expr: |
+          sum(rate(caddy_http_request_duration_seconds_count{code=~"5.."}[5m]))
+            / sum(rate(caddy_http_request_duration_seconds_count[5m])) > 0.05
+          and sum(rate(caddy_http_request_duration_seconds_count[5m])) > 0.05
+        for: 5m
+        labels: { severity: critical, service: caddy }
+        annotations:
+          summary: "Người dùng nhận lỗi 5xx cho {{ $value | humanizePercentage }} request (đo ở Caddy)"
+          description: "502/503: web hoặc api không trả lời; 500: lỗi ứng dụng."
+
+      - alert: ApiSlowP95
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{job="konnyaku-api"}[5m]))) > ${ALERT_API_P95_SECONDS}
+          and sum(rate(http_server_request_duration_seconds_count{job="konnyaku-api"}[5m])) > 0.05
+        for: 10m
+        labels: { severity: warning, service: api }
+        annotations:
+          summary: "p95 API {{ $value | humanizeDuration }} (ngưỡng ${ALERT_API_P95_SECONDS}s)"
+          description: "Panel p95 theo endpoint cho biết endpoint nào chậm; mở trace trong Tempo để xem truy vấn nào."
+
+      - alert: SiteSlowP95
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(caddy_http_request_duration_seconds_bucket[5m]))) > ${ALERT_SITE_P95_SECONDS}
+          and sum(rate(caddy_http_request_duration_seconds_count[5m])) > 0.05
+        for: 10m
+        labels: { severity: warning, service: caddy }
+        annotations:
+          summary: "p95 trang web {{ $value | humanizeDuration }} (ngưỡng ${ALERT_SITE_P95_SECONDS}s)"
+          description: "CPU của web thường là giới hạn (docs/toi-uu-tai-nguyen.md)."
+
+      - alert: ContainerMemoryNearLimit
+        expr: |
+          max by (service) (konnyaku:container_memory_working_set_bytes / (konnyaku:container_spec_memory_limit_bytes > 0)) > 0.9
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.service }} dùng {{ $value | humanizePercentage }} trần RAM"
+          description: "Chạm trần thì container bị khởi động lại; xem docs/toi-uu-tai-nguyen.md trước khi nâng trần."
+
+      - alert: PostgresConnectionsHigh
+        expr: sum(pg_stat_activity_count) / max(pg_settings_max_connections) > 0.85
+        for: 5m
+        labels: { severity: warning, service: postgres }
+        annotations:
+          summary: "PostgreSQL dùng {{ $value | humanizePercentage }} số kết nối tối đa"
+          description: "Kiểm tra công thức pool trong docs/toi-uu-tai-nguyen.md (mục 1) trước khi tăng PG_MAX_CONNECTIONS."
+
+  - name: background-work
+    rules:
+      - alert: OutboxBacklog
+        expr: max by (module) (konnyaku_outbox_oldest_age_seconds) > 300
+        for: 10m
+        labels: { severity: critical }
+        annotations:
+          summary: "Outbox {{ $labels.module }}: event chờ quá {{ $value | humanizeDuration }}"
+          description: "Worker dừng hoặc handler lỗi liên tục: docker compose logs worker (máy 2 GB: api)."
+
+      - alert: OutboxDeadMessages
+        expr: max by (module) (konnyaku_outbox_dead) > 0
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "Outbox {{ $labels.module }}: {{ $value }} event đã hết số lần thử"
+          description: "SELECT id, type, last_error FROM {{ $labels.module }}.outbox_message WHERE processed_at IS NULL AND attempts >= 10;"
+
+      - alert: NotificationsOverdue
+        expr: max by (kind) (konnyaku_notification_overdue_age_seconds) > 900
+        for: 10m
+        labels: { severity: warning, service: worker }
+        annotations:
+          summary: "Thông báo loại {{ $labels.kind }} trễ {{ $value | humanizeDuration }}"
+          description: "Hàng đợi thông báo không được xử lý (worker dừng?). Email lỗi SMTP được thử lại theo lịch, không tính là trễ."
+
+      - alert: ClassroomPresenceDropped
+        expr: increase(konnyaku_signaling_reports_dropped_total[1h]) > 0
+        labels: { severity: warning, service: signaling }
+        annotations:
+          summary: "Phòng học: {{ $value }} sự kiện vào/ra không gửi được tới API"
+          description: "Điểm danh và bảng công của các buổi liên quan có thể thiếu: docker compose logs signaling."
+
+  - name: host-and-data
+    rules:
+      - alert: DiskAlmostFull
+        expr: |
+          node_filesystem_avail_bytes{mountpoint="/", fstype!~"tmpfs|overlay|squashfs"}
+            / node_filesystem_size_bytes{mountpoint="/", fstype!~"tmpfs|overlay|squashfs"} < 0.10
+        for: 10m
+        labels: { severity: critical }
+        annotations:
+          summary: "Ổ đĩa còn {{ $value | humanizePercentage }}"
+          description: "docker system df; docker image prune -a; xoá backup cũ (BACKUP_KEEP_DAYS)."
+
+      - alert: DiskFillsWithin24h
+        expr: |
+          predict_linear(node_filesystem_avail_bytes{mountpoint="/", fstype!~"tmpfs|overlay|squashfs"}[6h], 24 * 3600) < 0
+        for: 30m
+        labels: { severity: warning }
+        annotations:
+          summary: "Ổ đĩa sẽ đầy trong 24 giờ với tốc độ hiện tại"
+          description: "Thường là log hoặc dữ liệu giám sát; kiểm tra PROMETHEUS_RETENTION, LOKI_RETENTION."
+
+      # Status files of the backup jobs (pgBackRest sidecar: pgbackrest.prom, nightly pg_dump: dump.prom) in
+      # BACKUP_DIR/status, read by node-exporter. Names and meaning: docs/trien-khai.md#backup ("File trạng thái").
+      - alert: BackupOverdue
+        expr: time() - max(konnyaku_backup_last_success_timestamp_seconds{type=~"full|diff"}) > ${BACKUP_MAX_AGE_HOURS} * 3600
+        for: 10m
+        labels: { severity: critical, service: backup }
+        annotations:
+          summary: "Backup đầy đủ/khác biệt gần nhất cách đây {{ $value | humanizeDuration }}"
+          description: "docker compose logs backup; backups/status/backup.json"
+
+      - alert: DumpOverdue
+        expr: time() - max(konnyaku_dump_last_success_timestamp_seconds) > ${BACKUP_MAX_AGE_HOURS} * 3600
+        for: 10m
+        labels: { severity: warning, service: backup }
+        annotations:
+          summary: "pg_dump hằng đêm gần nhất cách đây {{ $value | humanizeDuration }}"
+          description: "Xem backups/backup.log và crontab (docs/trien-khai.md#backup)."
+
+      - alert: BackupSidecarStalled
+        expr: time() - max(konnyaku_backup_heartbeat_timestamp_seconds) > 300
+        for: 5m
+        labels: { severity: critical, service: backup }
+        annotations:
+          summary: "Container backup không cập nhật trạng thái {{ $value | humanizeDuration }}"
+          description: "docker compose ps backup; docker compose logs --tail 200 backup"
+
+      - alert: WalArchivingFailing
+        expr: |
+          max(konnyaku_backup_wal_pending_segments) > 10
+          or max(konnyaku_backup_wal_last_failed_timestamp_seconds) > max(konnyaku_backup_wal_last_archived_timestamp_seconds)
+        for: 10m
+        labels: { severity: critical, service: backup }
+        annotations:
+          summary: "WAL không được đẩy lên kho backup: khôi phục theo thời điểm đang mất dữ liệu mới"
+          description: "Đĩa pg_wal sẽ đầy nếu kéo dài: docker compose logs backup postgres | grep -i archive"
+
+      - alert: BackupNotConfigured
+        expr: max(konnyaku_backup_configured) == 0
+        for: 1h
+        labels: { severity: warning, service: backup }
+        annotations:
+          summary: "Chưa cấu hình kho lưu backup (object storage)"
+          description: "docs/trien-khai.md#backup"
+
+      - alert: RestoreDrillOverdue
+        expr: time() - max(konnyaku_backup_drill_last_success_timestamp_seconds) > 35 * 86400
+        for: 1h
+        labels: { severity: warning, service: backup }
+        annotations:
+          summary: "Diễn tập khôi phục thành công gần nhất cách đây {{ $value | humanizeDuration }}"
+          description: "docs/trien-khai.md#backup"
+
+      - alert: BackupStatusMissing
+        expr: absent(konnyaku_backup_heartbeat_timestamp_seconds) and absent(konnyaku_dump_last_success_timestamp_seconds)
+        for: ${BACKUP_MAX_AGE_HOURS}h
+        labels: { severity: warning, service: backup }
+        annotations:
+          summary: "Không có file trạng thái backup nào"
+          description: "BACKUP_DIR/status trống: backup chưa chạy, hoặc METRICS_TEXTFILE_DIR không trỏ đúng thư mục."
+
+      - alert: CertificateExpiresSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 14 * 86400
+        for: 1h
+        labels: { severity: warning, service: caddy }
+        annotations:
+          summary: "Chứng chỉ của {{ $labels.instance }} hết hạn sau {{ $value | humanizeDuration }}"
+          description: "Caddy tự gia hạn trước 30 ngày; còn dưới 14 ngày nghĩa là gia hạn lỗi: docker compose logs caddy | grep -i acme"
+
+      - alert: CertificateExpiresVerySoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 3 * 86400
+        for: 10m
+        labels: { severity: critical, service: caddy }
+        annotations:
+          summary: "Chứng chỉ của {{ $labels.instance }} hết hạn sau {{ $value | humanizeDuration }}"
+          description: "docker compose logs caddy | grep -i acme; kiểm tra DNS và cổng 80."
