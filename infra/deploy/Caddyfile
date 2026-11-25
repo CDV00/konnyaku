@@ -1,5 +1,6 @@
 # Every tenant lives on its own host ({slug}.BASE_DOMAIN, later custom domains), so certificates are issued
-# on demand (HTTP-01) the first time a host is visited, and only after the web app confirms the host is a tenant.
+# on demand (HTTP-01) the first time a host is visited, and only after the web app confirms the host is a tenant
+# or the platform console host (admin.BASE_DOMAIN, see KONNYAKU_ADMIN_HOST of the web service).
 # DNS: A/AAAA records for BASE_DOMAIN and *.BASE_DOMAIN point to this server (Cloudflare: "DNS only").
 # Caddy is the edge: it ignores X-Forwarded-For sent by clients and sets it to the real client IP.
 

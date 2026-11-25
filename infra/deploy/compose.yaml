@@ -21,6 +21,8 @@ x-backend-env: &backend-env
   Auth__SigningKey: ${AUTH_SIGNING_KEY:?}
   Platform__AdminKey: ${PLATFORM_ADMIN_KEY:?}
   Platform__BaseDomain: ${BASE_DOMAIN:?}
+  # Only host serving the platform console (/platform); must equal KONNYAKU_ADMIN_HOST of the web service.
+  Platform__AdminHost: admin.${BASE_DOMAIN:?}
 
 x-logging: &logging
   driver: json-file
@@ -52,6 +54,8 @@ services:
     restart: unless-stopped
     environment:
       KONNYAKU_API_URL: http://api:8080
+      KONNYAKU_ADMIN_HOST: admin.${BASE_DOMAIN:?}
+      KONNYAKU_BASE_DOMAIN: ${BASE_DOMAIN:?}
     deploy:
       replicas: ${WEB_REPLICAS:-2}
     networks: [edge, app]

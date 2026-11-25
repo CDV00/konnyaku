@@ -112,6 +112,7 @@
       "identity_invalid_credentials": "The sign-in details are incorrect.",
       "identity_account_locked": "Too many failed attempts. Try again in 15 minutes.",
       "identity_tenant_unknown": "This address does not belong to a known center.",
+      "platform_tenant_suspended": "This center is temporarily suspended on Konnyaku. Please contact the center.",
       "unknown": "Something went wrong. Please try again."
     },
     "subtitle": "{center}",

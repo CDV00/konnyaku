@@ -14,6 +14,9 @@ Creates tenant "review" (host review.<base domain>, e.g. http://review.localhost
     KO-T1-ON3  online, no schedule yet (for the coordinator to schedule)
 - packages, orders (paid, partially paid, unpaid), leads in every status
 - timesheets from the held sessions, last month's payroll period locked, this month's open
+- the platform super-admin (console at http://admin.<base domain>:4000/platform), when none exists yet:
+    OPERATOR_EMAIL / OPERATOR_PASSWORD, TOTP secret OPERATOR_TOTP_SECRET (add it to an authenticator app,
+    or print the current code with: python infra/scripts/seed_review.py --totp)
 
 Every API call goes to KONNYAKU_API (default http://localhost:5080) with the platform key KONNYAKU_PLATFORM_KEY
 (default dev-platform-key). The Worker must be running: enrollments, rooms, attendance and timesheets come from events.
@@ -36,6 +39,10 @@ STAFF_PASSWORD = "Review-Pass-123"
 LEARNER_PASSWORD = "Learner-Pass-123"
 TZ = "Asia/Ho_Chi_Minh"
 TODAY = dt.date.today()
+# Development only: a fixed TOTP secret so every developer can sign in to the platform console.
+OPERATOR_EMAIL = "superadmin@platform.example.com"
+OPERATOR_PASSWORD = "Platform-Pass-123"
+OPERATOR_TOTP_SECRET = "KONNYAKUDEVPLATFORMTOTP234567ABC"
 
 
 def call(method, path, body=None, headers=None):
@@ -71,6 +78,19 @@ def wait_for(what, check, seconds=60):
     sys.exit(f"timed out waiting for {what} - is the Worker running?")
 
 
+def totp(secret, at=None):
+    """Current RFC 6238 code (SHA-1, 30 s, 6 digits) for a base32 secret, as an authenticator app shows it."""
+    import base64
+    import hashlib
+    import hmac
+    import struct
+    key = base64.b32decode(secret + "=" * (-len(secret) % 8))
+    counter = struct.pack(">Q", int((at or time.time()) // 30))
+    digest = hmac.new(key, counter, hashlib.sha1).digest()
+    offset = digest[-1] & 0x0F
+    return f"{(struct.unpack('>I', digest[offset:offset + 4])[0] & 0x7FFFFFFF) % 1_000_000:06d}"
+
+
 def last_weekday_on_or_before(day, weekday):
     return day - dt.timedelta(days=(day.weekday() - weekday) % 7)
 
@@ -78,11 +98,22 @@ def last_weekday_on_or_before(day, weekday):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-domain", default="localhost", help="Platform:BaseDomain of the API (default localhost)")
+    parser.add_argument("--totp", action="store_true", help="only print the current TOTP code of the dev super-admin")
     args = parser.parse_args()
+    if args.totp:
+        print(totp(OPERATOR_TOTP_SECRET))
+        return
     host = {"X-Tenant-Host": f"{SLUG}.{args.base_domain}"}
     platform = {"X-Platform-Key": PLATFORM_KEY}
 
     wait_for("the API", lambda: _healthy())
+
+    # --- platform super-admin (single-use bootstrap: skipped when an operator already exists) -------------------
+    status, body = call("POST", "/api/platform/operators/bootstrap", {
+        "email": OPERATOR_EMAIL, "displayName": "Quản trị nền tảng", "password": OPERATOR_PASSWORD,
+        "totpSecret": OPERATOR_TOTP_SECRET}, platform)
+    if status >= 400 and not (isinstance(body, dict) and body.get("code") == "platform.bootstrap_done"):
+        sys.exit(f"bootstrap platform operator failed: {status} {body}")
 
     # --- tenant and first admin -------------------------------------------------------------------------------
     status, tenant = call("POST", "/api/platform/tenants", {
@@ -296,6 +327,8 @@ def main():
     print(f"  staff (password {STAFF_PASSWORD}): admin, manager, coordinator, consultant, accountant,")
     print("    teacher.ja, teacher.en, teacher.zh  @review.example.com")
     print(f"  learners (password {LEARNER_PASSWORD}): hv-review01..hv-review12, parent ph-review01")
+    print(f"platform console at http://admin.{args.base_domain}:4000/platform")
+    print(f"  {OPERATOR_EMAIL} / {OPERATOR_PASSWORD}, TOTP secret {OPERATOR_TOTP_SECRET} (code now: {totp(OPERATOR_TOTP_SECRET)})")
 
 
 def _healthy():

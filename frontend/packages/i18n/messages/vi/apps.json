@@ -112,6 +112,7 @@
       "identity_invalid_credentials": "Thông tin đăng nhập không đúng.",
       "identity_account_locked": "Tài khoản tạm khóa do nhập sai nhiều lần. Thử lại sau 15 phút.",
       "identity_tenant_unknown": "Không xác định được trung tâm của địa chỉ này.",
+      "platform_tenant_suspended": "Trung tâm đang tạm ngừng hoạt động trên Konnyaku. Vui lòng liên hệ trung tâm.",
       "unknown": "Có lỗi xảy ra, vui lòng thử lại."
     },
     "subtitle": "{center}",

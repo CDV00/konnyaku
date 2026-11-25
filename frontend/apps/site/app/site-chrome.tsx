@@ -2,11 +2,13 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { NextIntlClientProvider } from "next-intl";
 import { getTranslations } from "next-intl/server";
+import { CirclePause } from "lucide-react";
 import { tenantInfo } from "@konnyaku/session";
 import { appFont } from "@konnyaku/ui/kk/font";
 import { Logo } from "@konnyaku/ui/kk/logo";
 import { AppProviders } from "@konnyaku/ui/kk/providers";
 import { TopBar } from "@konnyaku/ui/kk/shell";
+import { EmptyState } from "@konnyaku/ui/kk/blocks";
 import { cn } from "@konnyaku/ui/lib/utils";
 import "./globals.css";
 
@@ -14,7 +16,9 @@ import "./globals.css";
 export async function SiteChrome({ locale, children }: { locale: string; children: ReactNode }) {
   const t = await getTranslations("siteNav");
   const shell = await getTranslations("shell");
+  const platform = await getTranslations("platform.suspended");
   const tenant = await tenantInfo();
+  const suspended = tenant?.status === "Suspended";
   const name = tenant?.name ?? t("brand");
   const other = locale === "vi" ? "en" : "vi";
   return (
@@ -49,7 +53,16 @@ export async function SiteChrome({ locale, children }: { locale: string; childre
                   </>
                 }
               />
-              <div className="flex-1">{children}</div>
+              <div className="flex-1">
+                {suspended ? (
+                  // A suspended center (platform console) shows only this notice: no catalogue, form or sign-in.
+                  <div className="mx-auto flex max-w-xl px-4 py-24">
+                    <EmptyState icon={CirclePause} title={platform("title")} description={platform("body", { name })} className="w-full" />
+                  </div>
+                ) : (
+                  children
+                )}
+              </div>
               <footer className="border-t">
                 <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
                   <Logo name={name} className="text-foreground" />

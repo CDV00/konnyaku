@@ -13,6 +13,7 @@ public sealed class KonnyakuApiFactory(PostgresFixture db) : WebApplicationFacto
 {
     public const string PlatformKey = "test-platform-key";
     public const string BaseDomain = "test.local";
+    public const string AdminHost = "admin.test.local";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {

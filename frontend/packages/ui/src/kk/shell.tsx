@@ -10,11 +10,14 @@ import {
   GraduationCap,
   Building2,
   Home,
+  KeyRound,
   Layers,
   LogOut,
   Menu,
   PhoneCall,
   Receipt,
+  ScrollText,
+  ShieldCheck,
   Users,
 
   Wallet,
@@ -45,6 +48,10 @@ const icons = {
   payroll: Wallet,
   book: BookOpen,
   attendance: ClipboardList,
+  tenants: Building2,
+  audit: ScrollText,
+  operators: ShieldCheck,
+  account: KeyRound,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof icons;
