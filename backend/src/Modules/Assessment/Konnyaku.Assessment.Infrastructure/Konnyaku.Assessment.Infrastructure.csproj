@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="HtmlSanitizer" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Konnyaku.Infrastructure\Konnyaku.Infrastructure.csproj" />
+    <ProjectReference Include="..\Konnyaku.Assessment.Application\Konnyaku.Assessment.Application.csproj" />
+    <ProjectReference Include="..\..\Platform\Konnyaku.Platform.Contracts\Konnyaku.Platform.Contracts.csproj" />
+  </ItemGroup>
+</Project>

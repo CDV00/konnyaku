@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Konnyaku.Assessment.Infrastructure\Konnyaku.Assessment.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

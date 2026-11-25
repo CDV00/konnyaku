@@ -20,6 +20,8 @@
     <!-- PDFsharp brings 8.0.1, which has known advisories. -->
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
     <PackageVersion Include="MailKit" Version="4.18.2" />
+    <!-- Rich text of questions (stem, passage, explanation): allow-list HTML incl. ruby for furigana/pinyin. -->
+    <PackageVersion Include="HtmlSanitizer" Version="11.0.26" />
     <!-- Tests -->
     <PackageVersion Include="xunit.v3" Version="4.0.3" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
