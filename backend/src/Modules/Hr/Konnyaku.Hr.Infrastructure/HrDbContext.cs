@@ -1,6 +1,7 @@
 using Konnyaku.Application.Tenancy;
 using Konnyaku.Hr.Application;
 using Konnyaku.Hr.Domain;
+using Konnyaku.Infrastructure.Auditing;
 using Konnyaku.Infrastructure.Persistence;
 using Konnyaku.Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -52,6 +53,7 @@ public sealed class HrDbContext(DbContextOptions<HrDbContext> options, ITenantCo
             b.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
             b.HasIndex(x => new { x.TenantId, x.From });
         });
+        modelBuilder.AddChangeLog();
     }
 }
 

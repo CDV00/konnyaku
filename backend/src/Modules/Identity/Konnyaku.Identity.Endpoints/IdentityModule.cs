@@ -1,8 +1,10 @@
 using System.Security.Claims;
+using Konnyaku.Application.Authorization;
 using Konnyaku.Identity.Application;
 using Konnyaku.Identity.Contracts;
 using Konnyaku.Identity.Domain;
 using Konnyaku.Identity.Infrastructure;
+using Konnyaku.Infrastructure.Auditing;
 using Konnyaku.Infrastructure.Auth;
 using Konnyaku.Infrastructure.Http;
 using Konnyaku.Infrastructure.Messaging;
@@ -35,6 +37,7 @@ public sealed class IdentityModule : IModule
         services.AddScoped<BootstrapTenantAdminHandler>();
         services.AddScoped<AddStaffMemberHandler>();
         services.AddScoped<StaffQueries>();
+        services.AddScoped<StaffAdminHandler>();
     }
 
     public void AddWorkerServices(IServiceCollection services) => services.AddOutboxProcessor<IdentityDbContext>();
@@ -61,12 +64,32 @@ public sealed class IdentityModule : IModule
                 .RequireClaim(KonnyakuClaims.Audience, Audiences.Staff)
                 .RequireRole(Roles.TenantAdmin, Roles.Consultant));
 
+        // What the signed-in member may change (the ops screens hide the rest; the API checks again on every write).
+        group.MapGet("/me/access", async (IAccessControl access, CancellationToken ct) => Results.Ok(await access.ListAsync(ct)))
+            .RequireAuthorization(Policies.Staff);
+
         group.MapPost("/staff", async (AddStaffMemberCommand command, AddStaffMemberHandler handler, CancellationToken ct) =>
                 ApiResults.From(await handler.HandleAsync(command, ct), id => Results.Ok(new { userId = id })))
-            .RequireAuthorization(Policies.TenantAdmin);
+            .RequirePermission(Permissions.Staff);
 
+        // Colleagues (names, emails, roles, branches) for members who change something: coordinators pick teachers,
+        // accountants set rates, consultants hand over leads. A teacher-only member does not list staff.
         group.MapGet("/staff", async (StaffQueries queries, CancellationToken ct) => Results.Ok(await queries.ListAsync(ct)))
-            .RequireAuthorization(Policies.TenantAdmin);
+            .RequirePermission([.. Permissions.All]);
+
+        group.MapPut("/staff/{userId:guid}", async (Guid userId, UpdateStaffMemberCommand command, StaffAdminHandler handler, CancellationToken ct) =>
+                ApiResults.From(await handler.UpdateAsync(userId, command, ct), Results.Ok))
+            .RequirePermission(Permissions.Staff);
+
+        group.MapPost("/staff/{userId:guid}/deactivate", async (Guid userId, ClaimsPrincipal user, StaffAdminHandler handler, CancellationToken ct) =>
+                ApiResults.From(await handler.SuspendAsync(userId, user.UserId()!.Value, ct), Results.Ok))
+            .RequirePermission(Permissions.Staff);
+
+        group.MapPost("/staff/{userId:guid}/activate", async (Guid userId, StaffAdminHandler handler, CancellationToken ct) =>
+                ApiResults.From(await handler.ActivateAsync(userId, ct), Results.Ok))
+            .RequirePermission(Permissions.Staff);
+
+        group.MapChangeHistory<IdentityDbContext>();
 
         // Platform operation: runs in its own scope with the target tenant as context.
         group.MapPost("/bootstrap/tenant-admin", async (BootstrapTenantAdminCommand command, IServiceScopeFactory scopes, CancellationToken ct) =>

@@ -19,6 +19,15 @@ public sealed partial class Tenant : Entity
     public List<string> EnabledLocales { get; private set; } = [];
     public string TimeZone { get; private set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; private set; }
+    public TenantStatus Status { get; private set; } = TenantStatus.Active;
+    public DateTimeOffset? SuspendedAt { get; private set; }
+    public string? SuspendedReason { get; private set; }
+
+    /// <summary>Sub-domains of the base domain the platform keeps for itself (admin console, API, mail).</summary>
+    public static readonly IReadOnlySet<string> ReservedSlugs = new HashSet<string>
+    {
+        "admin", "api", "app", "platform", "www", "mail", "smtp", "static", "assets", "cdn", "status", "help", "docs",
+    };
 
     public static Result<Tenant> Create(string slug, string name, string defaultLocale, IReadOnlyCollection<string> enabledLocales, string timeZone)
     {
@@ -26,6 +35,11 @@ public sealed partial class Tenant : Entity
         if (!SlugPattern().IsMatch(normalizedSlug))
         {
             return Error.Validation("platform.slug_invalid");
+        }
+
+        if (ReservedSlugs.Contains(normalizedSlug))
+        {
+            return Error.Validation("platform.slug_reserved", new Dictionary<string, object?> { ["slug"] = normalizedSlug });
         }
 
         if (string.IsNullOrWhiteSpace(name))
@@ -55,12 +69,45 @@ public sealed partial class Tenant : Entity
         };
     }
 
+    /// <summary>Stops sign-in and every API call of the tenant; the public site shows a notice. Data is kept.</summary>
+    public Result<bool> Suspend(string? reason, DateTimeOffset now)
+    {
+        if (Status == TenantStatus.Suspended)
+        {
+            return Error.Conflict("platform.tenant_already_suspended");
+        }
+
+        Status = TenantStatus.Suspended;
+        SuspendedAt = now;
+        SuspendedReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+        return true;
+    }
+
+    public Result<bool> Resume()
+    {
+        if (Status != TenantStatus.Suspended)
+        {
+            return Error.Conflict("platform.tenant_not_suspended");
+        }
+
+        Status = TenantStatus.Active;
+        SuspendedAt = null;
+        SuspendedReason = null;
+        return true;
+    }
+
     [GeneratedRegex("^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$")]
     private static partial Regex SlugPattern();
 }
 
+public enum TenantStatus
+{
+    Active,
+    Suspended,
+}
+
 /// <summary>Host name that resolves to a tenant ({slug}.{base domain} or a custom domain).</summary>
-public sealed class TenantDomain : Entity
+public sealed partial class TenantDomain : Entity
 {
     private TenantDomain()
     {
@@ -69,9 +116,17 @@ public sealed class TenantDomain : Entity
     public TenantDomain(Guid tenantId, string host)
     {
         TenantId = tenantId;
-        Host = host.Trim().ToLowerInvariant();
+        Host = NormalizeHost(host);
     }
+
+    public static string NormalizeHost(string host) => host.Trim().TrimEnd('.').ToLowerInvariant();
+
+    /// <summary>A DNS host name with at least two labels (letters, digits, hyphens).</summary>
+    public static bool IsValidHost(string host) => host.Length <= 253 && HostPattern().IsMatch(host);
 
     public Guid TenantId { get; private set; }
     public string Host { get; private set; } = string.Empty;
+
+    [GeneratedRegex(@"^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")]
+    private static partial Regex HostPattern();
 }

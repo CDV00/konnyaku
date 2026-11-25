@@ -22,4 +22,15 @@ public static class MigrationBuilderExtensions
         migrationBuilder.Sql($"ALTER TABLE {name} NO FORCE ROW LEVEL SECURITY;");
         migrationBuilder.Sql($"ALTER TABLE {name} DISABLE ROW LEVEL SECURITY;");
     }
+
+    /// <summary>The module role may insert and read rows of the table, never update or delete them (audit trails, ledgers).</summary>
+    public static void MakeAppendOnly(this MigrationBuilder migrationBuilder, string schema, string table, string role) =>
+        migrationBuilder.Sql($"""
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '{role}') THEN
+                    REVOKE UPDATE, DELETE ON "{schema}"."{table}" FROM {role};
+                END IF;
+            END $$;
+            """);
 }

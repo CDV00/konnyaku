@@ -2,6 +2,7 @@ using Konnyaku.Academic.Application;
 using Konnyaku.Academic.Contracts;
 using Konnyaku.Academic.Domain;
 using Konnyaku.Application.Tenancy;
+using Konnyaku.Infrastructure.Auditing;
 using Konnyaku.Infrastructure.Persistence;
 using Konnyaku.Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -68,6 +69,7 @@ public sealed class AcademicDbContext(DbContextOptions<AcademicDbContext> option
             b.HasIndex(x => new { x.TenantId, x.Code }).IsUnique();
             b.HasIndex(x => new { x.TenantId, x.BranchId, x.StartsOn });
             b.ToTable(t => t.HasCheckConstraint("ck_class_enrolled_within_capacity", "enrolled_count >= 0 AND enrolled_count <= capacity"));
+            b.Ignore(x => x.IsClosed);
         });
         modelBuilder.Entity<Enrollment>(b =>
         {
@@ -80,6 +82,7 @@ public sealed class AcademicDbContext(DbContextOptions<AcademicDbContext> option
             b.HasIndex(x => new { x.TenantId, x.StudentId });
             b.HasIndex(x => new { x.ClassId, x.StudentId }).IsUnique().HasFilter("status IN ('Active', 'Frozen')");
         });
+        modelBuilder.AddChangeLog();
     }
 }
 
@@ -91,6 +94,7 @@ public static class AcademicInfrastructure
         services.AddScoped<IAcademicDbContext>(sp => sp.GetRequiredService<AcademicDbContext>());
         services.AddScoped<AcademicQueries>();
         services.AddScoped<IAcademicApi>(sp => sp.GetRequiredService<AcademicQueries>());
+        services.AddScoped<IAcademicUsageApi, AcademicUsageQueries>();
         services.AddSingleton(TimeProvider.System);
         return services;
     }

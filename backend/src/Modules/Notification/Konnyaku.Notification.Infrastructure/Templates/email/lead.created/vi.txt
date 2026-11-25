@@ -1,0 +1,7 @@
+Chào {{recipientName}},
+
+{{#assigned}}Bạn vừa được giao một lead mới.{{/assigned}}{{^assigned}}Có lead mới chưa được giao cho tư vấn viên nào.{{/assigned}}
+{{studentName}} quan tâm khóa học {{languageName}}.
+{{#followUpAt}}Cần gọi lại trước {{followUpAt}}.{{/followUpAt}}
+
+Xem lead: {{siteUrl}}/ops/leads

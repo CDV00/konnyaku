@@ -7,10 +7,15 @@ secret() { openssl rand -base64 48 | tr -d '\n/+=' | cut -c1-"${1:-40}"; }
 
 echo "# --- generated $(date -u +%Y-%m-%dT%H:%M:%SZ) ---"
 echo "POSTGRES_PASSWORD=$(secret)"
-for module in PLATFORM CATALOG IDENTITY ORGANIZATION ACADEMIC CRM SCHEDULING BILLING WORKSPACE LEARNING HR; do
+for module in PLATFORM CATALOG IDENTITY ORGANIZATION ACADEMIC CRM SCHEDULING BILLING WORKSPACE LEARNING HR NOTIFICATION; do
   echo "DB_PASSWORD_${module}=$(secret)"
 done
 # JWT signing key shared by every API replica (>= 32 bytes). Rotating it signs everybody out.
 echo "AUTH_SIGNING_KEY=$(secret 64)"
 # X-Platform-Key for platform operations (creating tenants); the API is not reachable from the internet.
 echo "PLATFORM_ADMIN_KEY=$(secret)"
+# HMAC key signing the proof-of-work captcha of public forms (>= 32 bytes), shared by every API replica.
+echo "CAPTCHA_KEY=$(secret 64)"
+# Built-in classroom: tickets between API and signaling (>= 32 bytes), and coturn's TURN REST shared secret.
+echo "SIGNALING_SECRET=$(secret 48)"
+echo "TURN_SECRET=$(secret 48)"

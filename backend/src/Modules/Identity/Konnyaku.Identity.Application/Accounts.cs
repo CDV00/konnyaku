@@ -1,7 +1,9 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using Konnyaku.Application.Tenancy;
 using Konnyaku.Identity.Contracts;
 using Konnyaku.Identity.Domain;
+using Konnyaku.Organization.Contracts;
 using Konnyaku.SharedKernel;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -15,7 +17,12 @@ public interface IIdentityDbContext
     DbSet<LocalCredential> LocalCredentials { get; }
     DbSet<Membership> Memberships { get; }
 
+    /// <summary>Starts tracking new rows as added (DbContext.AddRange).</summary>
+    void AddRange(IEnumerable<object> entities);
+
     void Publish(IIntegrationEvent integrationEvent, string? correlationId = null);
+
+    void LogChange(string entityType, Guid entityId, Guid subjectId, string action, IReadOnlyList<(string Field, string? Old, string? New)> changes);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
@@ -255,10 +262,12 @@ public sealed class BootstrapTenantAdminHandler(IIdentityDbContext db, IPassword
     }
 }
 
-public sealed record AddStaffMemberCommand(string Email, string DisplayName, string? InitialPassword, IReadOnlyList<string> Roles);
+/// <param name="BranchIds">Limits the branch-scoped roles (branch manager, coordinator) to these branches; empty = whole center.</param>
+public sealed record AddStaffMemberCommand(string Email, string DisplayName, string? InitialPassword, IReadOnlyList<string> Roles,
+    IReadOnlyList<Guid>? BranchIds = null);
 
 /// <summary>Tenant admin adds an employee or teacher. An existing platform user (e.g. a freelance teacher) keeps their password.</summary>
-public sealed class AddStaffMemberHandler(IIdentityDbContext db, IPasswordHasher<User> hasher)
+public sealed class AddStaffMemberHandler(IIdentityDbContext db, IPasswordHasher<User> hasher, IOrganizationApi organization)
 {
     public async Task<Result<Guid>> HandleAsync(AddStaffMemberCommand command, CancellationToken cancellationToken)
     {
@@ -270,6 +279,12 @@ public sealed class AddStaffMemberHandler(IIdentityDbContext db, IPasswordHasher
         if (string.IsNullOrWhiteSpace(command.Email) || string.IsNullOrWhiteSpace(command.DisplayName))
         {
             return Error.Validation("identity.staff_invalid");
+        }
+
+        var branchIds = command.BranchIds ?? [];
+        if (await StaffRoleRules.FindUnknownBranchAsync(organization, branchIds, cancellationToken) is { } unknown)
+        {
+            return unknown;
         }
 
         var email = User.NormalizeEmail(command.Email);
@@ -293,11 +308,23 @@ public sealed class AddStaffMemberHandler(IIdentityDbContext db, IPasswordHasher
             db.Memberships.Add(membership);
         }
 
+        var existing = membership.Roles.ToHashSet();
         foreach (var role in command.Roles)
         {
-            membership.Grant(role);
+            if (Roles.BranchScoped.Contains(role) && branchIds.Count > 0)
+            {
+                foreach (var branchId in branchIds)
+                {
+                    membership.Grant(role, ScopeType.Branch, branchId);
+                }
+            }
+            else
+            {
+                membership.Grant(role);
+            }
         }
 
+        StaffRoleRules.TrackNew(db, membership, existing);
         await db.SaveChangesAsync(cancellationToken);
         return user.Id;
     }
@@ -330,26 +357,184 @@ public sealed class IdentityQueries(IIdentityDbContext db, ITenantContext tenant
             .ToListAsync(cancellationToken);
 }
 
-public sealed record StaffMemberView(Guid UserId, string DisplayName, string? Email, IReadOnlyList<string> Roles);
+public sealed record StaffRoleView(string Role, Guid? BranchId);
+
+public sealed record StaffMemberView(Guid UserId, string DisplayName, string? Email, IReadOnlyList<string> Roles, string Status,
+    IReadOnlyList<StaffRoleView> Grants);
 
 public sealed class StaffQueries(IIdentityDbContext db)
 {
-    /// <summary>Active staff members of the current tenant (memberships are tenant-filtered; users are platform-wide).</summary>
+    /// <summary>Staff members of the current tenant, suspended ones included (memberships are tenant-filtered; users are platform-wide).</summary>
     public async Task<IReadOnlyList<StaffMemberView>> ListAsync(CancellationToken cancellationToken)
     {
         var members = await db.Memberships.AsNoTracking()
-            .Where(m => m.Status == MembershipStatus.Active)
-            .Select(m => new { m.UserId, Roles = m.Roles.Select(r => r.Role).ToList() })
+            .Where(m => m.Status != MembershipStatus.Invited)
+            .Select(m => new
+            {
+                m.UserId,
+                m.Status,
+                Grants = m.Roles.Select(r => new StaffRoleView(r.Role, r.ScopeType == ScopeType.Branch ? r.ScopeId : null)).ToList(),
+            })
             .ToListAsync(cancellationToken);
         var staff = members
-            .Select(m => (m.UserId, Roles: m.Roles.Where(Roles.Staff.Contains).Distinct().Order().ToList()))
-            .Where(m => m.Roles.Count > 0)
-            .ToDictionary(m => m.UserId, m => m.Roles);
+            .Select(m => (m.UserId, m.Status, Grants: m.Grants.Where(g => Roles.Staff.Contains(g.Role)).OrderBy(g => g.Role).ToList()))
+            .Where(m => m.Grants.Count > 0)
+            .ToDictionary(m => m.UserId);
         var ids = staff.Keys.ToList();
         var users = await db.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).ToListAsync(cancellationToken);
         return users
-            .Select(u => new StaffMemberView(u.Id, u.DisplayName, u.Email, staff[u.Id]))
-            .OrderBy(s => s.DisplayName, StringComparer.CurrentCulture)
+            .Select(u => new StaffMemberView(u.Id, u.DisplayName, u.Email, staff[u.Id].Grants.Select(g => g.Role).Distinct().Order().ToList(),
+                staff[u.Id].Status.ToString(), staff[u.Id].Grants))
+            .OrderBy(s => s.Status != nameof(MembershipStatus.Active)).ThenBy(s => s.DisplayName, StringComparer.CurrentCulture)
             .ToList();
     }
+}
+
+public sealed record RoleGrantInput(string Role, Guid? BranchId);
+
+public sealed record UpdateStaffMemberCommand(string DisplayName, IReadOnlyList<RoleGrantInput> Roles);
+
+internal static class StaffRoleRules
+{
+    public static async Task<Error?> FindUnknownBranchAsync(IOrganizationApi organization, IEnumerable<Guid> branchIds, CancellationToken ct)
+    {
+        foreach (var branchId in branchIds.Distinct())
+        {
+            if (await organization.GetBranchAsync(branchId, ct) is null)
+            {
+                return Error.Validation("identity.branch_unknown");
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>New role rows carry their own id: add them explicitly, or EF would take them for existing rows.</summary>
+    public static void TrackNew(IIdentityDbContext db, Membership membership, HashSet<RoleAssignment> existing) =>
+        db.AddRange(membership.Roles.Where(r => !existing.Contains(r)));
+
+    public static string Describe(IEnumerable<(string Role, Guid? BranchId)> grants) =>
+        JsonSerializer.Serialize(grants.OrderBy(g => g.Role, StringComparer.Ordinal).ThenBy(g => g.BranchId)
+            .Select(g => new { role = g.Role, branchId = g.BranchId }));
+}
+
+/// <summary>
+/// Tenant admin edits a staff member: name, roles and the branches a branch manager or coordinator is responsible for;
+/// suspends or re-activates the membership (a suspended member cannot sign in; history and assignments stay).
+/// The center always keeps at least one active administrator.
+/// </summary>
+public sealed class StaffAdminHandler(IIdentityDbContext db, IOrganizationApi organization)
+{
+    public async Task<Result<StaffMemberView>> UpdateAsync(Guid userId, UpdateStaffMemberCommand command, CancellationToken ct)
+    {
+        var grants = (command.Roles ?? []).Select(r => (r.Role, r.BranchId)).Distinct().ToList();
+        if (grants.Count == 0 || grants.Any(g => !Roles.Staff.Contains(g.Role)))
+        {
+            return Error.Validation("identity.role_invalid");
+        }
+
+        if (grants.Any(g => g.BranchId is not null && !Roles.BranchScoped.Contains(g.Role)))
+        {
+            return Error.Validation("identity.role_scope_invalid");
+        }
+
+        var branchIds = grants.Where(g => g.BranchId is not null).Select(g => g.BranchId!.Value);
+        if (await StaffRoleRules.FindUnknownBranchAsync(organization, branchIds, ct) is { } unknown)
+        {
+            return unknown;
+        }
+
+        var (user, membership) = await LoadAsync(userId, ct);
+        if (user is null || membership is null)
+        {
+            return Error.NotFound("identity.staff_not_found");
+        }
+
+        var renamed = user.Rename(command.DisplayName ?? string.Empty);
+        if (!renamed.IsSuccess)
+        {
+            return renamed.Error!;
+        }
+
+        var keepsAdmin = grants.Any(g => g.Role == Roles.TenantAdmin && g.BranchId is null);
+        if (!keepsAdmin && IsAdmin(membership) && !await AnotherActiveAdminAsync(membership.Id, ct))
+        {
+            return Error.Conflict("identity.last_admin");
+        }
+
+        var before = StaffRoleRules.Describe(StaffGrants(membership));
+        var existing = membership.Roles.ToHashSet();
+        membership.ReplaceStaffRoles(grants);
+        StaffRoleRules.TrackNew(db, membership, existing);
+        var after = StaffRoleRules.Describe(StaffGrants(membership));
+        if (before != after)
+        {
+            db.LogChange(nameof(Membership), membership.Id, userId, "Updated", [("roles", before, after)]);
+        }
+
+        await db.SaveChangesAsync(ct);
+        return await ViewAsync(userId, ct);
+    }
+
+    public async Task<Result<StaffMemberView>> SuspendAsync(Guid userId, Guid actingUserId, CancellationToken ct)
+    {
+        if (userId == actingUserId)
+        {
+            return Error.Conflict("identity.cannot_suspend_self");
+        }
+
+        var (user, membership) = await LoadAsync(userId, ct);
+        if (user is null || membership is null)
+        {
+            return Error.NotFound("identity.staff_not_found");
+        }
+
+        if (IsAdmin(membership) && !await AnotherActiveAdminAsync(membership.Id, ct))
+        {
+            return Error.Conflict("identity.last_admin");
+        }
+
+        membership.Suspend();
+        await db.SaveChangesAsync(ct);
+        return await ViewAsync(userId, ct);
+    }
+
+    public async Task<Result<StaffMemberView>> ActivateAsync(Guid userId, CancellationToken ct)
+    {
+        var (user, membership) = await LoadAsync(userId, ct);
+        if (user is null || membership is null)
+        {
+            return Error.NotFound("identity.staff_not_found");
+        }
+
+        membership.Activate();
+        await db.SaveChangesAsync(ct);
+        return await ViewAsync(userId, ct);
+    }
+
+    private async Task<(User? User, Membership? Membership)> LoadAsync(Guid userId, CancellationToken ct)
+    {
+        var membership = await db.Memberships.Include(m => m.Roles).FirstOrDefaultAsync(m => m.UserId == userId, ct);
+        if (membership is null || !membership.Roles.Any(r => Roles.Staff.Contains(r.Role)))
+        {
+            return (null, null);
+        }
+
+        return (await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct), membership);
+    }
+
+    private static List<(string Role, Guid? BranchId)> StaffGrants(Membership membership) =>
+        membership.Roles.Where(r => Roles.Staff.Contains(r.Role))
+            .Select(r => (r.Role, r.ScopeType == ScopeType.Branch ? r.ScopeId : null)).ToList();
+
+    private static bool IsAdmin(Membership membership) =>
+        membership.Status == MembershipStatus.Active &&
+        membership.Roles.Any(r => r.Role == Roles.TenantAdmin && r.ScopeType == ScopeType.Tenant);
+
+    private Task<bool> AnotherActiveAdminAsync(Guid membershipId, CancellationToken ct) =>
+        db.Memberships.AnyAsync(m => m.Id != membershipId && m.Status == MembershipStatus.Active &&
+                                     m.Roles.Any(r => r.Role == Roles.TenantAdmin && r.ScopeType == ScopeType.Tenant), ct);
+
+    private async Task<StaffMemberView> ViewAsync(Guid userId, CancellationToken ct) =>
+        (await new StaffQueries(db).ListAsync(ct)).First(s => s.UserId == userId);
 }

@@ -2,6 +2,7 @@ using Konnyaku.Application.Tenancy;
 using Konnyaku.Crm.Application;
 using Konnyaku.Crm.Contracts;
 using Konnyaku.Crm.Domain;
+using Konnyaku.Infrastructure.Auditing;
 using Konnyaku.Infrastructure.Persistence;
 using Konnyaku.Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,8 @@ public sealed class CrmDbContext(DbContextOptions<CrmDbContext> options, ITenant
     public DbSet<Lead> Leads => Set<Lead>();
 
     public DbSet<StudentProfile> Students => Set<StudentProfile>();
+
+    public DbSet<CaptchaRedemption> CaptchaRedemptions => Set<CaptchaRedemption>();
 
     protected override void ConfigureModel(ModelBuilder modelBuilder)
     {
@@ -56,6 +59,15 @@ public sealed class CrmDbContext(DbContextOptions<CrmDbContext> options, ITenant
             b.Property(x => x.CommunicationLocale).HasMaxLength(20);
             b.HasIndex(x => new { x.TenantId, x.UserId }).IsUnique().HasFilter("user_id IS NOT NULL");
         });
+        modelBuilder.Entity<CaptchaRedemption>(b =>
+        {
+            b.ToTable("captcha_redemption");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Challenge).HasMaxLength(64);
+            b.HasIndex(x => new { x.TenantId, x.Challenge }).IsUnique();
+            b.HasIndex(x => new { x.TenantId, x.ExpiresAt });
+        });
+        modelBuilder.AddChangeLog();
     }
 }
 
@@ -67,6 +79,8 @@ public static class CrmInfrastructure
         services.AddScoped<ICrmDbContext>(sp => sp.GetRequiredService<CrmDbContext>());
         services.AddScoped<CrmQueries>();
         services.AddScoped<ICrmApi>(sp => sp.GetRequiredService<CrmQueries>());
+        services.AddScoped<ICrmUsageApi, CrmUsageQueries>();
+        services.AddScoped<ICrmContactsApi, CrmContacts>();
         services.AddSingleton(TimeProvider.System);
         return services;
     }

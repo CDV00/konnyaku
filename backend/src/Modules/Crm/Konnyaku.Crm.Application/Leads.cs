@@ -1,3 +1,5 @@
+using Konnyaku.Application.Authorization;
+using Konnyaku.Application.Persistence;
 using Konnyaku.Application.Tenancy;
 using Konnyaku.Crm.Contracts;
 using Konnyaku.Crm.Domain;
@@ -12,20 +14,26 @@ public interface ICrmDbContext
     DbSet<Lead> Leads { get; }
     DbSet<StudentProfile> Students { get; }
 
+    DbSet<CaptchaRedemption> CaptchaRedemptions { get; }
+
     void Publish(IIntegrationEvent integrationEvent, string? correlationId = null);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
 
-/// <summary>Public registration form. <see cref="Website"/> is a honeypot: humans never fill it.</summary>
+/// <summary>
+/// Public registration form. <see cref="Website"/> is a honeypot: humans never fill it. <see cref="Captcha"/> is the
+/// solved proof-of-work challenge, required while <see cref="CaptchaOptions.Enabled"/>.
+/// </summary>
 public sealed record SubmitLeadCommand(
     string StudentName, int? BirthYear, string? GuardianName, string? Phone, string? Email, string LanguageCode,
     string? Goal, Guid? PreferredBranchId, string? PreferredSchedule, string? ConsentVersion, bool ConsentGiven,
-    IReadOnlyDictionary<string, string>? Utm, string? Locale, string? Website);
+    IReadOnlyDictionary<string, string>? Utm, string? Locale, string? Website, CaptchaSolution? Captcha = null);
 
 public sealed record LeadAccepted(Guid? LeadId);
 
-public sealed class SubmitLeadHandler(ICrmDbContext db, ITenantContext tenant, IIdentityApi identity, TimeProvider clock)
+public sealed class SubmitLeadHandler(
+    ICrmDbContext db, ITenantContext tenant, IIdentityApi identity, CaptchaService captcha, IDbErrorClassifier errors, TimeProvider clock)
 {
     public const string ConsultantRole = "Consultant";
 
@@ -40,6 +48,18 @@ public sealed class SubmitLeadHandler(ICrmDbContext db, ITenantContext tenant, I
         {
             // Bot: answer like a success so it cannot learn the rule, store nothing.
             return new LeadAccepted(null);
+        }
+
+        CaptchaTicket? ticket = null;
+        if (captcha.Enabled)
+        {
+            var verified = captcha.Verify(command.Captcha);
+            if (!verified.IsSuccess)
+            {
+                return verified.Error!;
+            }
+
+            ticket = verified.Value;
         }
 
         if (!command.ConsentGiven)
@@ -65,8 +85,7 @@ public sealed class SubmitLeadHandler(ICrmDbContext db, ITenantContext tenant, I
                 return updated.Error!;
             }
 
-            await db.SaveChangesAsync(cancellationToken);
-            return new LeadAccepted(existing.Id);
+            return await SaveAsync(ticket, now, cancellationToken) is { } resubmitError ? resubmitError : new LeadAccepted(existing.Id);
         }
 
         var created = Lead.Create(details, "web", command.ConsentVersion ?? string.Empty, now);
@@ -79,8 +98,32 @@ public sealed class SubmitLeadHandler(ICrmDbContext db, ITenantContext tenant, I
         lead.AssignTo(await PickConsultantAsync(cancellationToken), now);
         db.Leads.Add(lead);
         db.Publish(new LeadCreatedV1(lead.Id, lead.LanguageCode, lead.AssignedConsultantId, lead.FollowUpDueAt, lead.Locale));
-        await db.SaveChangesAsync(cancellationToken);
-        return new LeadAccepted(lead.Id);
+        return await SaveAsync(ticket, now, cancellationToken) is { } error ? error : new LeadAccepted(lead.Id);
+    }
+
+    /// <summary>
+    /// Saves the form together with the captcha redemption, so a challenge is spent only when a form is accepted
+    /// (validation errors keep it usable) and two submissions with the same solution cannot both pass.
+    /// </summary>
+    private async Task<Error?> SaveAsync(CaptchaTicket? ticket, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        if (ticket is null)
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            return null;
+        }
+
+        await db.CaptchaRedemptions.Where(r => r.ExpiresAt < now).ExecuteDeleteAsync(cancellationToken);
+        db.CaptchaRedemptions.Add(new CaptchaRedemption(ticket.Challenge, ticket.ExpiresAt));
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            return null;
+        }
+        catch (DbUpdateException exception) when (errors.IsUniqueViolation(exception))
+        {
+            return Error.Conflict("crm.captcha_used");
+        }
     }
 
     /// <summary>The consultant with the fewest open leads (round-robin by load).</summary>
@@ -103,9 +146,14 @@ public sealed class SubmitLeadHandler(ICrmDbContext db, ITenantContext tenant, I
 
 public sealed record LeadView(
     Guid Id, string StudentName, int? BirthYear, string? GuardianName, string? Phone, string? Email, string LanguageCode,
-    string? Goal, string Status, Guid? AssignedConsultantId, DateTimeOffset? FollowUpDueAt, DateTimeOffset CreatedAt);
+    string? Goal, string Status, Guid? AssignedConsultantId, DateTimeOffset? FollowUpDueAt, DateTimeOffset CreatedAt,
+    Guid? PreferredBranchId, string? PreferredSchedule);
 
-public sealed class LeadQueries(ICrmDbContext db)
+/// <summary>
+/// Leads of the member's scope: everything with a center-wide lead permission; for a branch manager, the leads that
+/// prefer one of their branches.
+/// </summary>
+public sealed class LeadQueries(ICrmDbContext db, IAccessControl access)
 {
     public async Task<IReadOnlyList<LeadView>> ListAsync(bool openOnly, CancellationToken cancellationToken)
     {
@@ -115,9 +163,21 @@ public sealed class LeadQueries(ICrmDbContext db)
             query = query.Where(l => l.Status == LeadStatus.New || l.Status == LeadStatus.Contacted);
         }
 
+        var scope = (await access.ListAsync(cancellationToken)).FirstOrDefault(s => s.Permission == Permissions.Leads);
+        if (scope is null)
+        {
+            return [];
+        }
+
+        if (!scope.TenantWide)
+        {
+            var branchIds = scope.BranchIds.ToArray();
+            query = query.Where(l => l.PreferredBranchId != null && branchIds.Contains(l.PreferredBranchId.Value));
+        }
+
         return await query.OrderBy(l => l.FollowUpDueAt ?? l.CreatedAt)
             .Select(l => new LeadView(l.Id, l.StudentName, l.BirthYear, l.GuardianName, l.Phone, l.Email, l.LanguageCode,
-                l.Goal, l.Status.ToString(), l.AssignedConsultantId, l.FollowUpDueAt, l.CreatedAt))
+                l.Goal, l.Status.ToString(), l.AssignedConsultantId, l.FollowUpDueAt, l.CreatedAt, l.PreferredBranchId, l.PreferredSchedule))
             .Take(500)
             .ToListAsync(cancellationToken);
     }
@@ -125,7 +185,7 @@ public sealed class LeadQueries(ICrmDbContext db)
 
 public sealed record ChangeLeadStatusCommand(LeadStatus Status);
 
-public sealed class ChangeLeadStatusHandler(ICrmDbContext db, TimeProvider clock)
+public sealed class ChangeLeadStatusHandler(ICrmDbContext db, TimeProvider clock, IAccessControl access)
 {
     public async Task<Result<bool>> HandleAsync(Guid leadId, ChangeLeadStatusCommand command, CancellationToken cancellationToken)
     {
@@ -133,6 +193,11 @@ public sealed class ChangeLeadStatusHandler(ICrmDbContext db, TimeProvider clock
         if (lead is null)
         {
             return Error.NotFound("crm.lead_not_found");
+        }
+
+        if (await access.EnsureAsync(Permissions.Leads, cancellationToken, lead.PreferredBranchId) is { } forbidden)
+        {
+            return forbidden;
         }
 
         var result = lead.ChangeStatus(command.Status, clock.GetUtcNow());
@@ -180,8 +245,94 @@ public sealed class RegisterStudentHandler(ICrmDbContext db, TimeProvider clock)
     }
 }
 
+public sealed record EditLeadCommand(
+    string StudentName, int? BirthYear, string? GuardianName, string? Phone, string? Email, string LanguageCode, string? Goal,
+    Guid? PreferredBranchId, string? PreferredSchedule, Guid? AssignedConsultantId);
+
+public sealed record UpdateStudentCommand(
+    string FullName, int? BirthYear, string? GuardianName, string? Phone, string? Email, Guid? HomeBranchId, string? CommunicationLocale);
+
+/// <summary>Consultants (and the tenant admin) correct leads and student records; a student who left is deactivated, never deleted.</summary>
+public sealed class CrmEditHandlers(ICrmDbContext db, IIdentityApi identity, TimeProvider clock, IAccessControl access)
+{
+    /// <summary>A branch manager edits leads of their branches and cannot move one to a branch outside them.</summary>
+    public async Task<Result<bool>> EditLeadAsync(Guid leadId, EditLeadCommand command, CancellationToken ct)
+    {
+        var lead = await db.Leads.FirstOrDefaultAsync(l => l.Id == leadId, ct);
+        if (lead is null)
+        {
+            return Error.NotFound("crm.lead_not_found");
+        }
+
+        if (await access.EnsureAsync(Permissions.Leads, ct, lead.PreferredBranchId, command.PreferredBranchId) is { } forbidden)
+        {
+            return forbidden;
+        }
+
+        if (command.AssignedConsultantId is { } consultantId &&
+            (await identity.GetMemberAsync(consultantId, ct))?.Roles.Contains(SubmitLeadHandler.ConsultantRole) != true)
+        {
+            return Error.Validation("crm.consultant_unknown");
+        }
+
+        var details = new LeadDetails(command.StudentName ?? string.Empty, command.BirthYear, command.GuardianName, command.Phone,
+            command.Email, command.LanguageCode ?? string.Empty, command.Goal, command.PreferredBranchId, command.PreferredSchedule, null, null);
+        var edited = lead.Edit(details, command.AssignedConsultantId, clock.GetUtcNow());
+        if (!edited.IsSuccess)
+        {
+            return edited.Error!;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<Result<StudentDto>> UpdateStudentAsync(Guid studentId, UpdateStudentCommand command, CancellationToken ct)
+    {
+        var student = await db.Students.FirstOrDefaultAsync(s => s.Id == studentId, ct);
+        if (student is null)
+        {
+            return Error.NotFound("crm.student_not_found");
+        }
+
+        var updated = student.Update(command.FullName ?? string.Empty, command.BirthYear, command.GuardianName, command.Phone, command.Email,
+            command.HomeBranchId, command.CommunicationLocale ?? string.Empty, clock.GetUtcNow());
+        if (!updated.IsSuccess)
+        {
+            return updated.Error!;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return student.ToDto();
+    }
+
+    public async Task<Result<StudentDto>> SetStudentActiveAsync(Guid studentId, bool active, CancellationToken ct)
+    {
+        var student = await db.Students.FirstOrDefaultAsync(s => s.Id == studentId, ct);
+        if (student is null)
+        {
+            return Error.NotFound("crm.student_not_found");
+        }
+
+        student.SetActive(active);
+        await db.SaveChangesAsync(ct);
+        return student.ToDto();
+    }
+}
+
+/// <summary>A student record with contact details, for the people who keep student records (personal data: not for every staff member).</summary>
+public sealed record StudentDetailView(
+    Guid Id, string FullName, int? BirthYear, string? GuardianName, string? Phone, string? Email, Guid? HomeBranchId, Guid? UserId,
+    string CommunicationLocale, bool IsActive);
+
 public sealed class CrmQueries(ICrmDbContext db) : ICrmApi
 {
+    public async Task<IReadOnlyList<StudentDetailView>> ListStudentDetailsAsync(CancellationToken cancellationToken) =>
+        await db.Students.AsNoTracking().OrderBy(s => s.FullName).Take(500)
+            .Select(s => new StudentDetailView(s.Id, s.FullName, s.BirthYear, s.GuardianName, s.Phone, s.Email, s.HomeBranchId, s.UserId,
+                s.CommunicationLocale, s.IsActive))
+            .ToListAsync(cancellationToken);
+
     public async Task<StudentDto?> GetStudentAsync(Guid studentId, CancellationToken cancellationToken)
     {
         var student = await db.Students.AsNoTracking().FirstOrDefaultAsync(s => s.Id == studentId, cancellationToken);
@@ -200,5 +351,5 @@ public sealed class CrmQueries(ICrmDbContext db) : ICrmApi
 public static class StudentMapping
 {
     public static StudentDto ToDto(this StudentProfile s) =>
-        new(s.Id, s.FullName, s.BirthYear, s.HomeBranchId, s.UserId, s.CommunicationLocale);
+        new(s.Id, s.FullName, s.BirthYear, s.HomeBranchId, s.UserId, s.CommunicationLocale, s.IsActive);
 }

@@ -1,4 +1,5 @@
 using Konnyaku.Application.Tenancy;
+using Konnyaku.Infrastructure.Auditing;
 using Konnyaku.Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -28,13 +29,15 @@ public static class ServiceCollectionExtensions
                     .MigrationsHistoryTable("__ef_migrations_history", schema)
                     .MigrationsAssembly(typeof(TContext).Assembly.FullName))
                 .UseSnakeCaseNamingConvention()
-                .AddInterceptors(new TenantSessionInterceptor(sp.GetRequiredService<ITenantContext>()));
+                .AddInterceptors(
+                    new TenantSessionInterceptor(sp.GetRequiredService<ITenantContext>()),
+                    new AuditInterceptor(sp.GetService<ICurrentActor>() ?? SystemActor.Instance, sp.GetService<TimeProvider>() ?? TimeProvider.System));
         });
         return services;
     }
 
     /// <summary>
-    /// Every module has its own role, hence its own connection pool: a process holds up to 11 pools. Deployments cap
+    /// Every module has its own role, hence its own connection pool: a process holds one pool per module. Deployments cap
     /// them with <c>Database:MaxPoolSize</c> and <c>Database:ConnectionIdleLifetime</c> (seconds) so that the sum over
     /// all API/Worker replicas stays under PostgreSQL <c>max_connections</c> and idle connections (a few MB of
     /// PostgreSQL memory each) are closed sooner. Unset keys keep the connection string (Npgsql defaults: 100, 300 s).

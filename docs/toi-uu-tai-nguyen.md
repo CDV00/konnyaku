@@ -20,6 +20,7 @@ Tài liệu này trả lời ba câu hỏi: RAM của stack `infra/deploy` đi �
 | Mục | Giá trị |
 | --- | --- |
 | Máy | Laptop Windows 11, Docker Desktop (WSL2) 8 vCPU / 11,6 GB cho VM, amd64. Máy **dùng chung** với các phiên làm việc khác (build Rust, test tích hợp), nên **thông lượng và độ trễ dao động mạnh giữa các lần chạy** (cùng cấu hình: 5,4 → 13 req/s). RAM ổn định giữa các lần (±10 MiB) |
+| Phiên bản | `main` tại `0caaa04`: 11 module, chưa có module Notification, service `signaling` (Rust) và `coturn` của phòng học. Hai service này không nằm trong số đo và chưa có trần bộ nhớ |
 | Stack | `infra/deploy/compose.yaml` với Caddyfile HTTP (`auto_https off`), cổng 8089, tenant `demo` từ `infra/scripts/seed_demo.py` |
 | Đo RAM/CPU | `docker stats` mỗi ~2 s: lúc rảnh (45 s sau khi khởi động), trong lúc tải (đỉnh, CPU trung bình) và 30 s sau tải ("sau tải": RAM mà tiến trình còn giữ) |
 | Tải | k6 trong container, gọi qua Caddy ([`infra/loadtest/mixed.js`](../infra/loadtest/mixed.js)), 2 phút: 10 khách xem trang chủ → form đăng ký → gửi lead; 5 nhân viên đăng nhập rồi mở `/ops`, `/ops/classes`, `/ops/students`, `/ops/leads`; 5 học viên mở `/learn`; 2 người đăng nhập liên tục (PBKDF2). **load**: nghỉ 1 s giữa các vòng (22 người dùng ảo). **stress**: gấp 4 số người, không nghỉ |
@@ -65,9 +66,9 @@ Quan sát:
 
 ### 1. Giới hạn connection pool (có hiệu quả)
 
-Thêm cấu hình `Database:MaxPoolSize` và `Database:ConnectionIdleLifetime` (áp lên connection string của cả 11 module, `ServiceCollectionExtensions.WithPoolSettings`). Compose đặt `DB_POOL_MAX=6` cho api, `WORKER_DB_POOL_MAX=3` cho worker, đóng kết nối rảnh sau 60 s. Quy tắc: `(API_REPLICAS × DB_POOL_MAX + WORKER_REPLICAS × WORKER_DB_POOL_MAX) × 11 < PG_MAX_CONNECTIONS` (8 GB: (2×6 + 1×3)×11 = 165 < 200; 2 GB: 6×11 = 66 < 80).
+Thêm cấu hình `Database:MaxPoolSize` và `Database:ConnectionIdleLifetime` (áp lên connection string của mọi module, `ServiceCollectionExtensions.WithPoolSettings`). Compose đặt `DB_POOL_MAX=6` cho api, `WORKER_DB_POOL_MAX=3` cho worker, đóng kết nối rảnh sau 60 s. Quy tắc: `(API_REPLICAS × DB_POOL_MAX + WORKER_REPLICAS × WORKER_DB_POOL_MAX) × số module < PG_MAX_CONNECTIONS`. Với 12 module hiện nay (đã thêm Notification): 8 GB (2×6 + 1×3)×12 = 180 < 200; 2 GB 6×12 = 72 < 80. Thêm module thì kiểm tra lại công thức này.
 
-PostgreSQL ở hồ sơ 2 GB (1 api): khi có tải **~220 → ~110 MiB**, sau tải **~225 → ~50–60 MiB**. Ở hồ sơ 8 GB (2 api + worker, tối đa 165 kết nối) đỉnh khi có tải vẫn ~200–225 MiB, nhưng sau tải **~235 → ~70–100 MiB** vì kết nối rảnh được đóng sau 60 s. Tổng số kết nối không còn vượt được `max_connections` khi thêm bản sao. Không có lỗi pool (`53300`, `connection pool has been exhausted`) trong mọi lượt đo.
+PostgreSQL ở hồ sơ 2 GB (1 api): khi có tải **~220 → ~110 MiB**, sau tải **~225 → ~50–60 MiB**. Ở hồ sơ 8 GB (2 api + worker, tối đa 165 kết nối khi đo với 11 module) đỉnh khi có tải vẫn ~200–225 MiB, nhưng sau tải **~235 → ~70–100 MiB** vì kết nối rảnh được đóng sau 60 s. Tổng số kết nối không còn vượt được `max_connections` khi thêm bản sao. Không có lỗi pool (`53300`, `connection pool has been exhausted`) trong mọi lượt đo.
 
 ### 2. Trần heap Node (có hiệu quả, chọn mức vừa)
 
@@ -209,4 +210,5 @@ Xem xét lại khi một trong các điều sau xảy ra:
 - **CPU của web**: một trang SSR tốn ~100–150 ms CPU; trang công khai (`/vi`, `/vi/dang-ky`) giống nhau cho mọi khách, nên cache được (ISR theo tenant hoặc cache ở Caddy) → giảm phần lớn CPU từ khách vãng lai.
 - **Cache tenant ở API**: `ResolveHostAsync` không chống "cache stampede" khi hết hạn; dùng `HybridCache` hoặc khóa theo key để chỉ một request truy vấn.
 - **Caddy với một bản sao web**: `fail_duration 30s` biến mọi lỗi kết nối lẻ thành 30 s gián đoạn khi chỉ có một upstream (mục 7). Đã loại nguyên nhân chính bằng `KEEP_ALIVE_TIMEOUT`; nên cân nhắc giảm `fail_duration` hoặc bỏ passive health check khi `WEB_REPLICAS=1`.
+- Đo `signaling` và `coturn` (thêm sau đợt đo này) theo cùng cách, rồi đặt trần bộ nhớ cho chúng và cộng vào hai hồ sơ.
 - Đo lại trên máy arm64 thật và máy 2 GB thật (không dùng chung với việc khác) để có độ trễ đáng tin.

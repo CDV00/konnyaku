@@ -1,0 +1,6 @@
+Hi {{recipientName}},
+
+{{tenantName}} has closed the pay period from {{from}} to {{to}}.
+Your timesheets for this period are final. If something is wrong, please contact the accounting team.
+
+See your timesheets: {{siteUrl}}/teach

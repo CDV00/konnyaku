@@ -1,0 +1,6 @@
+Hi {{recipientName}},
+
+Session {{sequenceNo}} of class {{classCode}} on {{startsAt}} ({{timeZone}}) has been cancelled.
+{{#reason}}Reason: {{reason}}{{/reason}}
+
+See the schedule: {{siteUrl}}{{zonePath}}

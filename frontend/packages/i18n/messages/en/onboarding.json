@@ -1,0 +1,40 @@
+{
+  "show": "Quick guide",
+  "hide": "Hide guide",
+  "progress": "{done} of {total} steps done",
+  "ops": {
+    "title": "Get your center running",
+    "intro": "Work through the steps below. Each one is ticked off automatically once your center's data shows it is done.",
+    "steps": {
+      "branches": { "title": "Create campuses and rooms", "description": "Each campus has its own time zone; online classes belong to the virtual \"Online\" campus." },
+      "staff": { "title": "Add staff and teachers", "description": "Give everyone their roles and set an hourly rate for each teacher." },
+      "programs": { "title": "Create programs and levels", "description": "Pick the language, the proficiency framework (JLPT, CEFR, HSK…) and the lessons per level." },
+      "classes": { "title": "Open classes and schedule them", "description": "Choose weekdays, time and teacher; lessons are generated automatically, skipping holidays." },
+      "students": { "title": "Add students and issue accounts", "description": "The temporary password is shown once; students change it at their first sign-in." },
+      "billing": { "title": "Create packages, orders and take payments", "description": "Once an order is fully paid the student is placed in the class automatically." },
+      "payroll": { "title": "Create and lock pay periods", "description": "Teaching time is counted from the lessons; locking a period freezes the rates." },
+      "leads": { "title": "Follow up on new leads", "description": "Sign-ups from the public site land here; update the status after each contact." }
+    }
+  },
+  "teach": {
+    "title": "How the teacher area works",
+    "intro": "Everything about a lesson starts on this page.",
+    "steps": {
+      "schedule": { "title": "Check your schedule", "description": "Upcoming lessons in the center's time zone, online or on campus." },
+      "join": { "title": "Join the class", "description": "The \"Join\" button appears once the room is ready; click it to open the room." },
+      "attendance": { "title": "Take attendance", "description": "Online lessons come with a draft from the room data; check it, correct it and confirm. Lessons are deducted only after you confirm." },
+      "timesheet": { "title": "Check this month's hours", "description": "Lessons, counted minutes and the estimated amount are at the bottom of the page." }
+    }
+  },
+  "learn": {
+    "title": "How the student portal works",
+    "intro": "Keep track of your learning right here.",
+    "steps": {
+      "credits": { "title": "Lessons left", "description": "Paid and bonus lessons; excused absences are not deducted." },
+      "schedule": { "title": "Your schedule", "description": "Upcoming lessons in the center's time zone." },
+      "join": { "title": "Join the class", "description": "The \"Join\" button appears once the room is ready, usually shortly before the lesson." },
+      "replay": { "title": "Watch past lessons", "description": "Recordings of past lessons are in the Replay section." },
+      "password": { "title": "Change your password", "description": "Change it at any time to keep your account safe." }
+    }
+  }
+}

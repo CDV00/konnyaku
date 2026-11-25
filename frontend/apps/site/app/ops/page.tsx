@@ -5,6 +5,7 @@ import { requireMe } from "@konnyaku/session";
 import { Fade } from "@konnyaku/ui/components/animate-ui/primitives/effects/fade";
 import { PageHeader, StatCard } from "@konnyaku/ui/kk/blocks";
 import { getJson, type ClassRow, type Student } from "./lib";
+import { OpsOnboarding } from "./ops-onboarding";
 
 const sections = ["leads", "students", "billing", "classes", "programs", "staff", "branches", "payroll"] as const;
 
@@ -24,6 +25,7 @@ export default async function HomePage() {
   return (
     <div className="space-y-8">
       <PageHeader title={session("greeting", { name: me.displayName })} description={t("subtitle")} />
+      <OpsOnboarding />
       <Fade inView className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label={t("stats.leads")} count={leads.length} icon={PhoneCall} tone="highlight" hint={t("stats.leadsHint")} />
         <StatCard label={t("stats.students")} count={students.length} icon={GraduationCap} hint={t("stats.studentsHint")} />

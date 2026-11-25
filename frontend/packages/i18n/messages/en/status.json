@@ -1,0 +1,26 @@
+{
+  "notFound": {
+    "title": "Page not found",
+    "body": "The page you are looking for may have moved or no longer exists. Check the address or go back to the home page.",
+    "home": "Go to the home page",
+    "register": "Get advice",
+    "zoneHome": "Back to the main page"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "body": "The system ran into a problem showing this page. Try again, and if it keeps failing, come back in a few minutes.",
+    "retry": "Try again",
+    "home": "Go to the home page",
+    "zoneHome": "Back to the main page",
+    "reference": "Reference: {digest}"
+  },
+  "unknownCenter": {
+    "title": "Center not found",
+    "body": "The address {host} is not linked to any center. Check the link your center sent you, or contact the center for help."
+  },
+  "seo": {
+    "homeDescription": "{center}: language courses online and on campus, small classes, a free placement test and trial lesson.",
+    "registerTitle": "Request a consultation",
+    "registerDescription": "Leave your details and {center} will call you back to suggest the right course, with a free placement test and trial lesson."
+  }
+}

@@ -1,5 +1,6 @@
 using Konnyaku.Application.Persistence;
 using Konnyaku.Application.Tenancy;
+using Konnyaku.Infrastructure.Auditing;
 using Konnyaku.Infrastructure.Persistence;
 using Konnyaku.Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Builder;
@@ -55,6 +56,8 @@ public static class ModuleHostExtensions
         builder.Services.AddSingleton(new ModuleCatalog(modules));
         builder.Services.AddSingleton<IDbErrorClassifier, NpgsqlErrorClassifier>();
         builder.Services.AddSingleton(TimeProvider.System);
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddSingleton<ICurrentActor, HttpCurrentActor>();
 
         // Small servers (2 GB) can skip the Worker container: Worker:InProcess=true runs the outbox inside the API.
         // Several processes dispatching the same outbox is safe (rows are claimed with FOR UPDATE SKIP LOCKED).
