@@ -47,6 +47,16 @@ x-backend-env: &backend-env
   Rtc__TurnUrls__0: turn:${TURN_HOST:-${BASE_DOMAIN}}:3478?transport=udp
   Rtc__TurnUrls__1: turn:${TURN_HOST:-${BASE_DOMAIN}}:3478?transport=tcp
   Rtc__TurnSecret: ${TURN_SECRET:?}
+  # Rate-limit counters shared by every API replica (falls back to per-process counting while Redis is down).
+  Redis__ConnectionString: redis:6379,password=${REDIS_PASSWORD:?}
+  # Monitoring (docs/trien-khai.md#giám-sát-và-cảnh-báo). Empty = off: traces/metrics need OTEL_ENDPOINT
+  # (http://alloy:4318 with the monitoring profile), error reports need SENTRY_DSN (Sentry or GlitchTip).
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_ENDPOINT:-}
+  OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+  OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_RATIO:-1}
+  Sentry__Dsn: ${SENTRY_DSN:-}
+  Sentry__Environment: ${SENTRY_ENVIRONMENT:-production}
+  KONNYAKU_VERSION: ${IMAGE_TAG:-latest}
 
 x-logging: &logging
   driver: json-file
@@ -86,6 +96,13 @@ services:
       KEEP_ALIVE_TIMEOUT: "130000"
       KONNYAKU_ADMIN_HOST: admin.${BASE_DOMAIN:?}
       KONNYAKU_BASE_DOMAIN: ${BASE_DOMAIN:?}
+      # Monitoring, as for the API (traces join the API's through traceparent).
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_RATIO:-1}
+      SENTRY_DSN: ${SENTRY_WEB_DSN:-${SENTRY_DSN:-}}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+      KONNYAKU_VERSION: ${IMAGE_TAG:-latest}
     deploy:
       replicas: ${WEB_REPLICAS:-2}
       resources:
@@ -119,6 +136,8 @@ services:
     depends_on:
       migrator:
         condition: service_completed_successfully
+      redis:
+        condition: service_started
     healthcheck:
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /health HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '200 OK' <&3"]
       interval: 15s
@@ -264,6 +283,282 @@ services:
       retries: 10
     logging: *logging
 
+  # Shared rate-limit counters of the API replicas (public forms, password reset). Counters only, no persistence:
+  # a restart resets the current minute. Internal network, password from gen-secrets.sh.
+  redis:
+    image: redis:8.2-alpine
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - >-
+        exec redis-server --requirepass "$$REDIS_PASSWORD" --save "" --appendonly no
+        --maxmemory $${REDIS_MAXMEMORY} --maxmemory-policy volatile-ttl
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?}
+      REDIS_MAXMEMORY: ${REDIS_MAXMEMORY:-32mb}
+    deploy:
+      resources:
+        limits:
+          memory: ${REDIS_MEM_LIMIT:-64m}
+    networks: [data]
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
+      interval: 10s
+      retries: 5
+    logging: *logging
+
+  # ---------------------------------------------------------------------------------------------------------------
+  # Monitoring (profile "monitoring": COMPOSE_PROFILES=monitoring and OTEL_ENDPOINT=http://alloy:4318 in .env).
+  # Grafana + Prometheus + Loki + Tempo + Alertmanager, Alloy as collector, exporters for the host, containers and
+  # PostgreSQL. Nothing is published to the Internet: Grafana is reached through Caddy on admin.BASE_DOMAIN/grafana
+  # (Grafana login) or an SSH tunnel to 127.0.0.1:GRAFANA_LOCAL_PORT. RAM and the separate-VPS option:
+  # docs/toi-uu-tai-nguyen.md; runbook: docs/trien-khai.md#giám-sát-và-cảnh-báo.
+  # ---------------------------------------------------------------------------------------------------------------
+  alloy:
+    image: grafana/alloy:v1.10.2
+    profiles: [monitoring]
+    restart: unless-stopped
+    command: [run, --server.http.listen-addr=0.0.0.0:12345, --storage.path=/var/lib/alloy/data, --disable-reporting, /etc/alloy/config.alloy]
+    environment:
+      COMPOSE_PROJECT: ${COMPOSE_PROJECT_NAME}
+      GOMEMLIMIT: ${ALLOY_GOMEMLIMIT:-180MiB}
+    volumes:
+      - ./monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      # Container logs are read through the Docker API (read-only use; the socket itself grants root on the host).
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy-data:/var/lib/alloy/data
+    deploy:
+      resources:
+        limits:
+          memory: ${ALLOY_MEM_LIMIT:-256m}
+    networks: [app, monitoring]
+    logging: *logging
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: [monitoring]
+    restart: unless-stopped
+    entrypoint: [/bin/sh, /etc/konnyaku/prometheus/start.sh]
+    environment:
+      COMPOSE_PROJECT: ${COMPOSE_PROJECT_NAME}
+      API_REPLICAS: ${API_REPLICAS:-2}
+      WEB_REPLICAS: ${WEB_REPLICAS:-2}
+      WORKER_REPLICAS: ${WORKER_REPLICAS:-1}
+      PROBE_PUBLIC_URL: ${PROBE_PUBLIC_URL:-https://admin.${BASE_DOMAIN}/api/health}
+      ALERT_API_P95_SECONDS: ${ALERT_API_P95_SECONDS:-1.5}
+      ALERT_SITE_P95_SECONDS: ${ALERT_SITE_P95_SECONDS:-3}
+      BACKUP_MAX_AGE_HOURS: ${BACKUP_MAX_AGE_HOURS:-26}
+      PROMETHEUS_RETENTION: ${PROMETHEUS_RETENTION:-15d}
+      PROMETHEUS_RETENTION_SIZE: ${PROMETHEUS_RETENTION_SIZE:-4GB}
+      GOMEMLIMIT: ${PROMETHEUS_GOMEMLIMIT:-380MiB}
+    volumes:
+      - ./monitoring/render.sh:/etc/konnyaku/render.sh:ro
+      - ./monitoring/prometheus:/etc/konnyaku/prometheus:ro
+      - prometheus-data:/prometheus
+    deploy:
+      resources:
+        limits:
+          memory: ${PROMETHEUS_MEM_LIMIT:-512m}
+    # edge: Caddy metrics; app: signaling metrics.
+    networks: [edge, app, monitoring]
+    logging: *logging
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    profiles: [monitoring]
+    restart: unless-stopped
+    entrypoint: [/bin/sh, /etc/konnyaku/alertmanager/start.sh]
+    environment:
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_SECURITY: ${SMTP_SECURITY:-Auto}
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-}
+      ALERT_ENVIRONMENT: ${ALERT_ENVIRONMENT:-production}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+    volumes:
+      - ./monitoring/render.sh:/etc/konnyaku/render.sh:ro
+      - ./monitoring/alertmanager:/etc/konnyaku/alertmanager:ro
+      - alertmanager-data:/alertmanager
+    deploy:
+      resources:
+        limits:
+          memory: ${ALERTMANAGER_MEM_LIMIT:-64m}
+    # Outbound SMTP / Telegram go through the monitoring network (not internal).
+    networks: [monitoring]
+    logging: *logging
+
+  loki:
+    image: grafana/loki:3.5.5
+    profiles: [monitoring]
+    restart: unless-stopped
+    command: [-config.file=/etc/loki/loki.yaml, -config.expand-env=true]
+    environment:
+      LOKI_RETENTION: ${LOKI_RETENTION:-168h}
+      GOMEMLIMIT: ${LOKI_GOMEMLIMIT:-280MiB}
+    volumes:
+      - ./monitoring/loki/loki.yaml:/etc/loki/loki.yaml:ro
+      - loki-data:/loki
+    deploy:
+      resources:
+        limits:
+          memory: ${LOKI_MEM_LIMIT:-384m}
+    networks: [monitoring]
+    logging: *logging
+
+  tempo:
+    image: grafana/tempo:2.8.2
+    profiles: [monitoring]
+    restart: unless-stopped
+    # The image runs as uid 10001 and a new named volume belongs to root.
+    user: root
+    command: [-config.file=/etc/tempo/tempo.yaml, -config.expand-env=true]
+    environment:
+      TEMPO_RETENTION: ${TEMPO_RETENTION:-72h}
+      # Go GC target below the container limit (Go does not read the cgroup limit itself).
+      GOMEMLIMIT: ${TEMPO_GOMEMLIMIT:-280MiB}
+    volumes:
+      - ./monitoring/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    deploy:
+      resources:
+        limits:
+          memory: ${TEMPO_MEM_LIMIT:-384m}
+    networks: [monitoring]
+    logging: *logging
+
+  grafana:
+    image: grafana/grafana:12.2.0
+    profiles: [monitoring]
+    restart: unless-stopped
+    environment:
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://admin.${BASE_DOMAIN}/grafana/}
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?}
+      GF_SECURITY_COOKIE_SECURE: ${GRAFANA_COOKIE_SECURE:-true}
+      GF_SECURITY_DISABLE_GRAVATAR: "true"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+      GF_LOG_LEVEL: warn
+      GOMEMLIMIT: ${GRAFANA_GOMEMLIMIT:-180MiB}
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    # SSH tunnel access without Caddy: ssh -L 3000:127.0.0.1:3000 server, then http://localhost:3000/grafana/
+    ports:
+      - "127.0.0.1:${GRAFANA_LOCAL_PORT:-3000}:3000"
+    deploy:
+      resources:
+        limits:
+          memory: ${GRAFANA_MEM_LIMIT:-256m}
+    networks: [edge, monitoring]
+    logging: *logging
+
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    profiles: [monitoring]
+    restart: unless-stopped
+    command:
+      - --path.rootfs=/host
+      - --collector.textfile.directory=/textfile
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+)($$|/)
+    pid: host
+    volumes:
+      - /:/host:ro
+      # *.prom status files of the backup jobs (docs/trien-khai.md#backup, "File trạng thái").
+      - ${METRICS_TEXTFILE_DIR:-${BACKUP_DIR:-./backups}/status}:/textfile:ro
+    deploy:
+      resources:
+        limits:
+          memory: ${NODE_EXPORTER_MEM_LIMIT:-48m}
+    networks: [monitoring]
+    logging: *logging
+
+  # RAM/CPU of every container from the raw cgroups (/sys/fs/cgroup), without the Docker integration: it cannot read
+  # containers on the containerd image store (default of new Docker installs) and needs the Docker socket. Names come
+  # from Alloy (recording rules konnyaku:container_*).
+  cadvisor:
+    image: ghcr.io/google/cadvisor:v0.53.0
+    profiles: [monitoring]
+    restart: unless-stopped
+    command:
+      - --docker_only=false
+      - --docker=unix:///nonexistent.sock
+      - --containerd=/nonexistent.sock
+      - --housekeeping_interval=30s
+      - --store_container_labels=false
+      - --disable_metrics=advtcp,cpu_topology,cpuset,disk,diskIO,hugetlb,memory_numa,network,percpu,process,referenced_memory,resctrl,sched,tcp,udp
+    volumes:
+      - /:/rootfs:ro
+      - /sys:/sys:ro
+    deploy:
+      resources:
+        limits:
+          memory: ${CADVISOR_MEM_LIMIT:-128m}
+    networks: [monitoring]
+    logging: *logging
+
+  # Read-only statistics role for postgres-exporter (pg_monitor, no table access), created or updated on every `up`.
+  postgres-monitor-role:
+    image: postgres:17
+    profiles: [monitoring]
+    restart: "no"
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?}
+    command: [psql, -h, postgres, -U, konnyaku, -d, konnyaku, -v, ON_ERROR_STOP=1, -v, "pw=${DB_PASSWORD_MONITOR:?}", -f, /sql/monitor-role.sql]
+    volumes:
+      - ./monitoring/postgres/monitor-role.sql:/sql/monitor-role.sql:ro
+    networks: [data]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *logging
+
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.17.1
+    profiles: [monitoring]
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_URI: postgres:5432/konnyaku?sslmode=disable
+      DATA_SOURCE_USER: kk_monitor
+      DATA_SOURCE_PASS: ${DB_PASSWORD_MONITOR:?}
+    deploy:
+      resources:
+        limits:
+          memory: ${POSTGRES_EXPORTER_MEM_LIMIT:-48m}
+    networks: [data, monitoring]
+    depends_on:
+      postgres-monitor-role:
+        condition: service_completed_successfully
+    logging: *logging
+
+  blackbox:
+    image: prom/blackbox-exporter:v0.27.0
+    profiles: [monitoring]
+    restart: unless-stopped
+    command: [--config.file=/etc/blackbox/blackbox.yml]
+    volumes:
+      - ./monitoring/blackbox/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+    deploy:
+      resources:
+        limits:
+          memory: ${BLACKBOX_MEM_LIMIT:-48m}
+    # app: api, web, signaling and the Internet (public probe); edge: caddy.
+    networks: [edge, app, monitoring]
+    logging: *logging
+
 networks:
   edge: {}
   app:
@@ -273,8 +568,16 @@ networks:
   # No route to the internet is needed by PostgreSQL; Api/Worker reach it here.
   data:
     internal: true
+  # Monitoring services (profile "monitoring"); not internal: Alertmanager sends email / Telegram.
+  monitoring: {}
 
 volumes:
   postgres-data:
   caddy-data:
   caddy-config:
+  alloy-data:
+  prometheus-data:
+  alertmanager-data:
+  loki-data:
+  tempo-data:
+  grafana-data:

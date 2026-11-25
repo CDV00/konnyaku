@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Konnyaku.SharedKernel;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +28,10 @@ public sealed class OutboxMessage
     public DateTimeOffset? ProcessedAt { get; private set; }
     public int Attempts { get; private set; }
     public string? LastError { get; private set; }
+    /// <summary>
+    /// Given by the publisher, or else the W3C <c>traceparent</c> of the current request, so the dispatch joins its
+    /// trace (<see cref="Observability.KonnyakuTelemetry.ParentFrom"/>).
+    /// </summary>
     public string? CorrelationId { get; private set; }
 
     public static OutboxMessage Create(IIntegrationEvent integrationEvent, Guid tenantId, string? correlationId)
@@ -39,7 +44,7 @@ public sealed class OutboxMessage
             Type = $"{type.FullName}, {type.Assembly.GetName().Name}",
             Payload = JsonSerializer.Serialize(integrationEvent, type, SerializerOptions),
             OccurredAt = DateTimeOffset.UtcNow,
-            CorrelationId = correlationId,
+            CorrelationId = correlationId ?? (Activity.Current is { IdFormat: ActivityIdFormat.W3C } current ? current.Id : null),
         };
     }
 
