@@ -28,6 +28,19 @@ services:
       - "8025:8025"
       - "1025:1025"
 
+  # Signaling of the built-in classroom (services/signaling, Rust). Built locally on the first `up`.
+  # The secret matches Rtc:SignalingSecret in the API's appsettings.Development.json.
+  signaling:
+    build: ../../services/signaling
+    environment:
+      SIGNALING_SECRET: dev-only-signaling-secret-0123456789abcdef
+      API_URL: http://host.docker.internal:5080
+      ROOM_CAPACITY: "6"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "5100:5100"
+
   # No object storage yet: nothing uses it. minio/minio was removed from Docker Hub (Sep 2026) and Quay now needs a login;
   # pick a maintained S3-compatible store when recordings/backups need one.
 

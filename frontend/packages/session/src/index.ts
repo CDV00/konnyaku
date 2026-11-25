@@ -39,7 +39,8 @@ export async function joinSession(realm: Realm, sessionId: string, home: string)
   const response = await apiFetch(`/api/workspace/sessions/${encodeURIComponent(sessionId)}/join`, { token });
   if (!response.ok) return redirectTo(`${home}?meeting=unavailable`);
   const { meetingUri } = (await response.json()) as { meetingUri: string };
-  return redirectTo(meetingUri);
+  // A room of the tenant's own site (built-in classroom): tell it which sign-in to use for its tickets.
+  return redirectTo(meetingUri.startsWith("/room/") ? `${meetingUri}?as=${realm}` : meetingUri);
 }
 
 export async function apiFetch(path: string, init: RequestInit & { token?: string } = {}): Promise<Response> {

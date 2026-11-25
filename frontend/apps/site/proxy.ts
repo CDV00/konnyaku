@@ -6,7 +6,7 @@ import { isAdminHost } from "./platform-host";
 const intl = createMiddleware(routing);
 
 // Signed-in areas (learn, teach, ops), sign-in and route handlers take the locale from the cookie / user, not the URL.
-const ownSegments = new Set(["learn", "teach", "ops", "login", "api", "dev-meeting"]);
+const ownSegments = new Set(["learn", "teach", "ops", "login", "api", "dev-meeting", "room"]);
 
 /**
  * The platform console lives only on the admin host, and the admin host serves only the console:

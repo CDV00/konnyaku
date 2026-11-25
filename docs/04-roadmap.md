@@ -33,7 +33,7 @@ gantt
 | Academic | Program (ngôn ngữ + khung năng lực), Course Level, Curriculum đến cấp Lesson, Class, Enrollment (đủ trạng thái ở [3.3.5](03-core-database.md#335-academicenrollment)), sĩ số theo buổi |
 | Scheduling | Pattern RRULE + materialize session, phát hiện xung đột GV (exclusion constraint), đổi giờ/hủy buổi có lý do, availability GV |
 | Billing | Package, đơn hàng, ghi nhận thanh toán (thủ công/chuyển khoản), **credit ledger**, số dư buổi |
-| Meeting Engine (`Workspace`) | Kết nối Google Workspace của tenant, pool host + lease, tạo Meet theo buổi, link `/learn/join/{sessionId}` và `/teach/join/{sessionId}`, đưa recording vào Shared Drive + cấp quyền theo `RecordingAccessPolicy` |
+| Meeting Engine (`Workspace`) | Kết nối Google Workspace của tenant, pool host + lease, tạo Meet theo buổi, link `/learn/join/{sessionId}` và `/teach/join/{sessionId}`, đưa recording vào Shared Drive + cấp quyền theo `RecordingAccessPolicy`. Trung tâm chưa có Google Workspace dùng **phòng học có sẵn** (provider `Konnyaku`: WebRTC P2P mesh, tối đa 6 người/phòng, signaling Rust `services/signaling`, TURN coturn), cùng luồng vào lớp và cùng `ParticipantsCollectedV1`; ghi hình của phòng này để sau |
 | Điểm danh | GV điểm danh tay trên app `teach` (tự động ở V2) → `AttendanceConfirmedV1` → Billing ghi `Consume` |
 | Thông báo | Email nhắc lịch T-24h; template theo `(key, kênh, locale)` với bản `vi`/`en` |
 

@@ -21,6 +21,7 @@ public sealed class WorkspaceDbContext(DbContextOptions<WorkspaceDbContext> opti
     public DbSet<HostAccount> Hosts => Set<HostAccount>();
     public DbSet<HostLease> Leases => Set<HostLease>();
     public DbSet<Recording> Recordings => Set<Recording>();
+    public DbSet<RoomPresence> RoomPresences => Set<RoomPresence>();
 
     protected override void ConfigureModel(ModelBuilder modelBuilder)
     {
@@ -59,6 +60,15 @@ public sealed class WorkspaceDbContext(DbContextOptions<WorkspaceDbContext> opti
             b.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
             b.HasIndex(x => new { x.TenantId, x.SessionId });
         });
+        modelBuilder.Entity<RoomPresence>(b =>
+        {
+            b.ToTable("room_presence");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.DisplayName).HasMaxLength(200);
+            b.Property(x => x.Role).HasMaxLength(20);
+            b.HasIndex(x => new { x.TenantId, x.SessionId });
+            b.HasIndex(x => new { x.TenantId, x.ConnectionId }).IsUnique();
+        });
     }
 }
 
@@ -67,7 +77,7 @@ public sealed class FakeVirtualRoomProvider : IVirtualRoomProvider
 {
     public string Name => Providers.Fake;
 
-    public Task<CreatedSpace> CreateSpaceAsync(string hostEmail, Guid sessionId, DateTimeOffset startsAt, DateTimeOffset endsAt, CancellationToken cancellationToken)
+    public Task<CreatedSpace> CreateSpaceAsync(string? hostEmail, Guid sessionId, DateTimeOffset startsAt, DateTimeOffset endsAt, CancellationToken cancellationToken)
     {
         // The random tail of the UUIDv7 (its head is a timestamp, shared by sessions created together).
         var code = sessionId.ToString("N")[^10..];
@@ -75,6 +85,27 @@ public sealed class FakeVirtualRoomProvider : IVirtualRoomProvider
         return Task.FromResult(new CreatedSpace($"spaces/{code}", $"/dev-meeting/{code[..3]}-{code[3..7]}-{code[7..]}"));
     }
 
+    public Task GrantRecordingAccessAsync(string fileRef, IReadOnlyCollection<Guid> viewerUserIds, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
+}
+
+/// <summary>
+/// Built-in WebRTC classroom: the room is a page of the tenant's own site (<c>/room/{code}</c>), peers connect to
+/// each other directly (mesh) through the signaling service. No external account, so no host from the pool.
+/// </summary>
+public sealed class KonnyakuVirtualRoomProvider : IVirtualRoomProvider
+{
+    public string Name => Providers.Konnyaku;
+
+    public bool UsesHostPool => false;
+
+    public Task<CreatedSpace> CreateSpaceAsync(string? hostEmail, Guid sessionId, DateTimeOffset startsAt, DateTimeOffset endsAt, CancellationToken cancellationToken)
+    {
+        var code = RoomCodes.For(sessionId);
+        return Task.FromResult(new CreatedSpace(RoomCodes.SpacePrefix + code, $"/room/{code}"));
+    }
+
+    // Recording is not available in the built-in classroom yet (no object storage).
     public Task GrantRecordingAccessAsync(string fileRef, IReadOnlyCollection<Guid> viewerUserIds, CancellationToken cancellationToken) =>
         Task.CompletedTask;
 }
@@ -92,6 +123,9 @@ public static class WorkspaceInfrastructure
         services.AddScoped<IWorkspaceDbContext>(sp => sp.GetRequiredService<WorkspaceDbContext>());
         // The Google Meet provider plugs in here once a test Workspace domain is available (docs 2.3.5).
         services.AddSingleton<IVirtualRoomProvider, FakeVirtualRoomProvider>();
+        services.AddSingleton<IVirtualRoomProvider, KonnyakuVirtualRoomProvider>();
+        services.AddOptions<RtcOptions>().Bind(configuration.GetSection(RtcOptions.Section));
+        services.AddSingleton<IRoomTickets, RoomTickets>();
         services.AddSingleton<IVirtualRoomProviders, VirtualRoomProviders>();
         return services;
     }
