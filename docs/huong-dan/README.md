@@ -72,8 +72,44 @@ Người vận hành nền tảng Konnyaku dùng một địa chỉ riêng (`htt
 - Chọn phòng học Google Meet / phòng có sẵn trên giao diện (đội kỹ thuật cấu hình).
 - Ghi hình buổi học trong phòng học có sẵn của Konnyaku.
 
-## Ghi chú cho người cập nhật tài liệu
+## Dành cho người phát triển: cập nhật hướng dẫn trong mỗi PR
 
-Ảnh nằm trong [`images/`](images/), chụp ở khổ 1280 px, giao diện sáng, dữ liệu giả của trung tâm mẫu `review` (tạo bằng `infra/scripts/seed_review.py`), lưu dạng WebP. Khi giao diện đổi nhãn hay luồng, sửa trang tương ứng và chụp lại ảnh cùng tên. Cách chạy hệ thống trên máy: [docs/chay-local.md](../chay-local.md).
+**Quy tắc:** PR nào thêm hoặc đổi điều người dùng nhìn thấy (màn hình, nút, nhãn, luồng, quyền, email, quy tắc tính buổi / tiền) phải sửa hướng dẫn **ngay trong PR đó**. Mục "Tài liệu" trong mẫu PR (`.github/pull_request_template.md`) phải được đánh dấu.
+
+### Sửa trang nào
+
+| Thay đổi | Trang cần sửa |
+| --- | --- |
+| Màn hình / nút trong `/ops` của một vai trò | Trang của vai trò **làm việc đó**: [tu-van](tu-van.md) (lead), [dieu-phoi](dieu-phoi.md) (lớp, lịch, phòng, ngày nghỉ), [ke-toan](ke-toan.md) (thu phí, hoàn tiền, phiếu, kỳ lương, đơn giá), [quan-tri-trung-tam](quan-tri-trung-tam.md) (cơ sở, nhân sự, chương trình, bảo mật, quyền riêng tư, thông báo). Vai trò khác chỉ cần link tới đó |
+| Thao tác dùng chung trong `/ops` (danh sách, bộ lọc, ngăn kéo, che dữ liệu, xuất CSV, hồ sơ học viên) | [van-hanh-chung](van-hanh-chung.md) |
+| `/teach` | [giao-vien](giao-vien.md); phòng học: [phong-hoc-truc-tuyen](phong-hoc-truc-tuyen.md) |
+| `/learn` | [hoc-vien](hoc-vien.md); phụ huynh: [phu-huynh-va-khach](phu-huynh-va-khach.md) |
+| Trang công khai, form đăng ký, chính sách | [phu-huynh-va-khach](phu-huynh-va-khach.md) |
+| Đăng nhập, mật khẩu, 2FA, phiên | [dang-nhap-va-bao-mat](dang-nhap-va-bao-mat.md) |
+| `/platform` | [quan-tri-nen-tang](quan-tri-nen-tang.md) |
+| Quyền của vai trò | Bảng [Phân quyền](quy-tac-nghiep-vu.md#phân-quyền-theo-vai-trò-và-cơ-sở) **và** bảng "Được làm / Chỉ xem / Không có" đầu trang vai trò đó |
+| Quy tắc (ngưỡng, cách trừ buổi, hoàn tiền, email tự động) | [quy-tac-nghiep-vu](quy-tac-nghiep-vu.md) |
+| Luồng đi qua nhiều vai trò | Bảng bước trong [quy-trinh](quy-trinh.md) |
+| Bước cài đặt trung tâm mới | [bat-dau-nhanh](bat-dau-nhanh.md) và thẻ hướng dẫn nhanh (`messages/*/onboarding.json`) |
+| Thông báo lỗi người dùng hay gặp | [cau-hoi-thuong-gap](cau-hoi-thuong-gap.md) |
+| Từ mới | [thuat-ngu](thuat-ngu.md) |
+| Tính năng trước đây "chưa có" nay đã có | Xoá dòng ở [Những gì chưa có](#những-gì-chưa-có-ở-phiên-bản-này) và các ghi chú "Chưa có" / cách xử lý tạm trong trang vai trò, quy trình, FAQ |
+
+Tính năng lớn mới (một khu vực hay nhóm màn hình mới) thì thêm mục `##` trong trang vai trò; chỉ tạo trang mới khi có vai trò mới hoặc chủ đề dùng chung cho nhiều vai trò, và thêm trang đó vào **Mục lục** và bảng **Bắt đầu từ đâu** ở trên.
+
+Cách viết: tiếng Việt đơn giản, câu ngắn; tên nút, nhãn **in đậm, đúng chữ trên giao diện tiếng Việt** (lấy từ `frontend/packages/i18n/messages/vi`); các bước đánh số; chỉ mô tả cái đã chạy được trên `main`, phần chưa có ghi rõ "Chưa có".
+
+### Ảnh chụp màn hình
+
+- Lưu trong [`images/`](images/), dạng **WebP**, rộng tối đa 1100 px, chất lượng khoảng 70 (mỗi ảnh nên dưới 80 KB).
+- Tên file: chữ thường không dấu, nối bằng gạch ngang, bắt đầu bằng màn hình rồi đến thao tác: `thu-phi.webp`, `hoan-tien-nghi-giua-khoa.webp`, `lop-hoc-sua-lich-tuan.webp`. Đổi giao diện thì **chụp lại cùng tên** để mọi trang dùng ảnh đó tự cập nhật; xoá ảnh không còn trang nào dùng.
+- Chụp ở khổ trình duyệt 1280 × 800, **giao diện sáng**, tiếng Việt, với dữ liệu giả của trung tâm mẫu `review` (`infra/scripts/seed_review.py`, email `*@example.com`). Không chụp dữ liệu thật, mật khẩu thật, token thật; ẩn biểu tượng công cụ dev của Next.js.
+- Ảnh ngăn kéo: chụp cả trang với ngăn kéo đang mở. Ảnh trang dài: chụp cả trang, cao tối đa khoảng 1.800 px.
+- Chèn ảnh ngay sau bước nó minh hoạ, chú thích bằng alt text ngắn: `![Hoàn tiền nghỉ giữa khoá](images/hoan-tien-nghi-giua-khoa.webp)`.
+- Đổi PNG sang WebP: dùng `sharp` có sẵn trong `frontend/node_modules` (`sharp(in).resize({ width: 1100, withoutEnlargement: true }).webp({ quality: 70 })`) hoặc `cwebp -q 70`.
+
+Cách chạy hệ thống trên máy để chụp: [docs/chay-local.md](../chay-local.md).
+
+### Link từ trong app
 
 Thẻ **Hướng dẫn nhanh** trong app có link **Xem hướng dẫn đầy đủ** trỏ tới thư mục này trên GitHub (`main`): quản trị → [Bắt đầu nhanh](bat-dau-nhanh.md), nhân viên khác → mục lục, giáo viên → [Giáo viên](giao-vien.md), học viên → [Học viên](hoc-vien.md). Bản triển khai muốn trỏ tới bản sao riêng thì đặt biến môi trường `KONNYAKU_GUIDE_URL` (thư mục chứa các trang, không có `/` cuối) cho container web.

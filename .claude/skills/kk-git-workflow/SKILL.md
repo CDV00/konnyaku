@@ -23,7 +23,7 @@ description: Quy ước nhánh, commit, cập nhật README/docs và merge của
 1. Chạy kiểm tra theo skill `kk-verify` cho phần đã đổi.
 2. Phase/tính năng lớn: cập nhật bảng **Trạng thái triển khai** trong `README.md` (cột "còn để sau" ghi rõ phần chưa làm).
 3. Đổi phạm vi, module hoặc event: cập nhật `docs/04-roadmap.md`, `docs/06-evolution-strategy.md` (đây là nguồn duy nhất).
-4. Đổi màn hình người dùng thấy: cập nhật trang tương ứng trong `docs/huong-dan/` (theo vai trò; chụp lại ảnh cùng tên trong `docs/huong-dan/images/` nếu giao diện đổi).
+4. Đổi màn hình người dùng thấy: **mỗi PR tính năng tự cập nhật hướng dẫn sử dụng** trong `docs/huong-dan/` ngay trong PR đó: sửa trang của vai trò làm việc đó (bảng "Sửa trang nào" trong `docs/huong-dan/README.md`, mục "Dành cho người phát triển"), cập nhật bảng phân quyền / quy tắc / quy trình / FAQ nếu bị ảnh hưởng, xoá ghi chú "Chưa có" khi tính năng đã có. Ảnh: WebP trong `docs/huong-dan/images/`, tên chữ thường không dấu nối gạch ngang (`thu-phi.webp`), chụp 1280 px giao diện sáng với seed `review`; giao diện đổi thì chụp lại cùng tên.
    **Mỗi PR có thay đổi người dùng nhìn thấy (màn hình, luồng, quyền, email, kết quả việc Worker làm) phải thêm hoặc sửa luồng e2e trong `frontend/e2e/tests` và tài liệu nó ảnh hưởng, ngay trong PR đó** (cách viết: `frontend/e2e/README.md`). Sửa lỗi người dùng thấy được thì thêm bước kiểm tra chặn lỗi đó.
 5. Đổi cách chạy local (cổng, lệnh, biến môi trường): cập nhật `docs/chay-local.md` và `.claude/launch.json`.
 
