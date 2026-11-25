@@ -19,6 +19,9 @@ public interface IPlatformApi
     Task<TenantInfo?> ResolveHostAsync(string host, CancellationToken cancellationToken);
 
     Task<TenantInfo?> GetTenantAsync(Guid tenantId, CancellationToken cancellationToken);
+
+    /// <summary>Every tenant id, for background jobs that run tenant by tenant (retention, reminders).</summary>
+    Task<IReadOnlyList<Guid>> ListTenantIdsAsync(CancellationToken cancellationToken);
 }
 
 public sealed record TenantCreatedV1(Guid TenantId, string Slug, string DefaultLocale, string TimeZone) : IIntegrationEvent;

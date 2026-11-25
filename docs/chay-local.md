@@ -94,6 +94,12 @@ Mở `http://review.localhost:4000/login`. Mật khẩu chung: nhân viên `Revi
 | Học viên | `hv-review01` … `hv-review12` | `/learn` | `hv-review01`–`05`: lớp tiếng Nhật, số buổi đã trừ, video xem lại; `06`–`09`: lớp tiếng Anh offline; `10`: lớp tiếng Trung; `11`: đơn mới trả một nửa; `12`: đơn chưa trả |
 | Phụ huynh | `ph-review01` | `/learn` | Chưa gắn với học viên nào (tính năng liên kết phụ huynh chưa có) |
 
+Thử danh sách lớn (phân trang, tìm kiếm không dấu, giới hạn xuất CSV): thêm học viên giả vào trung tâm `review` (tên tiếng Việt ngẫu nhiên, SĐT ngẫu nhiên, email `hv.<n>@example.com`, khoảng 1 phút cho 1.000 người):
+
+```bash
+python infra/scripts/seed_students.py --count 1000
+```
+
 Bảo mật tài khoản khi chạy local (`appsettings.Development.json` của Api):
 
 - `Auth:TwoFactor:Enforce` là `false`: Quản trị và Kế toán đăng nhập được bằng mật khẩu (để seed chạy). Muốn thử bắt buộc 2FA như production: chạy API với `Auth__TwoFactor__Enforce=true`.

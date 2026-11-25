@@ -307,7 +307,7 @@ def main():
             "languageCode": lang, "goal": goal, "preferredBranchId": q1["id"], "consentVersion": "2026-11",
             "consentGiven": True, "locale": "vi", "captcha": solve_captcha(host)}, host), "lead")
     consultant = {**host, "Authorization": f"Bearer {staff_token('consultant@review.example.com')}"}
-    lead_rows = wait_for("leads", lambda: get("/api/crm/leads", "leads", consultant))
+    lead_rows = wait_for("leads", lambda: get("/api/crm/leads", "leads", consultant)["items"])
     for lead, status in zip(lead_rows, ["Contacted", "Contacted", "Converted", "Lost"]):
         post(f"/api/crm/leads/{lead['id']}/status", {"status": status}, "lead status", consultant)
 

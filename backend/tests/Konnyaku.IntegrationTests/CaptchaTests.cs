@@ -30,7 +30,7 @@ public sealed class CaptchaTests(PostgresFixture db) : IAsyncDisposable
         replay.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         (await replay.Content.ReadFromJsonAsync<ErrorDto>(Ct))!.Code.ShouldBe("crm.captcha_used");
 
-        (await admin.GetFromJsonAsync<object[]>("/api/crm/leads", Ct))!.Length.ShouldBe(1);
+        (await admin.GetItemsAsync<object>("/api/crm/leads", Ct))!.Length.ShouldBe(1);
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class CaptchaTests(PostgresFixture db) : IAsyncDisposable
         var foreign = await SolveAsync(_api.ClientFor(other.Slug));
         (await CodeAsync(visitor, Form("0932000005", foreign))).ShouldBe("crm.captcha_invalid");
 
-        (await admin.GetFromJsonAsync<object[]>("/api/crm/leads", Ct))!.ShouldBeEmpty();
+        (await admin.GetItemsAsync<object>("/api/crm/leads", Ct))!.ShouldBeEmpty();
     }
 
     [Fact]

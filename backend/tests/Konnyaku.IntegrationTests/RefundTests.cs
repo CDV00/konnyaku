@@ -52,7 +52,7 @@ public sealed class RefundTests(PostgresFixture db) : IAsyncDisposable
         refunded.Status.ShouldBe("Refunded");
         refunded.AmountRefunded.ShouldBe(Price);
         await (await c.Admin.GetAsync($"/api/billing/orders?status=refunded&studentId={student}", Ct)).ShouldSucceed();
-        (await c.Admin.GetFromJsonAsync<OrderRow[]>("/api/billing/orders?status=refunded", Ct))!.Select(o => o.Id).ShouldBe([order]);
+        (await c.Admin.GetItemsAsync<OrderRow>("/api/billing/orders?status=refunded", Ct))!.Select(o => o.Id).ShouldBe([order]);
 
         // Reversing lines, never an edit: purchase and bonus stay, refund lines take them back out.
         var ledger = (await c.Admin.GetFromJsonAsync<LedgerLine[]>($"/api/billing/accounts/{order}/ledger", Ct))!;
@@ -122,7 +122,7 @@ public sealed class RefundTests(PostgresFixture db) : IAsyncDisposable
         var c = await CenterAsync("rfpart", capacity: 5);
         var order = await OrderAsync(c, c.StudentId, c.ClassA);
         await (await c.Admin.PostAsJsonAsync($"/api/billing/orders/{order}/payments", new { amount = 500_000m, method = "cash" }, Ct)).ShouldSucceed();
-        (await c.Admin.GetFromJsonAsync<OrderRow[]>("/api/billing/orders?status=partial", Ct))!.Select(o => o.Id).ShouldBe([order]);
+        (await c.Admin.GetItemsAsync<OrderRow>("/api/billing/orders?status=partial", Ct))!.Select(o => o.Id).ShouldBe([order]);
 
         var quote = (await c.Admin.GetFromJsonAsync<QuoteView>($"/api/billing/orders/{order}/refund-quote", Ct))!;
         (quote.Kind, quote.SuggestedAmount).ShouldBe(("Cancellation", 500_000m));
@@ -283,7 +283,7 @@ public sealed class RefundTests(PostgresFixture db) : IAsyncDisposable
         await c.PostIdAsync("/api/billing/orders", new { studentId, packageId = c.PackageId, classId });
 
     private static async Task<OrderRow> OrderAsync(RefundCenter c, Guid orderId) =>
-        (await c.Admin.GetFromJsonAsync<OrderRow[]>("/api/billing/orders", Ct))!.Single(o => o.Id == orderId);
+        (await c.Admin.GetItemsAsync<OrderRow>("/api/billing/orders", Ct))!.Single(o => o.Id == orderId);
 
     private async Task ConsumeAsync(RefundCenter c, Guid enrollmentId, DateOnly date)
     {

@@ -1,5 +1,5 @@
 import { getFormatter, getLocale, getTranslations } from "next-intl/server";
-import { ShieldCheck, Users } from "lucide-react";
+import { SearchX, ShieldCheck, Users } from "lucide-react";
 import { requireMe } from "@konnyaku/session";
 import { Input } from "@konnyaku/ui/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@konnyaku/ui/components/ui/table";
@@ -7,22 +7,27 @@ import { EmptyState, PageHeader, Panel, StatusBadge } from "@konnyaku/ui/kk/bloc
 import { CheckRow, Field } from "@konnyaku/ui/kk/field";
 import { ActionButton, ActionForm, FormSheet } from "../action-form";
 import { ChangeHistory } from "../history";
-import { getAccess, getJson, localized, staffRoles, statusTone, type Branch, type StaffMember } from "../lib";
+import { staffFilters } from "../filters";
+import { emptyPage, getAccess, getJson, listQuery, localized, staffRoles, statusTone, type Branch, type Page, type SearchParams, type StaffMember } from "../lib";
+import { FilterSelect, ListBody, ListFrame, ListToolbar, Pagination, SortHeader } from "../list";
 import { RolesField } from "./roles-field";
 
 type Rate = { id: string; teacherId: string; hourlyRate: number; currency: string; effectiveFrom: string };
 
-export default async function StaffPage() {
+export default async function StaffPage({ searchParams }: { searchParams: SearchParams }) {
   const { me, token } = await requireMe("staff");
   const t = await getTranslations("admin");
   const format = await getFormatter();
   const locale = await getLocale();
-  const [staff, rates, branches, access] = await Promise.all([
-    getJson<StaffMember[]>("/api/identity/staff", token, []),
+  const query = await listQuery(searchParams, staffFilters);
+  const [page, rates, branches, access] = await Promise.all([
+    getJson<Page<StaffMember>>(`/api/identity/staff?${query.toString()}`, token, emptyPage()),
     getJson<Rate[]>("/api/hr/rates", token, []),
     getJson<Branch[]>("/api/organization/branches", token, []),
     getAccess(token),
   ]);
+  const staff = page.items;
+  const filtered = staffFilters.some((key) => query.has(key));
   const canManage = access.can("identity.staff");
   const canRates = access.can("hr.rates");
   const canAccounts = access.can("identity.accounts");
@@ -59,14 +64,21 @@ export default async function StaffPage() {
           )
         }
       />
+      <ListFrame>
+      <ListToolbar placeholder={t("staff.search")}>
+        <FilterSelect name="role" label={t("staff.roles")} allLabel={t("list.allRoles")} options={staffRoles.map((r) => ({ value: r, label: t(`roles.${r}`) }))} />
+        <FilterSelect name="status" label={t("fields.status")} allLabel={t("list.allStatuses")} options={["Active", "Suspended"].map((s) => ({ value: s, label: t(`staffStatus.${s}`) }))} />
+        <FilterSelect name="branch" label={t("classes.branch")} allLabel={t("list.allBranches")} options={branches.map((b) => ({ value: b.id, label: localized(b.name, locale) }))} />
+      </ListToolbar>
+      <ListBody>
       <Panel bodyClassName="p-0">
         {staff.length === 0 ? (
-          <div className="p-5"><EmptyState icon={Users} title={t("staff.empty")} /></div>
+          <div className="p-5">{filtered ? <EmptyState icon={SearchX} title={t("list.noResults")} /> : <EmptyState icon={Users} title={t("staff.empty")} />}</div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-5">{t("fields.displayName")}</TableHead>
+                <TableHead className="pl-5"><SortHeader field="name" label={t("fields.displayName")} /></TableHead>
                 <TableHead>{t("staff.roles")}</TableHead>
                 <TableHead className="hidden md:table-cell">{t("staff.rate")}</TableHead>
                 <TableHead className="pr-5 text-right" />
@@ -213,6 +225,9 @@ export default async function StaffPage() {
           </Table>
         )}
       </Panel>
+      </ListBody>
+      <Pagination total={page.total} page={page.pageNumber} pageSize={page.pageSize} />
+      </ListFrame>
     </div>
   );
 }
