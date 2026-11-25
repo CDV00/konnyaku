@@ -6,7 +6,7 @@ import "../globals.css";
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const t = await getTranslations("learn");
   return (
-    <ZoneLayout realm="learn" zone={t("zone")} links={[{ href: "/learn", label: t("nav.home"), icon: "home", exact: true }]}>
+    <ZoneLayout accountHref="/learn/change-password" realm="learn" zone={t("zone")} links={[{ href: "/learn", label: t("nav.home"), icon: "home", exact: true }]}>
       {children}
     </ZoneLayout>
   );

@@ -39,12 +39,9 @@ public sealed class BillingModule : IModule
 
     public void MapEndpoints(RouteGroupBuilder group)
     {
-        var finance = group.MapGroup("").RequireAuthorization(p => p.RequireAuthenticatedUser()
-            .RequireClaim(KonnyakuClaims.Audience, Audiences.Staff)
-            .RequireRole("TenantAdmin", "Accountant"));
-        var sales = group.MapGroup("").RequireAuthorization(p => p.RequireAuthenticatedUser()
-            .RequireClaim(KonnyakuClaims.Audience, Audiences.Staff)
-            .RequireRole("TenantAdmin", "Accountant", "Consultant"));
+        // Live permissions (not the roles written in the token): a role removed a minute ago no longer counts.
+        var finance = group.MapGroup("").RequirePermission(Permissions.Finance);
+        var sales = group.MapGroup("").RequirePermission(Permissions.Sales);
 
         var packages = group.MapGroup("").RequirePermission(Permissions.Packages);
         packages.MapPost("/packages", async (CreatePackageCommand command, OrderHandlers handlers, CancellationToken ct) =>
@@ -71,7 +68,7 @@ public sealed class BillingModule : IModule
             ApiResults.From(await handlers.VoidPaymentAsync(id, ct), Results.Ok));
         sales.MapGet("/orders/{id:guid}/payments", async (Guid id, BillingQueries queries, CancellationToken ct) =>
             Results.Ok(await queries.ListPaymentsAsync(id, ct)));
-        sales.MapChangeHistory<BillingDbContext>();
+        group.MapChangeHistory<BillingDbContext>(Permissions.Sales, Permissions.Orders, Permissions.Payments, Permissions.Packages);
         sales.MapPost("/orders", async (CreateOrderCommand command, OrderHandlers handlers, CancellationToken ct) =>
             ApiResults.From(await handlers.CreateOrderAsync(command, ct), o => Results.Created($"orders/{o.Id}", o)));
         sales.MapGet("/orders", async (Guid? studentId, BillingQueries queries, CancellationToken ct) =>

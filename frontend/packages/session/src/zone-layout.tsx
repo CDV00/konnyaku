@@ -6,15 +6,18 @@ import { Logo } from "@konnyaku/ui/kk/logo";
 import { AppProviders } from "@konnyaku/ui/kk/providers";
 import { TopBar, type NavLink } from "@konnyaku/ui/kk/shell";
 import { requireMe, tenantInfo, type Realm } from "./index";
+import { SessionWatch } from "./session-watch";
 
 /**
  * Root document of a signed-in zone (learn, teach): top bar with the center brand, the zone name,
  * the user menu (sign out of this realm only) and the theme switch.
  */
-export async function ZoneLayout({ realm, zone, links, children }: {
+export async function ZoneLayout({ realm, zone, links, accountHref, children }: {
   realm: Realm;
   zone: string;
   links: NavLink[];
+  /** The member's own account page (password, 2FA, devices), linked from the user menu. */
+  accountHref?: string;
   children: ReactNode;
 }) {
   const locale = await getLocale();
@@ -32,8 +35,10 @@ export async function ZoneLayout({ realm, zone, links, children }: {
               links={links}
               user={{ name: me.displayName, detail: me.roles.map((r) => (roles.has(r) ? roles(r) : r)).join(", ") }}
               logoutAction={`/api/session/${realm}/logout`}
-              labels={{ theme: shell("theme"), menu: shell("menu"), logout: shell("logout"), close: shell("close") }}
+              accountHref={accountHref}
+              labels={{ theme: shell("theme"), menu: shell("menu"), logout: shell("logout"), close: shell("close"), account: shell("account") }}
             />
+            <SessionWatch realm={realm} />
             <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">{children}</main>
           </NextIntlClientProvider>
         </AppProviders>

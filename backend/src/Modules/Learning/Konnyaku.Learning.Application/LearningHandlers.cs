@@ -1,4 +1,5 @@
 using Konnyaku.Academic.Contracts;
+using Konnyaku.Application.Authorization;
 using Konnyaku.Application.Messaging;
 using Konnyaku.Crm.Contracts;
 using Konnyaku.Learning.Contracts;
@@ -77,14 +78,16 @@ public sealed record ConfirmAttendanceCommand(IReadOnlyList<AttendanceOverride>?
 public sealed record AttendanceView(
     Guid Id, Guid EnrollmentId, Guid StudentId, string StudentName, string Status, string Source, int PresentMinutes, bool Confirmed, bool Billable);
 
-/// <summary>The session teacher (or a coordinator) reviews the drafts and confirms; confirmation spends lessons.</summary>
-public sealed class AttendanceHandlers(ILearningDbContext db, ISchedulingApi scheduling, IAcademicApi academic, ICrmApi crm, TimeProvider clock)
+/// <summary>
+/// The session teacher (or whoever runs the class's branch: coordinator, branch manager, administrator) reviews the drafts
+/// and confirms; confirmation spends lessons.
+/// </summary>
+public sealed class AttendanceHandlers(
+    ILearningDbContext db, ISchedulingApi scheduling, IAcademicApi academic, ICrmApi crm, IAccessControl access, TimeProvider clock)
 {
-    private static readonly string[] CoordinatorRoles = ["TenantAdmin", "Coordinator"];
-
-    public async Task<Result<IReadOnlyList<AttendanceView>>> ListAsync(Guid sessionId, Guid userId, IReadOnlyCollection<string> roles, CancellationToken ct)
+    public async Task<Result<IReadOnlyList<AttendanceView>>> ListAsync(Guid sessionId, Guid userId, CancellationToken ct)
     {
-        var session = await AuthorizedSessionAsync(sessionId, userId, roles, ct);
+        var session = await AuthorizedSessionAsync(sessionId, userId, ct);
         if (session is null)
         {
             return Error.NotFound("learning.session_not_found");
@@ -95,9 +98,9 @@ public sealed class AttendanceHandlers(ILearningDbContext db, ISchedulingApi sch
     }
 
     public async Task<Result<IReadOnlyList<AttendanceView>>> ConfirmAsync(
-        Guid sessionId, Guid userId, IReadOnlyCollection<string> roles, ConfirmAttendanceCommand command, CancellationToken ct)
+        Guid sessionId, Guid userId, ConfirmAttendanceCommand command, CancellationToken ct)
     {
-        var session = await AuthorizedSessionAsync(sessionId, userId, roles, ct);
+        var session = await AuthorizedSessionAsync(sessionId, userId, ct);
         if (session is null)
         {
             return Error.NotFound("learning.session_not_found");
@@ -140,10 +143,12 @@ public sealed class AttendanceHandlers(ILearningDbContext db, ISchedulingApi sch
         return Result<IReadOnlyList<AttendanceView>>.Success(await ViewsAsync(attendances, ct));
     }
 
-    private async Task<SessionDto?> AuthorizedSessionAsync(Guid sessionId, Guid userId, IReadOnlyCollection<string> roles, CancellationToken ct)
+    private async Task<SessionDto?> AuthorizedSessionAsync(Guid sessionId, Guid userId, CancellationToken ct)
     {
         var session = await scheduling.GetSessionAsync(sessionId, ct);
-        return session is not null && (session.TeacherId == userId || roles.Any(CoordinatorRoles.Contains)) ? session : null;
+        return session is not null && (session.TeacherId == userId || await access.CanAsync(Permissions.Classes, session.BranchId, ct))
+            ? session
+            : null;
     }
 
     private async Task<IReadOnlyList<AttendanceView>> ViewsAsync(IEnumerable<Attendance> attendances, CancellationToken ct)

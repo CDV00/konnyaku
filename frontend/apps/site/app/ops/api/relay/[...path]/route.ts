@@ -14,6 +14,7 @@ const writes: Record<"POST" | "PUT" | "DELETE", RegExp[]> = {
     route("organization/holidays"),
     route("identity/staff"),
     route("identity/staff/{id}/(deactivate|activate)"),
+    route("identity/accounts/{id}/(suspend|activate|reset-password|reset-2fa|sign-out)"),
     route("academic/programs"),
     route("academic/programs/{id}/(deactivate|activate)"),
     route("academic/programs/{id}/levels"),

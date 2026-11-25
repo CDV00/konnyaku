@@ -12,6 +12,7 @@ internal sealed class EditCenter
     public const string Password = "Admin-Pass-123";
 
     private readonly KonnyakuApiFactory _api;
+    private readonly Dictionary<Guid, string> _emails = [];
 
     private EditCenter(KonnyakuApiFactory api, string slug, HttpClient admin, Guid adminId)
     {
@@ -59,9 +60,13 @@ internal sealed class EditCenter
             new { email, displayName = $"{role} Test", initialPassword = Password, roles = new[] { role }, branchIds }, Ct);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var userId = (await response.Content.ReadFromJsonAsync<UserIdView>(Ct))!.UserId;
-        var token = (await _api.StaffLoginAsync(Slug, email, Password)).AccessToken;
-        return (userId, _api.ClientFor(Slug, token));
+        _emails[userId] = email;
+        return (userId, await SignInAsync(userId));
     }
+
+    /// <summary>A new sign-in of a member added with <see cref="AddStaffAsync"/> (after their sessions were revoked).</summary>
+    public async Task<HttpClient> SignInAsync(Guid userId) =>
+        _api.ClientFor(Slug, (await _api.StaffLoginAsync(Slug, _emails[userId], Password)).AccessToken);
 
     public Task<Guid> CreateClassAsync(string code, Guid branchId, string mode = "Online", int capacity = 10) =>
         PostIdAsync("/api/academic/classes", new { code, courseLevelId = LevelId, branchId, deliveryMode = mode, capacity, startsOn = "2027-01-04" });

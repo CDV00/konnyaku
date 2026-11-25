@@ -14,16 +14,23 @@ Creates tenant "review" (host review.<base domain>, e.g. http://review.localhost
     KO-T1-ON3  online, no schedule yet (for the coordinator to schedule)
 - packages, orders (paid, partially paid, unpaid), leads in every status
 - timesheets from the held sessions, last month's payroll period locked, this month's open
+- two-step sign-in (TOTP) turned on for accountant@: the script prints its secret key; add it to an authenticator app
+  or compute codes with `python infra/scripts/seed_review.py --totp <secret>`
 
 Every API call goes to KONNYAKU_API (default http://localhost:5080) with the platform key KONNYAKU_PLATFORM_KEY
 (default dev-platform-key). The Worker must be running: enrollments, rooms, attendance and timesheets come from events.
 
 Usage: python infra/scripts/seed_review.py [--base-domain localhost]
+       python infra/scripts/seed_review.py --totp <secret>   (prints the current 6-digit code)
 """
 import argparse
+import base64
 import datetime as dt
+import hashlib
+import hmac
 import json
 import os
+import struct
 import sys
 import time
 import urllib.error
@@ -78,7 +85,11 @@ def last_weekday_on_or_before(day, weekday):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-domain", default="localhost", help="Platform:BaseDomain of the API (default localhost)")
+    parser.add_argument("--totp", metavar="SECRET", help="print the current code of a TOTP secret and exit")
     args = parser.parse_args()
+    if args.totp:
+        print(totp(args.totp))
+        return
     host = {"X-Tenant-Host": f"{SLUG}.{args.base_domain}"}
     platform = {"X-Platform-Key": PLATFORM_KEY}
 
@@ -291,11 +302,28 @@ def main():
     call("POST", "/api/hr/payroll-periods", {
         "from": first_this_month.isoformat(), "to": (next_month - dt.timedelta(days=1)).isoformat()}, admin)
 
+    # --- two-step sign-in for the accountant (the last step: the accountant signs in with a code from now on) --------
+    accountant = {**host, "Authorization": f"Bearer {staff_token('accountant@review.example.com')}"}
+    secret = must(call("POST", "/api/identity/me/2fa/setup", None, accountant), "2fa setup")["secret"]
+    must(call("POST", "/api/identity/me/2fa/enable", {"code": totp(secret)}, accountant), "2fa enable")
+
     print(f"tenant '{SLUG}' ready at http://{SLUG}.{args.base_domain}:4000")
     print(f"  {len(held_jp)} online + {len(held_en)} offline lessons held with confirmed attendance")
     print(f"  staff (password {STAFF_PASSWORD}): admin, manager, coordinator, consultant, accountant,")
     print("    teacher.ja, teacher.en, teacher.zh  @review.example.com")
     print(f"  learners (password {LEARNER_PASSWORD}): hv-review01..hv-review12, parent ph-review01")
+    print(f"  accountant@ signs in with two-step sign-in, TOTP secret {secret}")
+    print(f"    current code: python infra/scripts/seed_review.py --totp {secret}")
+
+
+def totp(secret, at=None):
+    """RFC 6238 code (SHA-1, 30 s, 6 digits) of a base32 secret, as authenticator apps compute it."""
+    key = base64.b32decode(secret.upper() + "=" * (-len(secret) % 8))
+    counter = struct.pack(">Q", int((at or time.time()) // 30))
+    digest = hmac.new(key, counter, hashlib.sha1).digest()
+    offset = digest[-1] & 0x0F
+    value = struct.unpack(">I", digest[offset:offset + 4])[0] & 0x7FFFFFFF
+    return f"{value % 1_000_000:06d}"
 
 
 def _healthy():

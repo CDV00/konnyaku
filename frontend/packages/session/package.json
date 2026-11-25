@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./schedule": "./src/schedule.tsx",
+    "./session-watch": "./src/session-watch.tsx",
     "./zone-layout": "./src/zone-layout.tsx"
   },
   "scripts": {

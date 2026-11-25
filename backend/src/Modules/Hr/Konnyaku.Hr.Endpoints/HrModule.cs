@@ -36,9 +36,7 @@ public sealed class HrModule : IModule
 
     public void MapEndpoints(RouteGroupBuilder group)
     {
-        var payroll = group.MapGroup("").RequireAuthorization(p => p.RequireAuthenticatedUser()
-            .RequireClaim(KonnyakuClaims.Audience, Audiences.Staff)
-            .RequireRole("TenantAdmin", "Accountant"));
+        var payroll = group.MapGroup("").RequirePermission(Permissions.Payroll);
 
         var rates = group.MapGroup("").RequirePermission(Permissions.PayRates);
         rates.MapPut("/teachers/{teacherId:guid}/rate", async (Guid teacherId, SetRateCommand command, PayrollHandlers handlers, CancellationToken ct) =>
@@ -47,7 +45,7 @@ public sealed class HrModule : IModule
             ApiResults.From(await handlers.UpdateRateAsync(id, command, ct), Results.Ok));
         rates.MapDelete("/rates/{id:guid}", async (Guid id, PayrollHandlers handlers, CancellationToken ct) =>
             ApiResults.From(await handlers.DeleteRateAsync(id, ct), _ => Results.NoContent()));
-        payroll.MapChangeHistory<HrDbContext>();
+        group.MapChangeHistory<HrDbContext>(Permissions.PayRates, Permissions.Payroll);
         payroll.MapGet("/rates", async (PayrollHandlers handlers, CancellationToken ct) => Results.Ok(await handlers.ListRatesAsync(ct)));
         payroll.MapGet("/timesheets", async (DateOnly from, DateOnly to, Guid? teacherId, PayrollHandlers handlers, CancellationToken ct) =>
             Results.Ok(await handlers.ListAsync(teacherId, from, to, ct)));

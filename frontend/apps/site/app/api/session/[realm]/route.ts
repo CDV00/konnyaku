@@ -1,41 +1,45 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { apiFetch, sessionCookie, type Realm } from "@konnyaku/session";
+import { apiFetch, sessionCookie, sessionToken } from "@konnyaku/session";
+import { errorFrom, landing, withSessionCookie, type SignIn } from "../sign-in";
 
-type SignIn = { accessToken: string; expiresAt: string; roles: string[]; mustChangePassword: boolean };
+const loginPath = { learn: "/api/identity/learn/login", staff: "/api/identity/staff/login" } as const;
 
-const loginPath: Record<Realm, string> = { learn: "/api/identity/learn/login", staff: "/api/identity/staff/login" };
-
-function landing(realm: Realm, signIn: SignIn): string {
-  if (realm === "learn") return signIn.mustChangePassword ? "/learn/change-password" : "/learn";
-  const onlyTeacher = signIn.roles.every((role) => role === "Teacher");
-  return onlyTeacher ? "/teach" : "/ops";
-}
-
-/** Signs in on one realm and stores the token in that realm's httpOnly cookie (never readable by scripts). */
+/**
+ * Signs in on one realm. A staff account with 2FA (or a role that must enroll it) gets a challenge instead of a
+ * session: the login form continues with /api/mfa/*.
+ */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ realm: string }> }) {
   const { realm } = await params;
   if (realm !== "learn" && realm !== "staff") return NextResponse.json({ code: "unknown" }, { status: 404 });
 
   const response = await apiFetch(loginPath[realm], { method: "POST", body: await request.text() });
-  const body = await response.json().catch(() => ({ code: "unknown" }));
-  if (!response.ok) return NextResponse.json({ code: body.code ?? "unknown" }, { status: 400 });
+  if (!response.ok) return errorFrom(response);
+  const signIn = (await response.json()) as SignIn;
+  if (!signIn.accessToken) return NextResponse.json({ challenge: signIn.challenge, nextStep: signIn.nextStep });
+  return withSessionCookie(NextResponse.json({ redirect: landing(realm, signIn) }), realm, signIn);
+}
 
-  const signIn = body as SignIn;
-  const result = NextResponse.json({ redirect: landing(realm, signIn) });
-  result.cookies.set(sessionCookie[realm], signIn.accessToken, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    expires: new Date(signIn.expiresAt),
-  });
+/** Is this realm's session still active? 401 (and the cookie cleared) once it was revoked or expired. */
+export async function GET(_: NextRequest, { params }: { params: Promise<{ realm: string }> }) {
+  const { realm } = await params;
+  if (realm !== "learn" && realm !== "staff") return NextResponse.json({ code: "unknown" }, { status: 404 });
+  const token = await sessionToken(realm);
+  const response = token ? await apiFetch("/api/identity/me", { token }) : null;
+  if (response?.ok) return NextResponse.json({ active: true });
+  if (response && response.status !== 401) return NextResponse.json({ active: true, unchecked: true });
+  const result = NextResponse.json({ active: false }, { status: 401 });
+  result.cookies.delete(sessionCookie[realm]);
   return result;
 }
 
-/** Sign out of one realm only; the other realm's session is untouched. */
+/** Sign out of one realm only (the API revokes the session); the other realm's session is untouched. */
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ realm: string }> }) {
   const { realm } = await params;
   const result = NextResponse.json({ redirect: "/login" });
-  if (realm === "learn" || realm === "staff") result.cookies.delete(sessionCookie[realm]);
+  if (realm === "learn" || realm === "staff") {
+    const token = await sessionToken(realm);
+    if (token) await apiFetch("/api/identity/logout", { method: "POST", token }).catch(() => null);
+    result.cookies.delete(sessionCookie[realm]);
+  }
   return result;
 }

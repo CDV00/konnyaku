@@ -16,6 +16,9 @@ public interface IIdentityDbContext
     DbSet<PasswordCredential> PasswordCredentials { get; }
     DbSet<LocalCredential> LocalCredentials { get; }
     DbSet<Membership> Memberships { get; }
+    DbSet<UserSession> UserSessions { get; }
+    DbSet<PasswordResetToken> PasswordResetTokens { get; }
+    DbSet<SecurityEvent> SecurityEvents { get; }
 
     /// <summary>Starts tracking new rows as added (DbContext.AddRange).</summary>
     void AddRange(IEnumerable<object> entities);
@@ -24,24 +27,38 @@ public interface IIdentityDbContext
 
     void LogChange(string entityType, Guid entityId, Guid subjectId, string action, IReadOnlyList<(string Field, string? Old, string? New)> changes);
 
+    /// <summary>How many centers the person belongs to, across tenants; null when the database cannot tell (treated as "more than one").</summary>
+    Task<int?> CountCentersOfUserAsync(Guid userId, CancellationToken cancellationToken);
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
 
-public sealed record SignedIn(Guid UserId, Guid TenantId, string DisplayName, IReadOnlyList<string> Roles, bool MustChangePassword);
+/// <summary>A completed sign-in: the session the access token will name.</summary>
+public sealed record SignedIn(Guid UserId, Guid TenantId, string DisplayName, IReadOnlyList<string> Roles, bool MustChangePassword,
+    Guid SessionId, DateTimeOffset ExpiresAt);
 
 internal static class IdentityErrors
 {
     // One message for unknown user, wrong password and wrong realm: never reveal whether an account exists.
     public static readonly Error InvalidCredentials = Error.Validation("identity.invalid_credentials");
     public static readonly Error Locked = Error.Validation("identity.account_locked");
+    public static readonly Error Suspended = Error.Validation("identity.account_suspended");
     public static readonly Error TenantUnknown = Error.Validation("identity.tenant_unknown");
+    public static readonly Error ChallengeInvalid = Error.Validation("identity.sign_in_expired");
+    public static readonly Error CodeInvalid = Error.Validation("identity.code_invalid");
 }
 
 public sealed record StaffLoginCommand(string Email, string Password);
 
-public sealed class StaffLoginHandler(IIdentityDbContext db, ITenantContext tenant, IPasswordHasher<User> hasher, TimeProvider clock)
+/// <summary>
+/// Password step of a staff sign-in. Done when the account has no second factor and its roles do not require one;
+/// otherwise the caller gets a pending sign-in to finish with a TOTP code (or by enrolling 2FA first).
+/// </summary>
+public sealed class StaffLoginHandler(
+    IIdentityDbContext db, ITenantContext tenant, IPasswordHasher<User> hasher, SessionManager sessions, SecurityLog log, TwoFactorPolicy policy,
+    TimeProvider clock)
 {
-    public async Task<Result<SignedIn>> HandleAsync(StaffLoginCommand command, CancellationToken cancellationToken)
+    public async Task<Result<StaffSignInResult>> HandleAsync(StaffLoginCommand command, CancellationToken cancellationToken)
     {
         if (tenant.TenantId is not { } tenantId)
         {
@@ -53,23 +70,40 @@ public sealed class StaffLoginHandler(IIdentityDbContext db, ITenantContext tena
         var credential = user is null ? null : await db.PasswordCredentials.FirstOrDefaultAsync(c => c.UserId == user.Id, cancellationToken);
         if (user is null || credential is null)
         {
+            log.Record(SecurityEventKinds.SignInFailed, null, email, "unknown_account");
+            await db.SaveChangesAsync(cancellationToken);
             return IdentityErrors.InvalidCredentials;
         }
 
-        var verified = await Credentials.VerifyAsync(db, hasher, clock, credential, user, command.Password, cancellationToken);
+        var verified = await Credentials.VerifyAsync(db, hasher, clock, log, credential, user, command.Password, email, cancellationToken);
         if (!verified.IsSuccess)
         {
             return verified.Error!;
         }
 
-        var roles = await RolesInTenantAsync(db, user.Id, cancellationToken);
-        var staffRoles = roles.Where(Roles.Staff.Contains).ToList();
-        if (staffRoles.Count == 0)
+        var membership = await Credentials.MembershipAsync(db, user.Id, Roles.Staff, cancellationToken);
+        if (membership.Error is { } refused)
         {
-            return IdentityErrors.InvalidCredentials;
+            log.Record(SecurityEventKinds.SignInFailed, user.Id, email, refused == IdentityErrors.Suspended ? "suspended" : "no_staff_role");
+            await db.SaveChangesAsync(cancellationToken);
+            return refused;
         }
 
-        return new SignedIn(user.Id, tenantId, user.DisplayName, staffRoles, MustChangePassword: false);
+        if (credential.TwoFactorEnabled)
+        {
+            return new StaffSignInResult(null, new PendingSignIn(user.Id, tenantId, PendingSignIn.Verify, credential.SecurityStamp));
+        }
+
+        if (policy.IsRequiredFor(membership.Roles))
+        {
+            return new StaffSignInResult(null, new PendingSignIn(user.Id, tenantId, PendingSignIn.Enroll, credential.SecurityStamp));
+        }
+
+        credential.RegisterSuccess();
+        var signedIn = sessions.Start(user, tenantId, Realms.Staff, credential, membership.Roles);
+        log.Record(SecurityEventKinds.SignInSucceeded, user.Id, email, Realms.Staff);
+        await db.SaveChangesAsync(cancellationToken);
+        return new StaffSignInResult(signedIn, null);
     }
 
     internal static async Task<List<string>> RolesInTenantAsync(IIdentityDbContext db, Guid userId, CancellationToken cancellationToken) =>
@@ -78,36 +112,66 @@ public sealed class StaffLoginHandler(IIdentityDbContext db, ITenantContext tena
             .SelectMany(m => m.Roles.Select(r => r.Role))
             .Distinct()
             .ToListAsync(cancellationToken);
+
+    internal static async Task<List<string>> ActiveStaffRolesAsync(IIdentityDbContext db, Guid userId, CancellationToken cancellationToken) =>
+        (await RolesInTenantAsync(db, userId, cancellationToken)).Where(Roles.Staff.Contains).ToList();
 }
 
 internal static class Credentials
 {
+    /// <summary>
+    /// Checks the password. A failure counts towards the lockout and is logged; success does not reset the counter yet
+    /// (the sign-in may still need its second factor), the caller does once the sign-in completes.
+    /// </summary>
     public static async Task<Result<bool>> VerifyAsync(
-        IIdentityDbContext db, IPasswordHasher<User> hasher, TimeProvider clock, LockableCredential credential, User user,
-        string? password, CancellationToken cancellationToken)
+        IIdentityDbContext db, IPasswordHasher<User> hasher, TimeProvider clock, SecurityLog log, LockableCredential credential, User user,
+        string? password, string? subject, CancellationToken cancellationToken)
     {
         var now = clock.GetUtcNow();
         if (credential.IsLocked(now))
         {
+            log.Record(SecurityEventKinds.SignInFailed, user.Id, subject, "locked");
+            await db.SaveChangesAsync(cancellationToken);
             return IdentityErrors.Locked;
         }
 
         if (hasher.VerifyHashedPassword(user, credential.PasswordHash, password ?? string.Empty) == PasswordVerificationResult.Failed)
         {
-            credential.RegisterFailure(now);
+            log.Record(SecurityEventKinds.SignInFailed, user.Id, subject, "wrong_password");
+            if (credential.RegisterFailure(now))
+            {
+                log.Record(SecurityEventKinds.AccountLockedOut, user.Id, subject);
+            }
+
             await db.SaveChangesAsync(cancellationToken);
             return credential.IsLocked(now) ? IdentityErrors.Locked : IdentityErrors.InvalidCredentials;
         }
 
-        credential.RegisterSuccess();
-        await db.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    /// <summary>The member's roles of one realm in this center; suspended members and members without such a role are refused.</summary>
+    public static async Task<(List<string> Roles, Error? Error)> MembershipAsync(
+        IIdentityDbContext db, Guid userId, IReadOnlySet<string> realmRoles, CancellationToken cancellationToken)
+    {
+        var membership = await db.Memberships.AsNoTracking()
+            .Where(m => m.UserId == userId)
+            .Select(m => new { m.Status, Roles = m.Roles.Select(r => r.Role).ToList() })
+            .FirstOrDefaultAsync(cancellationToken);
+        var roles = membership?.Roles.Where(realmRoles.Contains).Distinct().ToList() ?? [];
+        if (roles.Count == 0)
+        {
+            return ([], IdentityErrors.InvalidCredentials);
+        }
+
+        return membership!.Status == MembershipStatus.Active ? (roles, null) : ([], IdentityErrors.Suspended);
     }
 }
 
 public sealed record LearnerLoginCommand(string Username, string Password);
 
-public sealed class LearnerLoginHandler(IIdentityDbContext db, ITenantContext tenant, IPasswordHasher<User> hasher, TimeProvider clock)
+public sealed class LearnerLoginHandler(
+    IIdentityDbContext db, ITenantContext tenant, IPasswordHasher<User> hasher, SessionManager sessions, SecurityLog log, TimeProvider clock)
 {
     public async Task<Result<SignedIn>> HandleAsync(LearnerLoginCommand command, CancellationToken cancellationToken)
     {
@@ -121,53 +185,34 @@ public sealed class LearnerLoginHandler(IIdentityDbContext db, ITenantContext te
         var user = credential is null ? null : await db.Users.FirstOrDefaultAsync(u => u.Id == credential.UserId, cancellationToken);
         if (credential is null || user is null)
         {
+            log.Record(SecurityEventKinds.SignInFailed, null, username, "unknown_account");
+            await db.SaveChangesAsync(cancellationToken);
             return IdentityErrors.InvalidCredentials;
         }
 
-        var verified = await Credentials.VerifyAsync(db, hasher, clock, credential, user, command.Password, cancellationToken);
+        var verified = await Credentials.VerifyAsync(db, hasher, clock, log, credential, user, command.Password, username, cancellationToken);
         if (!verified.IsSuccess)
         {
             return verified.Error!;
         }
 
-        var learnRoles = (await StaffLoginHandler.RolesInTenantAsync(db, user.Id, cancellationToken)).Where(Roles.Learn.Contains).ToList();
-        return learnRoles.Count == 0
-            ? IdentityErrors.InvalidCredentials
-            : new SignedIn(user.Id, tenantId, user.DisplayName, learnRoles, credential.MustChangePassword);
+        var membership = await Credentials.MembershipAsync(db, user.Id, Roles.Learn, cancellationToken);
+        if (membership.Error is { } refused)
+        {
+            log.Record(SecurityEventKinds.SignInFailed, user.Id, username, refused == IdentityErrors.Suspended ? "suspended" : "no_learner_role");
+            await db.SaveChangesAsync(cancellationToken);
+            return refused;
+        }
+
+        credential.RegisterSuccess();
+        var signedIn = sessions.Start(user, tenantId, Realms.Learn, credential, membership.Roles);
+        log.Record(SecurityEventKinds.SignInSucceeded, user.Id, username, Realms.Learn);
+        await db.SaveChangesAsync(cancellationToken);
+        return signedIn;
     }
 }
 
 public sealed record ChangePasswordCommand(string CurrentPassword, string NewPassword);
-
-public sealed class ChangeLearnerPasswordHandler(IIdentityDbContext db, IPasswordHasher<User> hasher, TimeProvider clock)
-{
-    public const int MinLength = 8;
-
-    public async Task<Result<bool>> HandleAsync(Guid userId, ChangePasswordCommand command, CancellationToken cancellationToken)
-    {
-        if ((command.NewPassword ?? string.Empty).Length < MinLength)
-        {
-            return Error.Validation("identity.password_too_short", new Dictionary<string, object?> { ["min"] = MinLength });
-        }
-
-        var credential = await db.LocalCredentials.FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
-        if (credential is null || user is null)
-        {
-            return Error.NotFound("identity.account_not_found");
-        }
-
-        var verified = await Credentials.VerifyAsync(db, hasher, clock, credential, user, command.CurrentPassword, cancellationToken);
-        if (!verified.IsSuccess)
-        {
-            return verified.Error!;
-        }
-
-        credential.ChangePassword(hasher.HashPassword(user, command.NewPassword!));
-        await db.SaveChangesAsync(cancellationToken);
-        return true;
-    }
-}
 
 public sealed record CreateLearnerAccountCommand(string DisplayName, string Role, string? Username, string? PreferredLocale);
 
@@ -231,7 +276,7 @@ public sealed class BootstrapTenantAdminHandler(IIdentityDbContext db, IPassword
 {
     public async Task<Result<Guid>> HandleAsync(BootstrapTenantAdminCommand command, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(command.Email) || (command.Password ?? string.Empty).Length < ChangeLearnerPasswordHandler.MinLength)
+        if (string.IsNullOrWhiteSpace(command.Email) || PasswordPolicy.Check(command.Password) is not null)
         {
             return Error.Validation("identity.bootstrap_invalid");
         }
@@ -291,9 +336,9 @@ public sealed class AddStaffMemberHandler(IIdentityDbContext db, IPasswordHasher
         var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
         if (user is null)
         {
-            if ((command.InitialPassword ?? string.Empty).Length < ChangeLearnerPasswordHandler.MinLength)
+            if (PasswordPolicy.Check(command.InitialPassword) is { } weak)
             {
-                return Error.Validation("identity.password_too_short", new Dictionary<string, object?> { ["min"] = ChangeLearnerPasswordHandler.MinLength });
+                return weak;
             }
 
             user = User.Create(email, command.DisplayName, "vi");
@@ -360,7 +405,7 @@ public sealed class IdentityQueries(IIdentityDbContext db, ITenantContext tenant
 public sealed record StaffRoleView(string Role, Guid? BranchId);
 
 public sealed record StaffMemberView(Guid UserId, string DisplayName, string? Email, IReadOnlyList<string> Roles, string Status,
-    IReadOnlyList<StaffRoleView> Grants);
+    IReadOnlyList<StaffRoleView> Grants, bool TwoFactorEnabled = false);
 
 public sealed class StaffQueries(IIdentityDbContext db)
 {
@@ -382,9 +427,13 @@ public sealed class StaffQueries(IIdentityDbContext db)
             .ToDictionary(m => m.UserId);
         var ids = staff.Keys.ToList();
         var users = await db.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).ToListAsync(cancellationToken);
+        var twoFactor = (await db.PasswordCredentials.AsNoTracking()
+            .Where(c => ids.Contains(c.UserId) && c.TotpSecret != null)
+            .Select(c => c.UserId)
+            .ToListAsync(cancellationToken)).ToHashSet();
         return users
             .Select(u => new StaffMemberView(u.Id, u.DisplayName, u.Email, staff[u.Id].Grants.Select(g => g.Role).Distinct().Order().ToList(),
-                staff[u.Id].Status.ToString(), staff[u.Id].Grants))
+                staff[u.Id].Status.ToString(), staff[u.Id].Grants, twoFactor.Contains(u.Id)))
             .OrderBy(s => s.Status != nameof(MembershipStatus.Active)).ThenBy(s => s.DisplayName, StringComparer.CurrentCulture)
             .ToList();
     }
@@ -423,7 +472,7 @@ internal static class StaffRoleRules
 /// suspends or re-activates the membership (a suspended member cannot sign in; history and assignments stay).
 /// The center always keeps at least one active administrator.
 /// </summary>
-public sealed class StaffAdminHandler(IIdentityDbContext db, IOrganizationApi organization)
+public sealed class StaffAdminHandler(IIdentityDbContext db, IOrganizationApi organization, AccountAdminHandler accounts, SessionManager sessions)
 {
     public async Task<Result<StaffMemberView>> UpdateAsync(Guid userId, UpdateStaffMemberCommand command, CancellationToken ct)
     {
@@ -467,36 +516,28 @@ public sealed class StaffAdminHandler(IIdentityDbContext db, IOrganizationApi or
         membership.ReplaceStaffRoles(grants);
         StaffRoleRules.TrackNew(db, membership, existing);
         var after = StaffRoleRules.Describe(StaffGrants(membership));
+        IReadOnlyList<Guid> revoked = [];
         if (before != after)
         {
             db.LogChange(nameof(Membership), membership.Id, userId, "Updated", [("roles", before, after)]);
+            // The token lists the old roles: the member signs in again with the new ones.
+            revoked = await sessions.RevokeAllAsync(userId, SessionRevokeReasons.RolesChanged, ct, realm: Realms.Staff);
         }
 
-        await db.SaveChangesAsync(ct);
+        await sessions.SaveAsync(revoked, ct);
         return await ViewAsync(userId, ct);
     }
 
-    public async Task<Result<StaffMemberView>> SuspendAsync(Guid userId, Guid actingUserId, CancellationToken ct)
+    public async Task<Result<StaffMemberView>> SuspendAsync(Guid userId, CancellationToken ct)
     {
-        if (userId == actingUserId)
-        {
-            return Error.Conflict("identity.cannot_suspend_self");
-        }
-
         var (user, membership) = await LoadAsync(userId, ct);
         if (user is null || membership is null)
         {
             return Error.NotFound("identity.staff_not_found");
         }
 
-        if (IsAdmin(membership) && !await AnotherActiveAdminAsync(membership.Id, ct))
-        {
-            return Error.Conflict("identity.last_admin");
-        }
-
-        membership.Suspend();
-        await db.SaveChangesAsync(ct);
-        return await ViewAsync(userId, ct);
+        var suspended = await accounts.SuspendAsync(userId, ct);
+        return suspended.IsSuccess ? await ViewAsync(userId, ct) : suspended.Error!;
     }
 
     public async Task<Result<StaffMemberView>> ActivateAsync(Guid userId, CancellationToken ct)
@@ -507,9 +548,8 @@ public sealed class StaffAdminHandler(IIdentityDbContext db, IOrganizationApi or
             return Error.NotFound("identity.staff_not_found");
         }
 
-        membership.Activate();
-        await db.SaveChangesAsync(ct);
-        return await ViewAsync(userId, ct);
+        var activated = await accounts.ActivateAsync(userId, ct);
+        return activated.IsSuccess ? await ViewAsync(userId, ct) : activated.Error!;
     }
 
     private async Task<(User? User, Membership? Membership)> LoadAsync(Guid userId, CancellationToken ct)

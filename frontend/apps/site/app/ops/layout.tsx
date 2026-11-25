@@ -2,17 +2,20 @@ import type { ReactNode } from "react";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { requireMe, tenantInfo } from "@konnyaku/session";
+import { SessionWatch } from "@konnyaku/session/session-watch";
 import { appFont } from "@konnyaku/ui/kk/font";
 import { Logo } from "@konnyaku/ui/kk/logo";
 import { AppProviders } from "@konnyaku/ui/kk/providers";
 import { SidebarShell, type NavLink } from "@konnyaku/ui/kk/shell";
+import { getAccess } from "./lib";
 import "../globals.css";
 
 const sections = ["leads", "students", "billing", "classes", "programs", "staff", "branches", "payroll"] as const;
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale();
-  const { me } = await requireMe("staff");
+  const { me, token } = await requireMe("staff");
+  const access = await getAccess(token);
   const tenant = await tenantInfo();
   const t = await getTranslations("ops");
   const shell = await getTranslations("shell");
@@ -20,6 +23,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const links: NavLink[] = [
     { href: "/ops", label: t("nav.home"), icon: "home", exact: true },
     ...sections.map((section) => ({ href: `/ops/${section}`, label: t(`nav.${section}`), icon: section })),
+    ...(access.can("identity.accounts") ? [{ href: "/ops/security", label: t("nav.security"), icon: "security" as const }] : []),
   ];
   return (
     <html lang={locale} suppressHydrationWarning className={appFont.variable}>
@@ -31,8 +35,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               links={links}
               user={{ name: me.displayName, detail: me.roles.map((r) => (roles.has(r) ? roles(r) : r)).join(", ") }}
               logoutAction="/api/session/staff/logout"
-              labels={{ theme: shell("theme"), menu: shell("menu"), logout: shell("logout"), close: shell("close") }}
+              accountHref="/ops/account"
+              labels={{ theme: shell("theme"), menu: shell("menu"), logout: shell("logout"), close: shell("close"), account: shell("account") }}
             >
+              <SessionWatch realm="staff" />
               {children}
             </SidebarShell>
           </NextIntlClientProvider>

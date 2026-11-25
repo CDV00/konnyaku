@@ -100,6 +100,6 @@ public sealed class AcademicModule : IModule
         classes.MapPost("/classes/{id:guid}/reopen", async (Guid id, ClassAdminHandler handler, CancellationToken ct) =>
             ApiResults.From(await handler.ReopenAsync(id, ct), Results.Ok));
 
-        group.MapChangeHistory<AcademicDbContext>();
+        group.MapChangeHistory<AcademicDbContext>(Permissions.Programs, Permissions.Classes, Permissions.ClassesView);
     }
 }

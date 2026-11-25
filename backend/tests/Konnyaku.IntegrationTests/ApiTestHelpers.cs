@@ -27,12 +27,18 @@ public sealed class KonnyakuApiFactory(PostgresFixture db) : WebApplicationFacto
         builder.UseSetting("Platform:AdminKey", PlatformKey);
         builder.UseSetting("Platform:BaseDomain", BaseDomain);
         builder.UseSetting("RateLimits:PublicFormsPerMinute", "1000");
+        builder.UseSetting("RateLimits:PasswordResetPerMinute", "1000");
+        // Seeded flows sign in with a password alone; AccountSecurityTests turn 2FA enforcement on where they test it.
+        builder.UseSetting("Auth:TwoFactor:Enforce", "false");
+        builder.UseSetting("Workspace:DevTools", "true");
         builder.UseSetting("Rtc:SignalingSecret", RtcSecret);
         builder.UseSetting("Rtc:StunUrls:0", "stun:turn.test.local:3478");
         builder.UseSetting("Rtc:TurnUrls:0", "turn:turn.test.local:3478?transport=udp");
         builder.UseSetting("Rtc:TurnSecret", "test-turn-secret");
         builder.ConfigureServices(services =>
         {
+            services.AddSingleton<TestMailbox>();
+            services.AddSingleton<Konnyaku.Identity.Application.IPasswordResetMailer>(sp => sp.GetRequiredService<TestMailbox>());
             foreach (var contextType in OutboxContexts)
             {
                 services.AddSingleton(typeof(OutboxProcessor<>).MakeGenericType(contextType));
@@ -116,8 +122,23 @@ public sealed class KonnyakuApiFactory(PostgresFixture db) : WebApplicationFacto
     }
 }
 
+/// <summary>Password reset emails the API would have sent (no mail service in tests).</summary>
+public sealed class TestMailbox : Konnyaku.Identity.Application.IPasswordResetMailer
+{
+    private readonly System.Collections.Concurrent.ConcurrentQueue<Konnyaku.Identity.Application.PasswordResetMail> _sent = new();
+
+    public IReadOnlyList<Konnyaku.Identity.Application.PasswordResetMail> Sent => [.. _sent];
+
+    public Task SendAsync(Konnyaku.Identity.Application.PasswordResetMail mail, CancellationToken cancellationToken)
+    {
+        _sent.Enqueue(mail);
+        return Task.CompletedTask;
+    }
+}
+
 public sealed record TenantDto(Guid Id, string Slug, string Name, string DefaultLocale, string[] EnabledLocales, string TimeZone, string[] Hosts);
 
-public sealed record SignInDto(string AccessToken, string Audience, DateTimeOffset ExpiresAt, string DisplayName, string[] Roles, bool MustChangePassword);
+public sealed record SignInDto(string AccessToken, string Audience, DateTimeOffset ExpiresAt, string DisplayName, string[] Roles, bool MustChangePassword,
+    string? Challenge = null, string? NextStep = null);
 
 public sealed record ErrorDto(string Code);

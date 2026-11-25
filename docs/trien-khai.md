@@ -101,6 +101,13 @@ docker run --rm --network konnyaku_app curlimages/curl -s -X POST http://api:808
 
 Sau đó tạo quản trị viên đầu tiên bằng `POST /api/identity/bootstrap/tenant-admin` theo cùng cách (xem `infra/scripts/seed_demo.py`). Lần đầu mở `https://abc.BASE_DOMAIN`, Caddy hỏi web app host này có phải tenant không rồi mới xin chứng chỉ, nên lần tải đầu chậm vài giây.
 
+Bảo mật tài khoản ở production (mặc định, không cần đặt biến):
+
+- Quản trị và Kế toán **bắt buộc xác thực 2 bước**: lần đăng nhập đầu tiên, quản trị viên vừa tạo được hướng dẫn quét mã QR và lưu mã khôi phục. Tắt bắt buộc (không khuyến khích): `Auth__TwoFactor__Enforce=false`; đổi danh sách vai trò: `Auth__TwoFactor__RequiredRoles__0=…`.
+- Khoá TOTP lưu mã hoá AES-GCM bằng khoá suy ra từ `Auth__SecretKey` (nếu không đặt thì từ `Auth__SigningKey`). Đổi khoá này làm mọi 2FA đã bật không dùng được nữa.
+- Link quên mật khẩu dùng `https://<host của trung tâm>/login/reset`; đặt `Site__PublicScheme` / `Site__PublicPort` nếu web không chạy https cổng 443. Email chưa được gửi cho tới khi có module Notification (log API ghi cảnh báo, không ghi link).
+- Endpoint mô phỏng buổi học (`/api/workspace/dev/...`) tắt; chỉ bật cho staging bằng `Workspace__DevTools=true`.
+
 ## Backup
 
 ```bash

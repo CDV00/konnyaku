@@ -15,6 +15,8 @@ import {
   Menu,
   PhoneCall,
   Receipt,
+  ShieldCheck,
+  UserCog,
   Users,
 
   Wallet,
@@ -45,6 +47,7 @@ const icons = {
   payroll: Wallet,
   book: BookOpen,
   attendance: ClipboardList,
+  security: ShieldCheck,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof icons;
@@ -61,7 +64,7 @@ export type NavLink = {
 
 export type ShellUser = { name: string; detail?: string };
 
-export type ShellLabels = { theme: string; menu: string; logout: string; close?: string };
+export type ShellLabels = { theme: string; menu: string; logout: string; close?: string; account?: string };
 
 function isActive(pathname: string, { href, exact }: NavLink) {
   if (exact || href === "/") return pathname === href;
@@ -88,7 +91,7 @@ function NavAnchor({ link, active, className, onNavigate }: { link: NavLink; act
   );
 }
 
-function UserMenu({ user, logoutAction, labels }: { user: ShellUser; logoutAction: string; labels: ShellLabels }) {
+function UserMenu({ user, logoutAction, accountHref, labels }: { user: ShellUser; logoutAction: string; accountHref?: string; labels: ShellLabels }) {
   const initials = user.name.split(/\s+/).filter(Boolean).slice(-2).map((p) => p[0]?.toUpperCase()).join("");
   return (
     <DropdownMenu>
@@ -105,6 +108,13 @@ function UserMenu({ user, logoutAction, labels }: { user: ShellUser; logoutActio
           {user.detail && <span className="block truncate text-xs font-normal text-muted-foreground">{user.detail}</span>}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {accountHref && labels.account && (
+          // A full navigation: the account page may sit under another root layout than the current page.
+          <a href={accountHref} className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent">
+            <UserCog className="size-4" />
+            {labels.account}
+          </a>
+        )}
         <form method="post" action={logoutAction}>
           <button
             type="submit"
@@ -123,11 +133,12 @@ function UserMenu({ user, logoutAction, labels }: { user: ShellUser; logoutActio
  * Top bar for the public site and the learner / teacher apps: brand, nav (animated hover highlight),
  * theme switch, user menu; the nav collapses into a sheet on phones.
  */
-export function TopBar({ brand, links, user, logoutAction, labels, actions }: {
+export function TopBar({ brand, links, user, logoutAction, accountHref, labels, actions }: {
   brand: ReactNode;
   links: NavLink[];
   user?: ShellUser;
   logoutAction?: string;
+  accountHref?: string;
   labels: ShellLabels;
   actions?: ReactNode;
 }) {
@@ -164,7 +175,7 @@ export function TopBar({ brand, links, user, logoutAction, labels, actions }: {
         <div className="ml-auto flex items-center gap-2">
           {actions}
           <ThemeToggle label={labels.theme} />
-          {user && logoutAction && <UserMenu user={user} logoutAction={logoutAction} labels={labels} />}
+          {user && logoutAction && <UserMenu user={user} logoutAction={logoutAction} accountHref={accountHref} labels={labels} />}
         </div>
       </div>
     </header>
@@ -172,11 +183,12 @@ export function TopBar({ brand, links, user, logoutAction, labels, actions }: {
 }
 
 /** Admin shell: sidebar with animated highlight on desktop, sheet on phones, content on the right. */
-export function SidebarShell({ brand, links, user, logoutAction, labels, children }: {
+export function SidebarShell({ brand, links, user, logoutAction, accountHref, labels, children }: {
   brand: ReactNode;
   links: NavLink[];
   user?: ShellUser;
   logoutAction?: string;
+  accountHref?: string;
   labels: ShellLabels;
   children: ReactNode;
 }) {
@@ -204,7 +216,7 @@ export function SidebarShell({ brand, links, user, logoutAction, labels, childre
         <div className="px-2 py-1">{brand}</div>
         <nav className="grid gap-0.5">{nav()}</nav>
         <div className="mt-auto flex items-center justify-between gap-2 border-t pt-4">
-          {user && logoutAction ? <UserMenu user={user} logoutAction={logoutAction} labels={labels} /> : <span />}
+          {user && logoutAction ? <UserMenu user={user} logoutAction={logoutAction} accountHref={accountHref} labels={labels} /> : <span />}
           <ThemeToggle label={labels.theme} />
         </div>
       </aside>
@@ -222,7 +234,7 @@ export function SidebarShell({ brand, links, user, logoutAction, labels, childre
           {brand}
           <div className="ml-auto flex items-center gap-1">
             <ThemeToggle label={labels.theme} />
-            {user && logoutAction && <UserMenu user={user} logoutAction={logoutAction} labels={labels} />}
+            {user && logoutAction && <UserMenu user={user} logoutAction={logoutAction} accountHref={accountHref} labels={labels} />}
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-8 sm:py-8">{children}</main>

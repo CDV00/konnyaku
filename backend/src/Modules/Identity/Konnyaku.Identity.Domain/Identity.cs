@@ -38,7 +38,10 @@ public sealed class User : Entity, IAuditable
     }
 }
 
-/// <summary>Shared lockout rule: 5 failed attempts lock the credential for 15 minutes.</summary>
+/// <summary>
+/// Shared password rules: 5 failed attempts lock the credential for 15 minutes. Every new password renews the security
+/// stamp, which ends the sign-in sessions started with the old one (on every center, for a platform-wide staff password).
+/// </summary>
 public abstract class LockableCredential : Entity
 {
     public const int MaxFailedAttempts = 5;
@@ -48,16 +51,28 @@ public abstract class LockableCredential : Entity
     public int FailedAttempts { get; private set; }
     public DateTimeOffset? LockedUntil { get; private set; }
 
+    /// <summary>Changes with every new password; sign-in sessions remember the stamp they started with.</summary>
+    public Guid SecurityStamp { get; private set; } = Guid.NewGuid();
+
+    /// <summary>Temporary password (issued by the center or an administrator): the owner must choose a new one.</summary>
+    public bool MustChangePassword { get; protected set; }
+
+    public DateTimeOffset? PasswordChangedAt { get; private set; }
+
     public bool IsLocked(DateTimeOffset now) => LockedUntil > now;
 
-    public void RegisterFailure(DateTimeOffset now)
+    /// <summary>True when this failure locked the credential.</summary>
+    public bool RegisterFailure(DateTimeOffset now)
     {
         FailedAttempts++;
         if (FailedAttempts >= MaxFailedAttempts)
         {
             LockedUntil = now.Add(LockDuration);
             FailedAttempts = 0;
+            return true;
         }
+
+        return false;
     }
 
     public void RegisterSuccess()
@@ -65,9 +80,19 @@ public abstract class LockableCredential : Entity
         FailedAttempts = 0;
         LockedUntil = null;
     }
+
+    /// <param name="temporary">Set by someone else (administrator reset): the owner must change it at next sign-in.</param>
+    public void SetPassword(string passwordHash, bool temporary, DateTimeOffset now)
+    {
+        PasswordHash = passwordHash;
+        MustChangePassword = temporary;
+        PasswordChangedAt = now;
+        SecurityStamp = Guid.NewGuid();
+        RegisterSuccess();
+    }
 }
 
-/// <summary>Email + password sign-in (staff). Platform-wide, attached to a user.</summary>
+/// <summary>Email + password sign-in (staff). Platform-wide, attached to a user; carries the optional TOTP second factor.</summary>
 public sealed class PasswordCredential : LockableCredential
 {
     private PasswordCredential()
@@ -81,6 +106,68 @@ public sealed class PasswordCredential : LockableCredential
     }
 
     public Guid UserId { get; private set; }
+
+    /// <summary>Confirmed TOTP secret, encrypted at rest. Null while 2FA is off.</summary>
+    public string? TotpSecret { get; private set; }
+
+    /// <summary>Secret shown during enrollment, encrypted; becomes <see cref="TotpSecret"/> once a code from it is verified.</summary>
+    public string? PendingTotpSecret { get; private set; }
+
+    /// <summary>Last accepted TOTP time step: a code works once (no replay within its 30-second window).</summary>
+    public long? LastTotpStep { get; private set; }
+
+    /// <summary>SHA-256 hashes of the unused single-use recovery codes.</summary>
+    public List<string> RecoveryCodeHashes { get; private set; } = [];
+
+    public DateTimeOffset? TwoFactorEnabledAt { get; private set; }
+
+    public bool TwoFactorEnabled => TotpSecret is not null;
+
+    public void BeginTotpEnrollment(string protectedSecret) => PendingTotpSecret = protectedSecret;
+
+    public void EnableTotp(long acceptedStep, IEnumerable<string> recoveryCodeHashes, DateTimeOffset now)
+    {
+        TotpSecret = PendingTotpSecret ?? throw new InvalidOperationException("No TOTP enrollment in progress.");
+        PendingTotpSecret = null;
+        LastTotpStep = acceptedStep;
+        RecoveryCodeHashes = recoveryCodeHashes.ToList();
+        TwoFactorEnabledAt = now;
+    }
+
+    public void DisableTotp()
+    {
+        TotpSecret = null;
+        PendingTotpSecret = null;
+        LastTotpStep = null;
+        RecoveryCodeHashes = [];
+        TwoFactorEnabledAt = null;
+    }
+
+    public void ReplaceRecoveryCodes(IEnumerable<string> hashes) => RecoveryCodeHashes = hashes.ToList();
+
+    /// <summary>Accepts a verified code's time step once; false for a replay (same or older step).</summary>
+    public bool AcceptTotpStep(long step)
+    {
+        if (LastTotpStep >= step)
+        {
+            return false;
+        }
+
+        LastTotpStep = step;
+        return true;
+    }
+
+    public bool UseRecoveryCode(string hash)
+    {
+        if (!RecoveryCodeHashes.Contains(hash))
+        {
+            return false;
+        }
+
+        // A new list (not Remove) so the change tracker sees the column change.
+        RecoveryCodeHashes = RecoveryCodeHashes.Where(h => h != hash).ToList();
+        return true;
+    }
 }
 
 /// <summary>Username + password issued by a center; valid only on that tenant's hosts.</summary>
@@ -101,13 +188,6 @@ public sealed class LocalCredential : LockableCredential, ITenantOwned
     public Guid TenantId { get; private set; }
     public Guid UserId { get; private set; }
     public string Username { get; private set; } = string.Empty;
-    public bool MustChangePassword { get; private set; }
-
-    public void ChangePassword(string passwordHash)
-    {
-        PasswordHash = passwordHash;
-        MustChangePassword = false;
-    }
 
     public static string NormalizeUsername(string username) => username.Trim().ToLowerInvariant();
 }
