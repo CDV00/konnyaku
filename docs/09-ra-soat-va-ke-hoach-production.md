@@ -187,7 +187,7 @@ Ký hiệu: ✅ có và dùng được · 🟡 có một phần · ❌ chưa có
 | C3, C5, C2, C1 | Giám sát và cảnh báo, backup theo thời điểm + diễn tập khôi phục, deploy cuốn chiếu, giới hạn tần suất qua Redis | 1,5 tuần |
 | C6 | Test giao diện tự động cho 5 luồng chính | 1 tuần |
 | P5 | Bảng điều khiển super-admin tối thiểu: danh sách trung tâm, tạo trung tâm + quản trị viên, tạm khóa, tài khoản riêng có 2FA | 1 tuần |
-| P6 | Trang lỗi 404 / 500, captcha cho form công khai, sitemap và robots | 0,5 tuần |
+| P6 | Trang lỗi 404 / 500, captcha cho form công khai, sitemap và robots — **xong** (kèm trang chính sách quyền riêng tư và điều khoản của C4) | 0,5 tuần |
 
 ### Giai đoạn 2 — Đủ dùng hằng ngày cho từng vai trò (khoảng 14 tuần-người)
 

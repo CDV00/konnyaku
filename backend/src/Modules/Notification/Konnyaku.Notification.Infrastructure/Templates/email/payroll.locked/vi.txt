@@ -1,0 +1,6 @@
+Chào {{recipientName}},
+
+{{tenantName}} đã chốt kỳ lương từ {{from}} đến {{to}}.
+Bảng công của bạn trong kỳ này không còn thay đổi. Nếu có sai sót, hãy liên hệ bộ phận kế toán.
+
+Xem bảng công: {{siteUrl}}/teach

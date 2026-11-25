@@ -1,0 +1,7 @@
+Hi {{recipientName}},
+
+{{#assigned}}A new lead was assigned to you.{{/assigned}}{{^assigned}}A new lead has no consultant assigned yet.{{/assigned}}
+{{studentName}} is interested in a {{languageName}} course.
+{{#followUpAt}}Please call back before {{followUpAt}}.{{/followUpAt}}
+
+Open the lead: {{siteUrl}}/ops/leads

@@ -1,0 +1,6 @@
+Chào {{studentName}},
+
+Bạn đã được xếp vào lớp {{classCode}}.
+{{#startsOn}}Lớp khai giảng ngày {{startsOn}}.{{/startsOn}} Lịch từng buổi có trên trang học viên.
+
+Xem lịch học: {{siteUrl}}/learn

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="MailKit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Konnyaku.Infrastructure\Konnyaku.Infrastructure.csproj" />
+    <ProjectReference Include="..\Konnyaku.Notification.Application\Konnyaku.Notification.Application.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Message texts live in files, one per (template, channel, locale); resource name = templates/<channel>/<key>/<locale>.<part> -->
+    <EmbeddedResource Include="Templates\**\*" LogicalName="templates/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

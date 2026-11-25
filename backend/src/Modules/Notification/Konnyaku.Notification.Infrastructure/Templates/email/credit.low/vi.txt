@@ -1,0 +1,6 @@
+Chào {{studentName}},
+
+Gói học của bạn chỉ còn {{remaining}} buổi.
+Hãy liên hệ {{tenantName}} để gia hạn và không bị gián đoạn việc học.
+
+Xem số buổi: {{siteUrl}}/learn

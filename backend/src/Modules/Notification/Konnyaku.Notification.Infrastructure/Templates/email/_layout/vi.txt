@@ -1,0 +1,6 @@
+{{tenantName}}
+
+{{{content}}}
+
+--
+Email tự động từ {{tenantName}}{{#siteUrl}} · {{siteUrl}}{{/siteUrl}}. Vui lòng không trả lời email này.

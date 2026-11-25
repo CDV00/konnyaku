@@ -23,6 +23,8 @@ public sealed class CrmDbContext(DbContextOptions<CrmDbContext> options, ITenant
 
     public DbSet<StudentProfile> Students => Set<StudentProfile>();
 
+    public DbSet<CaptchaRedemption> CaptchaRedemptions => Set<CaptchaRedemption>();
+
     protected override void ConfigureModel(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Lead>(b =>
@@ -57,6 +59,14 @@ public sealed class CrmDbContext(DbContextOptions<CrmDbContext> options, ITenant
             b.Property(x => x.CommunicationLocale).HasMaxLength(20);
             b.HasIndex(x => new { x.TenantId, x.UserId }).IsUnique().HasFilter("user_id IS NOT NULL");
         });
+        modelBuilder.Entity<CaptchaRedemption>(b =>
+        {
+            b.ToTable("captcha_redemption");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Challenge).HasMaxLength(64);
+            b.HasIndex(x => new { x.TenantId, x.Challenge }).IsUnique();
+            b.HasIndex(x => new { x.TenantId, x.ExpiresAt });
+        });
         modelBuilder.AddChangeLog();
     }
 }
@@ -70,6 +80,7 @@ public static class CrmInfrastructure
         services.AddScoped<CrmQueries>();
         services.AddScoped<ICrmApi>(sp => sp.GetRequiredService<CrmQueries>());
         services.AddScoped<ICrmUsageApi, CrmUsageQueries>();
+        services.AddScoped<ICrmContactsApi, CrmContacts>();
         services.AddSingleton(TimeProvider.System);
         return services;
     }

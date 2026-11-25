@@ -1,20 +1,41 @@
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import type { Metadata } from "next";
+import { hasLocale } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { CheckCircle2 } from "lucide-react";
-import { apiFetch } from "@konnyaku/session";
+import { apiFetch, tenantInfo } from "@konnyaku/session";
+import { getPathname } from "@/i18n/navigation";
+import { routing } from "@/i18n/routing";
+import { pageMetadata } from "../../seo";
+import { publicLocale } from "../guard";
 import { RegisterForm } from "./register-form";
 
 type Language = { code: string; name: Record<string, string> };
 
 const perks = ["callback", "trial", "flexible"] as const;
 
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  if (!hasLocale(routing.locales, locale)) return {};
+  const t = await getTranslations({ locale, namespace: "status.seo" });
+  const tenant = await tenantInfo();
+  return pageMetadata({
+    locale,
+    href: "/register",
+    title: t("registerTitle"),
+    description: t("registerDescription", { center: tenant?.name ?? "" }),
+    tenant,
+  });
+}
+
 export default async function RegisterPage({ params, searchParams }: {
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ language?: string }>;
 }) {
-  const { locale } = await params;
+  const locale = await publicLocale(params);
   const { language } = await searchParams;
-  setRequestLocale(locale);
   const t = await getTranslations("register");
+  const tenant = await tenantInfo();
+  const privacyHref = getPathname({ locale, href: "/privacy" });
   const response = await apiFetch("/api/catalog/languages");
   const languages = response.ok ? ((await response.json()) as Language[]) : [];
   const options = languages.map((l) => ({ code: l.code, label: l.name[locale] ?? l.name.en ?? l.code }));
@@ -39,6 +60,8 @@ export default async function RegisterPage({ params, searchParams }: {
           languages={options}
           locale={locale}
           defaultLanguage={options.some((o) => o.code === language) ? language : undefined}
+          center={tenant?.name ?? ""}
+          privacyHref={privacyHref}
         />
       </div>
     </main>

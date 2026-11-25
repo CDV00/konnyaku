@@ -1,0 +1,6 @@
+Chào {{recipientName}},
+
+Buổi {{sequenceNo}} của lớp {{classCode}} lúc {{startsAt}} ({{timeZone}}) đã bị hủy.
+{{#reason}}Lý do: {{reason}}{{/reason}}
+
+Xem lịch: {{siteUrl}}{{zonePath}}

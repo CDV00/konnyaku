@@ -51,8 +51,23 @@ Trang chủ của trung tâm liệt kê các chương trình đang tuyển sinh.
     - **Số điện thoại** hoặc **Email**: cần ít nhất một.
     - **Năm sinh**: nếu học viên dưới 18 tuổi thì phải điền **Họ tên phụ huynh**.
     - **Mục tiêu**, **Khung giờ mong muốn**: không bắt buộc, giúp tư vấn viên xếp lớp.
-4. Đánh dấu ô đồng ý cho trung tâm xử lý thông tin, rồi bấm **Gửi đăng ký**.
-5. Màn hình **Cảm ơn bạn!** xác nhận đã gửi. Tư vấn viên gọi lại trong giờ làm việc.
+4. Đánh dấu ô đồng ý cho trung tâm xử lý thông tin. Liên kết **Chính sách quyền riêng tư** trong câu đồng ý mở chính sách ở tab mới; phiên bản ghi trong câu là phiên bản được lưu cùng đăng ký.
+5. Bấm **Gửi đăng ký**. Ngay khi bạn bắt đầu điền, trình duyệt tự giải một bài kiểm tra chống spam (vài phần mười giây, không cần bấm chọn hình); dòng nhỏ phía trên nút cho biết **Đã xác minh**. Bài kiểm tra chạy trên máy bạn, không gửi dữ liệu cho dịch vụ bên ngoài.
+6. Màn hình **Cảm ơn bạn!** xác nhận đã gửi. Tư vấn viên gọi lại trong giờ làm việc.
+
+Nếu thấy báo lỗi xác minh (ví dụ để form mở quá 30 phút), bấm **Gửi đăng ký** lại: trang đã tự chuẩn bị lượt xác minh mới. Gửi quá nhiều lần trong một phút sẽ bị chặn tạm thời.
+
+### Chính sách quyền riêng tư và điều khoản
+
+Chân trang có liên kết **Chính sách quyền riêng tư** và **Điều khoản sử dụng** (tiếng Việt: `/vi/chinh-sach-quyen-rieng-tu`, `/vi/dieu-khoan-su-dung`; tiếng Anh: `/en/privacy`, `/en/terms`). Chính sách nêu dữ liệu thu thập, mục đích, thời gian lưu, quyền xem / sửa / xóa / rút đồng ý, quy định riêng cho dữ liệu trẻ em và cách liên hệ, kèm phiên bản và ngày hiệu lực.
+
+> Đây là **bản mẫu** do nền tảng soạn, đã điền sẵn tên trung tâm. Trung tâm cần nhờ pháp chế rà lại và bổ sung tên pháp nhân, địa chỉ, email và người phụ trách bảo vệ dữ liệu trước khi dùng chính thức. Khi đổi nội dung, đội kỹ thuật tăng phiên bản trong `frontend/apps/site/app/[locale]/legal.ts` để các đăng ký mới ghi đúng phiên bản.
+
+### Trang lỗi
+
+- Đường dẫn sai: trang **Không tìm thấy trang** (mã 404) theo ngôn ngữ đang xem, có nút về trang chủ và đăng ký tư vấn. Trong `learn` / `teach` / `ops` trang này nằm trong khung của khu vực, có nút về trang chính.
+- Sự cố hệ thống: trang **Đã có lỗi xảy ra** với nút **Thử lại** và **mã tham chiếu**; gửi mã này cho bộ phận kỹ thuật để tra log.
+- Địa chỉ trung tâm sai (tên miền không thuộc trung tâm nào): trang **Không tìm thấy trung tâm**.
 
 ## Học viên và phụ huynh (`learn`)
 
@@ -231,7 +246,23 @@ Sửa lớp trên trang chi tiết:
 
 1. Bấm **Tạo kỳ lương**, chọn Từ ngày và Đến ngày. Mọi công nháp đến ngày kết thúc, kể cả công đến muộn của kỳ trước, được gom vào kỳ này. Hai kỳ không được chồng ngày.
 2. Kiểm tra bảng theo giáo viên: Buổi, Phút, Thành tiền. Dòng **Thiếu đơn giá** cần đặt đơn giá trước khi chốt.
-3. Bấm **Chốt kỳ**. Số tiền được đóng băng và không sửa được nữa.
+3. Bấm **Chốt kỳ**. Số tiền được đóng băng và không sửa được nữa. Giáo viên nhận email báo kỳ lương đã chốt.
+
+### Thông báo
+
+Hệ thống tự gửi email, mỗi người theo ngôn ngữ của mình (học viên: ngôn ngữ liên lạc trong hồ sơ; nhân viên: ngôn ngữ của tài khoản):
+
+| Khi nào | Ai nhận |
+| --- | --- |
+| Có lead mới | Tư vấn viên được giao; chưa giao ai thì các quản trị |
+| Cấp tài khoản học viên | Học viên (email liên lạc trong hồ sơ) |
+| Học viên vào lớp | Học viên |
+| Còn ít buổi | Học viên |
+| Đổi giờ hoặc hủy một buổi | Học viên đang học của lớp và giáo viên của buổi |
+| 24 giờ trước mỗi buổi | Học viên đang học của lớp và giáo viên của buổi |
+| Chốt kỳ lương | Giáo viên |
+
+Học viên không có email trong hồ sơ thì không nhận email. Mục **Thông báo** (chỉ quản trị thấy) liệt kê thư đã gửi, đang chờ và lỗi; lọc theo trạng thái. Thư lỗi tạm thời được thử lại tự động; thư lỗi vĩnh viễn (ví dụ địa chỉ không tồn tại) hiện lý do. **Gửi lại** gửi lần nữa tới đúng địa chỉ cũ (dùng khi lỗi đã được khắc phục, ví dụ máy chủ thư hết lỗi hoặc người nhận đã mở lại hộp thư).
 
 ## Quy trình mẫu từ đầu đến cuối
 

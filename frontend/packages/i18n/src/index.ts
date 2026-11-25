@@ -1,11 +1,15 @@
 import enApps from "../messages/en/apps.json";
 import enCommon from "../messages/en/common.json";
+import enLegal from "../messages/en/legal.json";
 import enOnboarding from "../messages/en/onboarding.json";
 import enPlatform from "../messages/en/platform.json";
+import enStatus from "../messages/en/status.json";
 import viApps from "../messages/vi/apps.json";
 import viCommon from "../messages/vi/common.json";
+import viLegal from "../messages/vi/legal.json";
 import viOnboarding from "../messages/vi/onboarding.json";
 import viPlatform from "../messages/vi/platform.json";
+import viStatus from "../messages/vi/status.json";
 
 /** UI locales supported by the platform. A tenant enables a subset (Phase 1). */
 export const locales = ["vi", "en"] as const;
@@ -14,8 +18,8 @@ export const defaultLocale: Locale = "vi";
 export const localeCookie = "NEXT_LOCALE";
 
 const catalogs = {
-  vi: { common: viCommon, onboarding: viOnboarding, platform: viPlatform, ...viApps },
-  en: { common: enCommon, onboarding: enOnboarding, platform: enPlatform, ...enApps },
+  vi: { common: viCommon, onboarding: viOnboarding, legal: viLegal, status: viStatus, platform: viPlatform, ...viApps },
+  en: { common: enCommon, onboarding: enOnboarding, legal: enLegal, status: enStatus, platform: enPlatform, ...enApps },
 } satisfies Record<Locale, unknown>;
 
 export type Messages = (typeof catalogs)["vi"];

@@ -70,7 +70,8 @@
       "staff": "Nhân sự",
       "branches": "Cơ sở",
       "payroll": "Kỳ lương",
-      "home": "Tổng quan"
+      "home": "Tổng quan",
+      "notifications": "Thông báo"
     },
     "hint": {
       "leads": "Gọi lại, chuyển trạng thái khách đăng ký",
@@ -80,7 +81,8 @@
       "programs": "Chương trình và cấp độ",
       "staff": "Tài khoản nhân sự, vai trò, đơn giá giáo viên",
       "branches": "Cơ sở và múi giờ",
-      "payroll": "Tạo và chốt kỳ lương"
+      "payroll": "Tạo và chốt kỳ lương",
+      "notifications": "Email đã gửi, lỗi và gửi lại"
     },
     "zone": "Vận hành",
     "subtitle": "Tình hình trung tâm hôm nay và lối tắt tới các việc thường làm.",
@@ -147,7 +149,7 @@
     "language": "Ngôn ngữ muốn học",
     "goal": "Mục tiêu",
     "schedule": "Khung giờ mong muốn",
-    "consent": "Tôi đồng ý cho trung tâm xử lý thông tin trên để tư vấn khóa học.",
+    "consent": "Tôi đồng ý cho {center} xử lý thông tin trên để tư vấn khóa học, theo <privacy>Chính sách quyền riêng tư</privacy> (phiên bản {version}).",
     "submit": "Gửi đăng ký",
     "sent": "Đã nhận đăng ký. Trung tâm sẽ liên hệ với bạn sớm.",
     "errors": {
@@ -157,7 +159,12 @@
       "crm_consent_required": "Vui lòng đồng ý để trung tâm liên hệ.",
       "crm_birth_year_invalid": "Năm sinh không hợp lệ.",
       "crm_language_required": "Vui lòng chọn ngôn ngữ.",
-      "unknown": "Không gửi được đăng ký, vui lòng thử lại."
+      "unknown": "Không gửi được đăng ký, vui lòng thử lại.",
+      "crm_captcha_required": "Chưa hoàn tất bước chống spam. Vui lòng đợi vài giây rồi gửi lại.",
+      "crm_captcha_invalid": "Bước chống spam không hợp lệ. Vui lòng gửi lại.",
+      "crm_captcha_expired": "Phiên xác minh đã hết hạn. Vui lòng gửi lại.",
+      "crm_captcha_used": "Phiên xác minh đã được dùng. Vui lòng gửi lại.",
+      "crm_rate_limited": "Bạn gửi quá nhiều lần. Vui lòng thử lại sau một phút."
     },
     "perks": {
       "callback": "Tư vấn viên gọi lại trong 15 phút (giờ làm việc)",
@@ -166,7 +173,12 @@
     },
     "languagePlaceholder": "Chọn ngôn ngữ",
     "sending": "Đang gửi…",
-    "sentTitle": "Cảm ơn bạn!"
+    "sentTitle": "Cảm ơn bạn!",
+    "captcha": {
+      "solving": "Đang xác minh chống spam ngay trên trình duyệt…",
+      "ready": "Đã xác minh, không gửi dữ liệu ra bên ngoài",
+      "failed": "Không tải được bước xác minh. Bấm gửi để thử lại."
+    }
   },
   "schedule": {
     "teaching": "Lịch dạy sắp tới",
@@ -612,7 +624,10 @@
       "billing_payment_not_found": "Không tìm thấy thanh toán.",
       "billing_payment_voided": "Thanh toán đã bị huỷ.",
       "billing_student_inactive": "Hồ sơ học viên đã ngừng dùng.",
-      "billing_student_unknown": "Học viên không tồn tại."
+      "billing_student_unknown": "Học viên không tồn tại.",
+      "notification_message_not_found": "Không tìm thấy thông báo.",
+      "notification_already_pending": "Thông báo đang chờ gửi.",
+      "notification_resend_not_allowed": "Thông báo chứa dữ liệu bảo mật đã gửi, không gửi lại được."
     },
     "classStatus": {
       "Planned": "Dự kiến",
@@ -782,7 +797,10 @@
     "register": "Đăng ký tư vấn",
     "login": "Đăng nhập",
     "switchLocale": "Chuyển ngôn ngữ",
-    "footer": "© {name} · Vận hành bởi Konnyaku"
+    "footer": "© {name} · Vận hành bởi Konnyaku",
+    "privacy": "Chính sách quyền riêng tư",
+    "terms": "Điều khoản sử dụng",
+    "legal": "Pháp lý"
   },
   "roles": {
     "TenantAdmin": "Quản trị",
@@ -863,6 +881,41 @@
       "session_expired": "Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại rồi bấm Vào lớp.",
       "unknown": "Có lỗi khi kết nối phòng học. Hãy thử lại.",
       "media": "Không mở được camera, micro hoặc màn hình. Kiểm tra quyền của trình duyệt rồi thử lại."
+    }
+  },
+  "notifications": {
+    "title": "Nhật ký thông báo",
+    "description": "Email hệ thống tự gửi cho học viên, giáo viên và nhân viên. Lỗi tạm thời được thử lại tự động; lỗi vĩnh viễn (địa chỉ sai, hộp thư không tồn tại) dừng lại để bạn kiểm tra và gửi lại.",
+    "filterLabel": "Lọc theo trạng thái",
+    "filter": {
+      "all": "Tất cả",
+      "Failed": "Lỗi",
+      "Pending": "Đang chờ",
+      "Sent": "Đã gửi"
+    },
+    "empty": "Chưa có thông báo nào.",
+    "colTime": "Thời gian",
+    "colRecipient": "Người nhận",
+    "colMessage": "Nội dung",
+    "colStatus": "Trạng thái",
+    "colActions": "Thao tác",
+    "meta": "{channel} · {locale}",
+    "attempts": "{count} lần gửi",
+    "resend": "Gửi lại",
+    "status": {
+      "Pending": "Đang chờ",
+      "Sent": "Đã gửi",
+      "Failed": "Lỗi"
+    },
+    "templates": {
+      "lead_created": "Lead mới",
+      "learner_welcome": "Chào mừng học viên",
+      "credit_low": "Sắp hết buổi",
+      "enrollment_activated": "Xác nhận vào lớp",
+      "session_rescheduled": "Đổi giờ buổi học",
+      "session_cancelled": "Hủy buổi học",
+      "session_reminder": "Nhắc lịch học",
+      "payroll_locked": "Chốt kỳ lương"
     }
   }
 }
