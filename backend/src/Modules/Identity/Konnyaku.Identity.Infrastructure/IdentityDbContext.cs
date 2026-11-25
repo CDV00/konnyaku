@@ -1,7 +1,9 @@
+using Konnyaku.Application.Authorization;
 using Konnyaku.Application.Tenancy;
 using Konnyaku.Identity.Application;
 using Konnyaku.Identity.Contracts;
 using Konnyaku.Identity.Domain;
+using Konnyaku.Infrastructure.Auditing;
 using Konnyaku.Infrastructure.Persistence;
 using Konnyaku.Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Identity;
@@ -69,6 +71,7 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             b.Property(x => x.ScopeType).HasConversion<string>().HasMaxLength(20);
             b.HasIndex(x => new { x.TenantId, x.MembershipId });
         });
+        modelBuilder.AddChangeLog();
     }
 }
 
@@ -80,6 +83,8 @@ public static class IdentityInfrastructure
         services.AddScoped<IIdentityDbContext>(sp => sp.GetRequiredService<IdentityDbContext>());
         services.AddScoped<IIdentityApi, IdentityQueries>();
         services.AddScoped<IIdentityPlatformApi, IdentityPlatformApi>();
+        services.AddHttpContextAccessor();
+        services.AddScoped<IAccessControl, AccessControl>();
         services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddSingleton(TimeProvider.System);
         return services;

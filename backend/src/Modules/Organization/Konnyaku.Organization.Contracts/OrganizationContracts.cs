@@ -2,7 +2,7 @@ using Konnyaku.SharedKernel;
 
 namespace Konnyaku.Organization.Contracts;
 
-public sealed record BranchDto(Guid Id, string Code, IReadOnlyDictionary<string, string> Name, string TimeZone, bool IsVirtual);
+public sealed record BranchDto(Guid Id, string Code, IReadOnlyDictionary<string, string> Name, string TimeZone, bool IsVirtual, bool IsActive);
 
 /// <summary>Read-only API other modules may call synchronously. State changes travel as events.</summary>
 public interface IOrganizationApi
@@ -15,7 +15,7 @@ public interface IOrganizationApi
     Task<IReadOnlySet<DateOnly>> ListHolidaysAsync(Guid branchId, DateOnly from, DateOnly to, CancellationToken cancellationToken);
 }
 
-public sealed record RoomDto(Guid Id, Guid BranchId, string Code, int Capacity);
+public sealed record RoomDto(Guid Id, Guid BranchId, string Code, int Capacity, bool IsActive);
 
 public sealed record HolidayDto(Guid Id, DateOnly Date, IReadOnlyDictionary<string, string> Name, Guid? BranchId);
 

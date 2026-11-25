@@ -1,4 +1,5 @@
 using Konnyaku.Application.Tenancy;
+using Konnyaku.Infrastructure.Auditing;
 using Konnyaku.Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -25,7 +26,9 @@ public static class ServiceCollectionExtensions
                     .MigrationsHistoryTable("__ef_migrations_history", schema)
                     .MigrationsAssembly(typeof(TContext).Assembly.FullName))
                 .UseSnakeCaseNamingConvention()
-                .AddInterceptors(new TenantSessionInterceptor(sp.GetRequiredService<ITenantContext>()));
+                .AddInterceptors(
+                    new TenantSessionInterceptor(sp.GetRequiredService<ITenantContext>()),
+                    new AuditInterceptor(sp.GetService<ICurrentActor>() ?? SystemActor.Instance, sp.GetService<TimeProvider>() ?? TimeProvider.System));
         });
         return services;
     }

@@ -1,5 +1,6 @@
 using Konnyaku.Academic.Contracts;
 using Konnyaku.Academic.Domain;
+using Konnyaku.Application.Authorization;
 using Konnyaku.Catalog.Contracts;
 using Konnyaku.Crm.Contracts;
 using Konnyaku.Organization.Contracts;
@@ -31,10 +32,11 @@ public sealed record CreateProgramCommand(
 
 public sealed record ProgramView(
     Guid Id, string Code, IReadOnlyDictionary<string, string> Name, string LanguageCode, string FrameworkCode,
-    string? AgeGroup, string? Goal, bool IsPublic, IReadOnlyList<CourseLevelView> Levels);
+    string? AgeGroup, string? Goal, bool IsPublic, IReadOnlyList<CourseLevelView> Levels, bool IsActive);
 
 public sealed record CourseLevelView(
-    Guid Id, string Code, IReadOnlyDictionary<string, string> Name, string TargetLevelCode, int Ordinal, int SessionCount, int SessionMinutes);
+    Guid Id, string Code, IReadOnlyDictionary<string, string> Name, string TargetLevelCode, int Ordinal, int SessionCount, int SessionMinutes,
+    bool IsActive);
 
 public sealed class CreateProgramHandler(IAcademicDbContext db, ICatalogApi catalog)
 {
@@ -86,6 +88,11 @@ public sealed class AddCourseLevelHandler(IAcademicDbContext db, ICatalogApi cat
             return Error.NotFound("academic.program_not_found");
         }
 
+        if (!program.IsActive)
+        {
+            return Error.Conflict("academic.program_inactive");
+        }
+
         var framework = await catalog.GetFrameworkAsync(program.FrameworkCode, cancellationToken);
         if (framework is null || framework.Levels.All(l => l.Code != command.TargetLevelCode))
         {
@@ -113,13 +120,27 @@ public sealed class AddCourseLevelHandler(IAcademicDbContext db, ICatalogApi cat
 
 public sealed record CreateClassCommand(string Code, Guid CourseLevelId, Guid BranchId, DeliveryMode DeliveryMode, int Capacity, DateOnly StartsOn);
 
-public sealed class CreateClassHandler(IAcademicDbContext db, IOrganizationApi organization, IAcademicApi academic)
+public sealed class CreateClassHandler(IAcademicDbContext db, IOrganizationApi organization, IAcademicApi academic, IAccessControl access)
 {
     public async Task<Result<ClassDto>> HandleAsync(CreateClassCommand command, CancellationToken cancellationToken)
     {
-        if (!await db.CourseLevels.AnyAsync(l => l.Id == command.CourseLevelId, cancellationToken))
+        if (await access.EnsureAsync(Permissions.Classes, cancellationToken, command.BranchId) is { } forbidden)
+        {
+            return forbidden;
+        }
+
+        var level = await (from l in db.CourseLevels
+                           join p in db.Programs on l.ProgramId equals p.Id
+                           where l.Id == command.CourseLevelId
+                           select new { LevelActive = l.IsActive, ProgramActive = p.IsActive }).FirstOrDefaultAsync(cancellationToken);
+        if (level is null)
         {
             return Error.NotFound("academic.course_level_not_found");
+        }
+
+        if (!level.LevelActive || !level.ProgramActive)
+        {
+            return Error.Validation("academic.course_level_unavailable");
         }
 
         // The class's time zone comes from its branch (branches may be in other countries).
@@ -127,6 +148,11 @@ public sealed class CreateClassHandler(IAcademicDbContext db, IOrganizationApi o
         if (branch is null)
         {
             return Error.Validation("academic.branch_unknown");
+        }
+
+        if (!branch.IsActive)
+        {
+            return Error.Conflict("academic.branch_inactive");
         }
 
         var created = Class.Create(command.Code, command.CourseLevelId, branch.Id, command.DeliveryMode, command.Capacity,
@@ -164,9 +190,15 @@ public sealed class EnrollHandler(IAcademicDbContext db, ICrmApi crm, TimeProvid
             return Error.Conflict("academic.class_not_open");
         }
 
-        if (await crm.GetStudentAsync(command.StudentId, cancellationToken) is null)
+        var student = await crm.GetStudentAsync(command.StudentId, cancellationToken);
+        if (student is null)
         {
             return Error.Validation("academic.student_unknown");
+        }
+
+        if (!student.IsActive)
+        {
+            return Error.Conflict("academic.student_inactive");
         }
 
         if (await db.Enrollments.AnyAsync(e => e.ClassId == classId && e.StudentId == command.StudentId &&
@@ -251,7 +283,7 @@ public sealed class AcademicQueries(IAcademicDbContext db) : IAcademicApi
         var query = db.Programs.AsNoTracking().Include(p => p.Levels).ThenInclude(l => l.Lessons).AsQueryable();
         if (publicOnly)
         {
-            query = query.Where(p => p.IsPublic);
+            query = query.Where(p => p.IsPublic && p.IsActive);
         }
 
         if (!string.IsNullOrWhiteSpace(languageCode))
@@ -313,8 +345,8 @@ public static class AcademicMapping
 {
     public static ProgramView ToView(this StudyProgram p) => new(
         p.Id, p.Code, p.Name.Values, p.LanguageCode, p.FrameworkCode, p.AgeGroup, p.Goal, p.IsPublic,
-        p.Levels.OrderBy(l => l.Ordinal).Select(l => l.ToView()).ToList());
+        p.Levels.OrderBy(l => l.Ordinal).Select(l => l.ToView()).ToList(), p.IsActive);
 
     public static CourseLevelView ToView(this CourseLevel l) =>
-        new(l.Id, l.Code, l.Name.Values, l.TargetLevelCode, l.Ordinal, l.Lessons.Count, l.SessionMinutes);
+        new(l.Id, l.Code, l.Name.Values, l.TargetLevelCode, l.Ordinal, l.Lessons.Count, l.SessionMinutes, l.IsActive);
 }

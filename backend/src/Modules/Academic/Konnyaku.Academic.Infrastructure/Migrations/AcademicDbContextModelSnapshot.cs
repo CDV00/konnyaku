@@ -107,6 +107,10 @@ namespace Konnyaku.Academic.Infrastructure.Migrations
                         .HasColumnType("character varying(30)")
                         .HasColumnName("code");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("jsonb")
@@ -281,6 +285,10 @@ namespace Konnyaku.Academic.Infrastructure.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("goal");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
                     b.Property<bool>("IsPublic")
                         .HasColumnType("boolean")
                         .HasColumnName("is_public");
@@ -308,6 +316,67 @@ namespace Konnyaku.Academic.Infrastructure.Migrations
                         .HasDatabaseName("ix_program_tenant_id_code");
 
                     b.ToTable("program", "academic");
+                });
+
+            modelBuilder.Entity("Konnyaku.Infrastructure.Auditing.ChangeLogEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("action");
+
+                    b.Property<Guid?>("ActorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_id");
+
+                    b.Property<string>("ActorName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("actor_name");
+
+                    b.Property<string>("Changes")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("changes");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entity_id");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("entity_type");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_change_log");
+
+                    b.HasIndex("TenantId", "EntityId")
+                        .HasDatabaseName("ix_change_log_tenant_id_entity_id");
+
+                    b.HasIndex("TenantId", "SubjectId", "OccurredAt")
+                        .HasDatabaseName("ix_change_log_tenant_id_subject_id_occurred_at");
+
+                    b.ToTable("change_log", "academic");
                 });
 
             modelBuilder.Entity("Konnyaku.Infrastructure.Messaging.InboxMessage", b =>
