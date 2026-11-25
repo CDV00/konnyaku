@@ -1,6 +1,7 @@
 import enApps from "../messages/en/apps.json";
 import enAssessment from "../messages/en/assessment.json";
 import enAssessmentAuthoring from "../messages/en/assessment-authoring.json";
+import enBooking from "../messages/en/booking.json";
 import enCommon from "../messages/en/common.json";
 import enLegal from "../messages/en/legal.json";
 import enOnboarding from "../messages/en/onboarding.json";
@@ -9,6 +10,7 @@ import enStatus from "../messages/en/status.json";
 import viApps from "../messages/vi/apps.json";
 import viAssessment from "../messages/vi/assessment.json";
 import viAssessmentAuthoring from "../messages/vi/assessment-authoring.json";
+import viBooking from "../messages/vi/booking.json";
 import viCommon from "../messages/vi/common.json";
 import viLegal from "../messages/vi/legal.json";
 import viOnboarding from "../messages/vi/onboarding.json";
@@ -22,8 +24,8 @@ export const defaultLocale: Locale = "vi";
 export const localeCookie = "NEXT_LOCALE";
 
 const catalogs = {
-  vi: { common: viCommon, onboarding: viOnboarding, legal: viLegal, status: viStatus, platform: viPlatform, assessment: viAssessment, assessmentAuthoring: viAssessmentAuthoring, ...viApps },
-  en: { common: enCommon, onboarding: enOnboarding, legal: enLegal, status: enStatus, platform: enPlatform, assessment: enAssessment, assessmentAuthoring: enAssessmentAuthoring, ...enApps },
+  vi: { common: viCommon, onboarding: viOnboarding, legal: viLegal, status: viStatus, platform: viPlatform, assessment: viAssessment, assessmentAuthoring: viAssessmentAuthoring, ...viApps, ...viBooking },
+  en: { common: enCommon, onboarding: enOnboarding, legal: enLegal, status: enStatus, platform: enPlatform, assessment: enAssessment, assessmentAuthoring: enAssessmentAuthoring, ...enApps, ...enBooking },
 } satisfies Record<Locale, unknown>;
 
 export type Messages = (typeof catalogs)["vi"];

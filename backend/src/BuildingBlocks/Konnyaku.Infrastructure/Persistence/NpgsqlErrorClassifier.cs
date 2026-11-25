@@ -9,6 +9,8 @@ public sealed class NpgsqlErrorClassifier : IDbErrorClassifier
 
     public bool IsUniqueViolation(Exception exception) => Find(exception)?.SqlState == PostgresErrorCodes.UniqueViolation;
 
+    public bool IsDeadlock(Exception exception) => Find(exception)?.SqlState == PostgresErrorCodes.DeadlockDetected;
+
     private static PostgresException? Find(Exception? exception)
     {
         while (exception is not null)

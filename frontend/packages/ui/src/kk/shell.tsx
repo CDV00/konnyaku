@@ -8,6 +8,8 @@ import {
   ClipboardCheck,
   Library,
   PenLine,
+  CalendarCheck,
+  CalendarClock,
   CalendarDays,
   EyeOff,
   ClipboardList,
@@ -64,6 +66,8 @@ const icons = {
   tests: ClipboardCheck,
   questions: Library,
   grading: PenLine,
+  schedule: CalendarCheck,
+  makeups: CalendarClock,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof icons;

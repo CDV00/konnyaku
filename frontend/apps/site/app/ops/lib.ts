@@ -100,6 +100,8 @@ export type ClassRow = {
   status: string;
   sessionMinutes: number;
   languageCode: string;
+  /** Fixed (a roster attends every session) or Flexible (learners book each session). */
+  bookingMode?: "Fixed" | "Flexible";
 };
 /** A row of the student list: birth year, guardian, phone and email arrive masked ("09xx xxx 567"). */
 export type Student = {

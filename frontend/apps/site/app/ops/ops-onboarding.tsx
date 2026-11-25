@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { requireMe } from "@konnyaku/session";
 import { Onboarding, type OnboardingStep } from "@konnyaku/ui/kk/onboarding";
+import { guideUrl } from "../../guide-url";
 import { emptyPage, getJson, type Page } from "./lib";
 
 const allSteps = ["branches", "staff", "programs", "classes", "students", "billing", "payroll", "leads"] as const;
@@ -57,6 +58,7 @@ export async function OpsOnboarding() {
       title={t("ops.title")}
       intro={t("ops.intro")}
       steps={steps}
+      guide={{ href: guideUrl(me.roles.includes("TenantAdmin") ? "bat-dau-nhanh" : "README"), label: t("guide") }}
       labels={{
         show: t("show"),
         hide: t("hide"),

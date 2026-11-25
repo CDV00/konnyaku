@@ -3,10 +3,10 @@
 import { useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "motion/react";
-import { CheckCircle2, Users } from "lucide-react";
+import { CheckCircle2, MapPin, Users, Video } from "lucide-react";
 import { Button } from "@konnyaku/ui/components/animate-ui/components/buttons/button";
 import { ToggleGroup, ToggleGroupItem } from "@konnyaku/ui/components/animate-ui/components/radix/toggle-group";
-import { EmptyState, FormMessage } from "@konnyaku/ui/kk/blocks";
+import { EmptyState, FormMessage, StatusBadge } from "@konnyaku/ui/kk/blocks";
 
 export type AttendanceRow = {
   enrollmentId: string;
@@ -14,9 +14,15 @@ export type AttendanceRow = {
   status: string;
   presentMinutes: number;
   confirmed: boolean;
+  /** Booking kind: Regular (own class), Makeup, Flexible or Trial. */
+  kind?: string;
+  /** Seat: Online or Offline (null for rows recorded before bookings existed). */
+  mode?: string | null;
 };
 
 const statuses = ["Present", "Late", "LeftEarly", "Absent", "ExcusedAbsent"] as const;
+/** A make-up learner who came is recorded as Makeup (one lesson from their own package). */
+const makeupStatuses = ["Makeup", "Absent", "ExcusedAbsent"] as const;
 
 const dot: Record<string, string> = {
   Present: "bg-success",
@@ -24,6 +30,7 @@ const dot: Record<string, string> = {
   LeftEarly: "bg-warning",
   Absent: "bg-destructive",
   ExcusedAbsent: "bg-muted-foreground",
+  Makeup: "bg-success",
 };
 
 export function AttendanceForm({ sessionId, rows }: { sessionId: string; rows: AttendanceRow[] }) {
@@ -53,7 +60,7 @@ export function AttendanceForm({ sessionId, rows }: { sessionId: string; rows: A
     setError(t.has(key) ? t(key) : t("errors.unknown"));
   }
 
-  const present = Object.values(picked).filter((s) => s === "Present" || s === "Late" || s === "LeftEarly").length;
+  const present = Object.values(picked).filter((s) => s === "Present" || s === "Late" || s === "LeftEarly" || s === "Makeup").length;
 
   return (
     <AnimatePresence mode="wait" initial={false}>
@@ -80,9 +87,20 @@ export function AttendanceForm({ sessionId, rows }: { sessionId: string; rows: A
                   <li key={r.enrollmentId} className="flex flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex items-center gap-3">
                       <span className={`size-2.5 shrink-0 rounded-full ${dot[picked[r.enrollmentId] ?? r.status] ?? "bg-muted"}`} aria-hidden="true" />
-                      <div>
-                        <p className="font-medium">{r.studentName}</p>
-                        <p className="text-xs text-muted-foreground">{t("presentMinutes", { minutes: r.presentMinutes })}</p>
+                      <div className="space-y-1">
+                        <p className="flex flex-wrap items-center gap-2 font-medium">
+                          {r.studentName}
+                          {r.kind && r.kind !== "Regular" && <StatusBadge tone="highlight">{t(`kinds.${r.kind as "Makeup"}`)}</StatusBadge>}
+                        </p>
+                        <p className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
+                          {r.mode && (
+                            <span className="inline-flex items-center gap-1">
+                              {r.mode === "Offline" ? <MapPin className="size-3" /> : <Video className="size-3" />}
+                              {t(`modes.${r.mode as "Online"}`)}
+                            </span>
+                          )}
+                          <span>{t("presentMinutes", { minutes: r.presentMinutes })}</span>
+                        </p>
                       </div>
                     </div>
                     <ToggleGroup
@@ -94,7 +112,7 @@ export function AttendanceForm({ sessionId, rows }: { sessionId: string; rows: A
                       className="flex-wrap"
                       aria-label={t("status")}
                     >
-                      {statuses.map((s) => (
+                      {(r.kind === "Makeup" ? makeupStatuses : statuses).map((s) => (
                         <ToggleGroupItem key={s} value={s} className="px-2.5 text-xs">{t(`statuses.${s}`)}</ToggleGroupItem>
                       ))}
                     </ToggleGroup>

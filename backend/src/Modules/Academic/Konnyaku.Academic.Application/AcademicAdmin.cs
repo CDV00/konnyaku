@@ -214,7 +214,8 @@ public sealed class ClassAccess(IAcademicDbContext db, ISchedulingApi scheduling
         };
         return await ordered
             .Select(r => new ClassDto(r.Class.Id, r.Class.Code, r.Class.CourseLevelId, r.Class.BranchId, r.Class.DeliveryMode.ToString(),
-                r.Class.Capacity, r.Class.EnrolledCount, r.Class.StartsOn, r.Class.TimeZone, r.Class.Status.ToString(), r.SessionMinutes, r.LanguageCode))
+                r.Class.Capacity, r.Class.EnrolledCount, r.Class.StartsOn, r.Class.TimeZone, r.Class.Status.ToString(), r.SessionMinutes, r.LanguageCode,
+                r.Class.BookingMode.ToString()))
             .ToPageAsync(page, ct);
     }
 
@@ -230,7 +231,9 @@ public sealed class ClassAccess(IAcademicDbContext db, ISchedulingApi scheduling
     }
 }
 
-public sealed record UpdateClassCommand(string Code, Guid CourseLevelId, Guid BranchId, DeliveryMode DeliveryMode, int Capacity, DateOnly StartsOn);
+/// <param name="BookingMode">Null keeps the current one; it changes only while nobody is enrolled.</param>
+public sealed record UpdateClassCommand(
+    string Code, Guid CourseLevelId, Guid BranchId, DeliveryMode DeliveryMode, int Capacity, DateOnly StartsOn, BookingMode? BookingMode = null);
 
 public sealed record CloseClassCommand(ClassStatus Status);
 
@@ -280,7 +283,7 @@ public sealed class ClassAdminHandler(
         var hasSessions = await scheduling.CountClassSessionsAsync(classId, ct) > 0;
         var previousMode = cls.DeliveryMode;
         var updated = cls.Update(new ClassChange(command.Code, command.CourseLevelId, command.BranchId, timeZone, command.DeliveryMode,
-            command.Capacity, command.StartsOn), hasSessions);
+            command.Capacity, command.StartsOn, command.BookingMode), hasSessions);
         if (!updated.IsSuccess)
         {
             return updated.Error!;

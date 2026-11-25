@@ -12,6 +12,7 @@ import { emptyPage, getAccess, getJson, listQuery, localized, statusTone, type B
 import { FilterDate, FilterSelect, ListBody, ListFrame, ListToolbar, Pagination, SortHeader } from "../list";
 
 const deliveryModes = ["Online", "Offline", "Hybrid"] as const;
+const bookingModes = ["Fixed", "Flexible"] as const;
 const classStatuses = ["Planned", "Open", "Running", "Completed", "Cancelled"] as const;
 
 export default async function ClassesPage({ searchParams }: { searchParams: SearchParams }) {
@@ -65,6 +66,11 @@ export default async function ClassesPage({ searchParams }: { searchParams: Sear
                 <Field label={t("classes.capacity")}><Input name="capacity" type="number" min={1} defaultValue={12} required /></Field>
               </div>
               <Field label={t("classes.startsOn")}><Input name="startsOn" type="date" required /></Field>
+              <Field label={t("classes.bookingMode")} hint={t("classes.bookingModeHint")}>
+                <NativeSelect name="bookingMode" defaultValue="Fixed">
+                  {bookingModes.map((m) => <option key={m} value={m}>{t(`bookingModes.${m}`)}</option>)}
+                </NativeSelect>
+              </Field>
             </ActionForm>
           </FormSheet>
           )

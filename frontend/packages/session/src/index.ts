@@ -55,7 +55,29 @@ export async function apiFetch(path: string, init: RequestInit & { token?: strin
   if (userAgent && !requestHeaders.has("User-Agent")) requestHeaders.set("User-Agent", userAgent);
   if (token) requestHeaders.set("Authorization", `Bearer ${token}`);
   if (rest.body && !requestHeaders.has("Content-Type")) requestHeaders.set("Content-Type", "application/json");
-  return fetch(`${apiUrl}${path}`, { ...rest, headers: requestHeaders, cache: "no-store" });
+  const url = `${apiUrl}${path}`;
+  const requestInit: RequestInit = { ...rest, headers: requestHeaders, cache: "no-store" };
+  // A stream body cannot be sent twice; every caller sends JSON text.
+  const replayable = rest.body == null || typeof rest.body === "string";
+  const idempotent = ["GET", "HEAD"].includes((rest.method ?? "GET").toUpperCase());
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fetch(url, requestInit);
+    } catch (error) {
+      if (!replayable || attempt >= 4 || !retryable((error as { cause?: { code?: string } }).cause?.code, idempotent)) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 100 * 2 ** attempt));
+    }
+  }
+}
+
+/**
+ * During a rolling deploy an API replica that is stopping refuses new connections until Docker drops it from DNS:
+ * the request never reached it, so any method can go to another replica. A connection closed under a request may
+ * have been processed: only reads are retried then.
+ */
+function retryable(code: string | undefined, idempotent: boolean): boolean {
+  if (code === "ECONNREFUSED" || code === "EHOSTUNREACH" || code === "ENOTFOUND" || code === "EAI_AGAIN") return true;
+  return idempotent && (code === "ECONNRESET" || code === "UND_ERR_SOCKET");
 }
 
 export async function sessionToken(realm: Realm): Promise<string | undefined> {

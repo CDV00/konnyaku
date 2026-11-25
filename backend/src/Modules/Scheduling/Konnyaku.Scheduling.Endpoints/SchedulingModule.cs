@@ -1,11 +1,15 @@
 using System.Security.Claims;
+using Konnyaku.Academic.Contracts;
 using Konnyaku.Application.Authorization;
+using Konnyaku.Application.Messaging;
 using Konnyaku.Infrastructure.Auditing;
 using Konnyaku.Infrastructure.Auth;
 using Konnyaku.Infrastructure.Http;
 using Konnyaku.Infrastructure.Messaging;
 using Konnyaku.Infrastructure.Modules;
+using Konnyaku.Learning.Contracts;
 using Konnyaku.Scheduling.Application;
+using Konnyaku.Scheduling.Contracts;
 using Konnyaku.Scheduling.Infrastructure;
 using Konnyaku.SharedKernel;
 using Microsoft.AspNetCore.Builder;
@@ -34,9 +38,19 @@ public sealed class SchedulingModule : IModule
         services.AddScoped<Konnyaku.Application.Messaging.IIntegrationEventHandler<Konnyaku.Academic.Contracts.ClassDeliveryModeChangedV1>, ClassDeliveryModeChangedConsumer>();
         services.AddScoped<Konnyaku.Application.Messaging.IIntegrationEventHandler<Konnyaku.Academic.Contracts.ClassClosedV1>, ClassClosedConsumer>();
         services.AddScoped<Konnyaku.Application.Messaging.IIntegrationEventHandler<Konnyaku.Workspace.Contracts.MeetingProvisionedV1>, MeetingProvisionedConsumer>();
+        services.AddScoped<IIntegrationEventHandler<EnrollmentActivatedV1>, EnrollmentActivatedBookingConsumer>();
+        services.AddScoped<IIntegrationEventHandler<EnrollmentDroppedV1>, EnrollmentDroppedBookingConsumer>();
+        services.AddScoped<IIntegrationEventHandler<EnrollmentFrozenV1>, EnrollmentFrozenBookingConsumer>();
+        services.AddScoped<IIntegrationEventHandler<EnrollmentUnfrozenV1>, EnrollmentUnfrozenBookingConsumer>();
+        services.AddScoped<IIntegrationEventHandler<AttendanceConfirmedV1>, AttendanceConfirmedBookingConsumer>();
+        services.AddScoped<IIntegrationEventHandler<SessionSeatReleasedV1>, SessionSeatReleasedConsumer>();
     }
 
-    public void AddWorkerServices(IServiceCollection services) => services.AddOutboxProcessor<SchedulingDbContext>();
+    public void AddWorkerServices(IServiceCollection services)
+    {
+        services.AddOutboxProcessor<SchedulingDbContext>();
+        services.AddSchedulingWorker();
+    }
 
     public void MapEndpoints(RouteGroupBuilder group)
     {
@@ -87,5 +101,75 @@ public sealed class SchedulingModule : IModule
                 return Results.Ok(await queries.ListLearnerSessionsAsync(user.UserId()!.Value, start, to ?? start.Add(DefaultWindow), ct));
             })
             .RequireAuthorization(Policies.Learn);
+
+        MapLearnerBookings(group.MapGroup("/my").RequireAuthorization(Policies.Learn));
+        MapMakeupAdmin(group);
+    }
+
+    /// <summary>The learner's own seats: leave, make-ups, online/offline, flexible classes, waitlist.</summary>
+    private static void MapLearnerBookings(RouteGroupBuilder my)
+    {
+        static IResult Id(Guid id) => Results.Ok(new { id });
+
+        my.MapGet("/bookings", async (DateTimeOffset? from, DateTimeOffset? to, ClaimsPrincipal user, BookingQueries queries, CancellationToken ct) =>
+        {
+            var start = from ?? DateTimeOffset.UtcNow.AddHours(-12);
+            return Results.Ok(await queries.ListMyBookingsAsync(user.UserId()!.Value, start, to ?? start.Add(DefaultWindow), ct));
+        });
+        my.MapPost("/bookings/{id:guid}/postpone", async (Guid id, ClaimsPrincipal user, LearnerBookingHandlers handlers, CancellationToken ct) =>
+            ApiResults.From(await handlers.PostponeAsync(user.UserId()!.Value, id, ct), Results.Ok));
+        my.MapPost("/bookings/{id:guid}/cancel", async (Guid id, ClaimsPrincipal user, LearnerBookingHandlers handlers, CancellationToken ct) =>
+            ApiResults.From(await handlers.CancelAsync(user.UserId()!.Value, id, ct), Id));
+        my.MapPost("/bookings/{id:guid}/mode", async (Guid id, SwitchModeCommand command, ClaimsPrincipal user, LearnerBookingHandlers handlers, CancellationToken ct) =>
+            ApiResults.From(await handlers.SwitchModeAsync(user.UserId()!.Value, id, command, ct), Id));
+
+        my.MapGet("/makeups", async (ClaimsPrincipal user, BookingQueries queries, CancellationToken ct) =>
+            Results.Ok(await queries.ListMyEntitlementsAsync(user.UserId()!.Value, ct)));
+        my.MapGet("/makeups/{id:guid}/options", async (Guid id, ClaimsPrincipal user, BookingQueries queries, CancellationToken ct) =>
+            await queries.MakeupOptionsAsync(user.UserId()!.Value, id, ct) is { } options
+                ? Results.Ok(options)
+                : ApiResults.Error(Error.NotFound("scheduling.entitlement_not_found")));
+        my.MapPost("/makeups/{id:guid}/book", async (Guid id, BookSessionCommand command, ClaimsPrincipal user, LearnerBookingHandlers handlers, CancellationToken ct) =>
+            ApiResults.From(await handlers.BookMakeupAsync(user.UserId()!.Value, id, command, ct), Id));
+        my.MapPost("/makeups/{id:guid}/request", async (Guid id, MakeupRequestCommand command, ClaimsPrincipal user, LearnerBookingHandlers handlers, CancellationToken ct) =>
+            ApiResults.From(await handlers.RequestMakeupAsync(user.UserId()!.Value, id, command, ct), Id));
+
+        my.MapGet("/flexible", async (ClaimsPrincipal user, BookingQueries queries, CancellationToken ct) =>
+            Results.Ok(await queries.FlexibleAsync(user.UserId()!.Value, ct)));
+        my.MapPost("/sessions/{id:guid}/book", async (Guid id, BookFlexibleCommand command, ClaimsPrincipal user, LearnerBookingHandlers handlers, CancellationToken ct) =>
+            ApiResults.From(await handlers.BookFlexibleAsync(user.UserId()!.Value, id, command, ct), Id));
+        my.MapPost("/sessions/{id:guid}/waitlist", async (Guid id, JoinWaitlistCommand command, ClaimsPrincipal user, LearnerBookingHandlers handlers, CancellationToken ct) =>
+            ApiResults.From(await handlers.JoinWaitlistAsync(user.UserId()!.Value, id, command, ct), Id));
+        my.MapGet("/waitlist", async (ClaimsPrincipal user, BookingQueries queries, CancellationToken ct) =>
+            Results.Ok(await queries.ListMyWaitlistAsync(user.UserId()!.Value, ct)));
+        my.MapPost("/waitlist/{id:guid}/accept", async (Guid id, ClaimsPrincipal user, LearnerBookingHandlers handlers, CancellationToken ct) =>
+            ApiResults.From(await handlers.AcceptOfferAsync(user.UserId()!.Value, id, ct), Id));
+        my.MapPost("/waitlist/{id:guid}/withdraw", async (Guid id, ClaimsPrincipal user, LearnerBookingHandlers handlers, CancellationToken ct) =>
+            ApiResults.From(await handlers.WithdrawAsync(user.UserId()!.Value, id, ct), Id));
+    }
+
+    /// <summary>Coordinators and branch managers: exceptional make-ups, learners who postpone often, the center's booking rules.</summary>
+    private static void MapMakeupAdmin(RouteGroupBuilder group)
+    {
+        static IResult Id(Guid id) => Results.Ok(new { id });
+
+        var staff = group.MapGroup("").RequirePermission(Permissions.Schedules);
+        staff.MapGet("/makeups/requests", async (BookingQueries queries, CancellationToken ct) =>
+            Results.Ok(await queries.ListMakeupRequestsAsync(ct)));
+        staff.MapGet("/makeups/{id:guid}/options", async (Guid id, BookingQueries queries, CancellationToken ct) =>
+            await queries.StaffOptionsAsync(id, ct) is { } options
+                ? Results.Ok(options)
+                : ApiResults.Error(Error.NotFound("scheduling.entitlement_not_found")));
+        staff.MapPost("/makeups/{id:guid}/place", async (Guid id, PlaceMakeupCommand command, ClaimsPrincipal user, MakeupAdminHandlers handlers, CancellationToken ct) =>
+            ApiResults.From(await handlers.PlaceAsync(user.UserId()!.Value, id, command, ct), Id));
+        staff.MapPost("/makeups/{id:guid}/decline", async (Guid id, MakeupAdminHandlers handlers, CancellationToken ct) =>
+            ApiResults.From(await handlers.DeclineAsync(id, ct), Id));
+        staff.MapGet("/postpones/frequent", async (int? days, int? min, BookingQueries queries, CancellationToken ct) =>
+            Results.Ok(await queries.FrequentPostponesAsync(days ?? 60, min ?? 2, ct)));
+        staff.MapGet("/settings/booking", async (MakeupAdminHandlers handlers, CancellationToken ct) => Results.Ok(await handlers.GetSettingsAsync(ct)));
+
+        group.MapPut("/settings/booking", async (BookingSettingsView command, MakeupAdminHandlers handlers, CancellationToken ct) =>
+                ApiResults.From(await handlers.SetSettingsAsync(command, ct), Results.Ok))
+            .RequireAuthorization(Policies.TenantAdmin);
     }
 }

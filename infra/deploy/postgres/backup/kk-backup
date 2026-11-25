@@ -1,0 +1,396 @@
+#!/bin/bash
+# Continuous backup of the Konnyaku database with pgBackRest (runs as the `backup` service, user postgres).
+# Configuration comes from PGBACKREST_* variables set in compose.yaml from BACKUP_* in .env.
+#
+#   kk-backup daemon                    scheduler (the service command): full/diff backups, monthly drill, status files
+#   kk-backup backup [full|diff|incr]   one backup now
+#   kk-backup info                      backups and WAL range in the repository
+#   kk-backup drill [--time "<ts>"] [--keep]
+#                                       restore into a throw-away PostgreSQL inside this container and check it:
+#                                       without --time, at a restore point created now, comparing row counts with the
+#                                       live database; --keep leaves it running (socket /tmp/kk-drill, port 5499) to copy
+#                                       data out of it, `kk-backup drill-stop` removes it
+#   kk-backup restore latest|time "<ts>"|name <restore point> [pgbackrest options: --set=<label> --target-timeline=<n>]
+#                                       restore into the database volume (PostgreSQL MUST be stopped; scripts/restore.sh)
+#
+# Status for monitoring: $STATUS_DIR/pgbackrest.prom (Prometheus text format), backup.json, drill.json
+# (docs/trien-khai.md, "File trạng thái").
+set -uo pipefail
+
+STATUS_DIR="${STATUS_DIR:-/backups/status}"
+
+# Started as root (service, docker compose exec/run): make the status folder writable for this service (postgres) and
+# for scripts/backup.sh on the host, then continue as postgres, the owner of the data directory.
+if [[ "$(id -u)" == 0 ]]; then
+  mkdir -p "$STATUS_DIR" && chown postgres:postgres "$STATUS_DIR" && chmod 1777 "$STATUS_DIR"
+  exec gosu postgres "$0" "$@"
+fi
+STATE_FILE="$STATUS_DIR/.pgbackrest-state"
+INFO_CACHE="$STATUS_DIR/.pgbackrest-info.json"
+DRILL_DIR="${DRILL_DIR:-/var/lib/pgbackrest/drill}"
+DRILL_SOCKET=/tmp/kk-drill
+DRILL_PORT=5499
+DRILL_TABLES="${BACKUP_DRILL_TABLES:-billing.credit_ledger_entry billing.payment billing.order scheduling.session academic.enrollment learning.attendance crm.student_profile crm.lead identity.user platform.tenant}"
+export PGHOST="${PGBACKREST_PG1_SOCKET_PATH:-/var/run/postgresql}" PGUSER="${PGBACKREST_PG1_USER:-konnyaku}" PGDATABASE="${PGBACKREST_PG1_DATABASE:-konnyaku}"
+
+log() { echo "$(date -u +%FT%TZ) $*"; }
+die() { log "error: $*" >&2; exit 1; }
+configured() { [[ -n "${PGBACKREST_REPO1_S3_BUCKET:-}" ]]; }
+live_sql() { psql -XAtq -v ON_ERROR_STOP=1 -c "$1"; }
+iso() { [[ "${1:-0}" -gt 0 ]] && date -u -d "@$1" +%FT%TZ || echo null; }
+
+state_get() { [[ -f "$STATE_FILE" ]] && sed -n "s/^$1=//p" "$STATE_FILE" | tail -1; }
+state_set() {
+  mkdir -p "$STATUS_DIR"
+  { [[ -f "$STATE_FILE" ]] && grep -v "^$1=" "$STATE_FILE"; echo "$1=$2"; } > "$STATE_FILE.tmp" && mv "$STATE_FILE.tmp" "$STATE_FILE"
+}
+
+# Writes a file atomically (monitoring may read it at any moment).
+publish() { cat > "$STATUS_DIR/.$1.tmp" && mv "$STATUS_DIR/.$1.tmp" "$STATUS_DIR/$1"; }
+
+refresh_info() {
+  configured || return 0
+  local json
+  if json=$(pgbackrest info --output=json 2> /dev/null); then
+    printf '%s' "$json" | publish .pgbackrest-info.json
+  fi
+}
+
+# pgbackrest.prom + backup.json from the repository info, the last runs and pg_stat_archiver.
+refresh_status() {
+  mkdir -p "$STATUS_DIR"
+  local now info full=0 diff=0 incr=0 size=0 count=0 oldest=0 newest_wal=null
+  now=$(date -u +%s)
+  info='[]'
+  [[ -s "$INFO_CACHE" ]] && info=$(cat "$INFO_CACHE")
+  read -r full diff incr size count oldest < <(printf '%s' "$info" | jq -r '
+    (.[0].backup // []) as $b
+    | [ ([$b[] | select(.type == "full") | .timestamp.stop] | max // 0),
+        ([$b[] | select(.type == "diff") | .timestamp.stop] | max // 0),
+        ([$b[] | select(.type == "incr") | .timestamp.stop] | max // 0),
+        ([$b[] | .info.repository.delta] | add // 0),
+        ($b | length),
+        ([$b[] | .timestamp.start] | min // 0) ] | @tsv' 2> /dev/null || echo "0 0 0 0 0 0")
+  newest_wal=$(printf '%s' "$info" | jq -r '[.[0].archive[]?.max] | max // "null"' 2> /dev/null || echo null)
+
+  local archived=0 failed=0 failed_total=0 pending=0 wal
+  if wal=$(live_sql "select coalesce(extract(epoch from last_archived_time)::bigint, 0), coalesce(extract(epoch from last_failed_time)::bigint, 0),
+                            failed_count, (select count(*) from pg_ls_archive_statusdir() where name like '%.ready')
+                     from pg_stat_archiver" 2> /dev/null); then
+    IFS='|' read -r archived failed failed_total pending <<< "$wal"
+  fi
+
+  local run_at run_ok run_type drill_at drill_ok drill_ok_at is_configured=0
+  run_at=$(state_get last_run_at); run_ok=$(state_get last_run_ok); run_type=$(state_get last_run_type)
+  drill_at=$(state_get drill_at); drill_ok=$(state_get drill_ok); drill_ok_at=$(state_get drill_ok_at)
+  configured && is_configured=1
+
+  publish pgbackrest.prom << EOF
+# HELP konnyaku_backup_configured 1 when object storage for continuous backup is configured.
+# TYPE konnyaku_backup_configured gauge
+konnyaku_backup_configured $is_configured
+# HELP konnyaku_backup_heartbeat_timestamp_seconds Last time the backup service refreshed this file (every minute).
+# TYPE konnyaku_backup_heartbeat_timestamp_seconds gauge
+konnyaku_backup_heartbeat_timestamp_seconds $now
+# HELP konnyaku_backup_last_success_timestamp_seconds End of the newest backup of each type in the repository.
+# TYPE konnyaku_backup_last_success_timestamp_seconds gauge
+konnyaku_backup_last_success_timestamp_seconds{type="full"} $full
+konnyaku_backup_last_success_timestamp_seconds{type="diff"} $diff
+konnyaku_backup_last_success_timestamp_seconds{type="incr"} $incr
+# HELP konnyaku_backup_last_run_timestamp_seconds Start of the last backup attempt.
+# TYPE konnyaku_backup_last_run_timestamp_seconds gauge
+konnyaku_backup_last_run_timestamp_seconds ${run_at:-0}
+# HELP konnyaku_backup_last_run_success 1 when the last backup attempt succeeded.
+# TYPE konnyaku_backup_last_run_success gauge
+konnyaku_backup_last_run_success ${run_ok:-0}
+# HELP konnyaku_backup_count Backups kept in the repository.
+# TYPE konnyaku_backup_count gauge
+konnyaku_backup_count ${count:-0}
+# HELP konnyaku_backup_oldest_timestamp_seconds Start of the oldest backup kept (earliest restorable point).
+# TYPE konnyaku_backup_oldest_timestamp_seconds gauge
+konnyaku_backup_oldest_timestamp_seconds ${oldest:-0}
+# HELP konnyaku_backup_repo_size_bytes Bytes stored in the repository by the backups kept (WAL archive not included).
+# TYPE konnyaku_backup_repo_size_bytes gauge
+konnyaku_backup_repo_size_bytes ${size:-0}
+# HELP konnyaku_backup_wal_last_archived_timestamp_seconds Last WAL segment pushed (pg_stat_archiver). Idle databases switch segments rarely.
+# TYPE konnyaku_backup_wal_last_archived_timestamp_seconds gauge
+konnyaku_backup_wal_last_archived_timestamp_seconds ${archived:-0}
+# HELP konnyaku_backup_wal_last_failed_timestamp_seconds Last failed WAL push (0: never since PostgreSQL started).
+# TYPE konnyaku_backup_wal_last_failed_timestamp_seconds gauge
+konnyaku_backup_wal_last_failed_timestamp_seconds ${failed:-0}
+# HELP konnyaku_backup_wal_failed_total Failed WAL pushes since PostgreSQL started.
+# TYPE konnyaku_backup_wal_failed_total counter
+konnyaku_backup_wal_failed_total ${failed_total:-0}
+# HELP konnyaku_backup_wal_pending_segments WAL segments waiting to be pushed (pg_wal/archive_status/*.ready).
+# TYPE konnyaku_backup_wal_pending_segments gauge
+konnyaku_backup_wal_pending_segments ${pending:-0}
+# HELP konnyaku_backup_drill_last_run_timestamp_seconds Last restore drill.
+# TYPE konnyaku_backup_drill_last_run_timestamp_seconds gauge
+konnyaku_backup_drill_last_run_timestamp_seconds ${drill_at:-0}
+# HELP konnyaku_backup_drill_last_success 1 when the last restore drill passed.
+# TYPE konnyaku_backup_drill_last_success gauge
+konnyaku_backup_drill_last_success ${drill_ok:-0}
+# HELP konnyaku_backup_drill_last_success_timestamp_seconds Last restore drill that passed.
+# TYPE konnyaku_backup_drill_last_success_timestamp_seconds gauge
+konnyaku_backup_drill_last_success_timestamp_seconds ${drill_ok_at:-0}
+EOF
+
+  jq -n --argjson configured "$is_configured" --arg updated "$(iso "$now")" \
+    --arg full "$(iso "$full")" --arg diff "$(iso "$diff")" --arg incr "$(iso "$incr")" --argjson count "${count:-0}" \
+    --arg oldest "$(iso "${oldest:-0}")" --argjson size "${size:-0}" --arg newest_wal "$newest_wal" \
+    --arg run_at "$(iso "${run_at:-0}")" --arg run_type "${run_type:-}" --argjson run_ok "${run_ok:-0}" \
+    --arg archived "$(iso "${archived:-0}")" --arg failed "$(iso "${failed:-0}")" --argjson failed_total "${failed_total:-0}" \
+    --argjson pending "${pending:-0}" '
+    def n: if . == "null" then null else . end;
+    { tool: "pgbackrest", configured: ($configured == 1), updated: $updated,
+      last_success: { full: ($full | n), diff: ($diff | n), incr: ($incr | n) },
+      last_run: { at: ($run_at | n), type: $run_type, ok: ($run_ok == 1) },
+      repository: { backups: $count, oldest: ($oldest | n), size_bytes: $size, newest_wal: ($newest_wal | n) },
+      wal: { last_archived: ($archived | n), last_failed: ($failed | n), failed_total: $failed_total, pending_segments: $pending } }' \
+    | publish backup.json
+}
+
+wait_for_postgres() {
+  for _ in $(seq 1 120); do
+    pg_isready -q && return 0
+    sleep 2
+  done
+  return 1
+}
+
+ensure_stanza() {
+  pgbackrest stanza-create > /dev/null 2>&1 || pgbackrest stanza-create || return 1
+  # Fails when PostgreSQL cannot push WAL (wrong credentials, missing archive_command): better to know at start.
+  pgbackrest check || return 1
+}
+
+run_backup() {
+  local type="${1:-diff}" ok=0 started
+  configured || die "object storage is not configured (BACKUP_S3_BUCKET)"
+  started=$(date -u +%s)
+  state_set last_run_at "$started"
+  state_set last_run_type "$type"
+  log "backup $type: start"
+  if pgbackrest backup --type="$type"; then
+    ok=1
+    log "backup $type: ok in $(( $(date -u +%s) - started )) s"
+  else
+    log "backup $type: FAILED" >&2
+  fi
+  state_set last_run_ok "$ok"
+  refresh_info
+  refresh_status
+  [[ $ok == 1 ]]
+}
+
+newest_full() { jq -r '[.[0].backup[]? | select(.type == "full") | .timestamp.stop] | max // 0' "$INFO_CACHE" 2> /dev/null || echo 0; }
+
+# --- drill ------------------------------------------------------------------------------------------------------------
+
+drill_sql() { psql -h "$DRILL_SOCKET" -p "$DRILL_PORT" -XAtq -v ON_ERROR_STOP=1 -c "$1"; }
+
+count_tables() { # <psql function> -> "schema.table=count" lines
+  local runner="$1" query="" table
+  for table in $DRILL_TABLES; do
+    query+="${query:+ union all }select '$table', (select count(*) from ${table%%.*}.\"${table#*.}\")"
+  done
+  # One statement: every count comes from the same snapshot.
+  "$runner" "$query" | tr '|' '='
+}
+
+drill_stop() {
+  if [[ -f "$DRILL_DIR/postmaster.pid" ]]; then
+    pg_ctl -D "$DRILL_DIR" -m immediate stop > /dev/null 2>&1 || true
+  fi
+  rm -rf "$DRILL_DIR" "$DRILL_SOCKET"
+}
+
+run_drill() {
+  local target_time="" keep=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --time) target_time="$2"; shift 2 ;;
+      --keep) keep=1; shift ;;
+      *) die "unknown drill option $1" ;;
+    esac
+  done
+  configured || die "object storage is not configured (BACKUP_S3_BUCKET)"
+  local started target_args target_desc live="" restored="" ok=1 notes=() point=""
+  started=$(date -u +%s)
+  state_set drill_at "$started"
+  drill_stop
+  mkdir -p "$DRILL_DIR" "$DRILL_SOCKET" && chmod 700 "$DRILL_DIR"
+
+  if [[ -z "$target_time" ]]; then
+    # Count on the live database, then mark this moment in the WAL and wait until that WAL is in the repository.
+    live=$(count_tables live_sql) || { notes+=("live count failed"); ok=0; }
+    point="drill-$(date -u +%Y%m%dT%H%M%SZ)"
+    live_sql "select pg_create_restore_point('$point')" > /dev/null || die "cannot create restore point"
+    pgbackrest check > /dev/null || die "WAL archiving does not work (pgbackrest check)"
+    target_args=(--type=name "--target=$point" --target-action=promote)
+    target_desc="restore point $point"
+  else
+    target_args=(--type=time "--target=$target_time" --target-action=promote)
+    target_desc="time $target_time"
+  fi
+
+  log "drill: restoring ($target_desc) into $DRILL_DIR"
+  if ! pgbackrest restore --pg1-path="$DRILL_DIR" --archive-mode=off "${target_args[@]}" > "$DRILL_DIR.restore.log" 2>&1; then
+    cat "$DRILL_DIR.restore.log" >&2
+    notes+=("pgbackrest restore failed"); ok=0
+  fi
+  local restore_seconds=$(( $(date -u +%s) - started ))
+
+  if [[ $ok == 1 ]]; then
+    # Small, isolated server: no TCP, never archives (it must not write into the production repository). No hot
+    # standby: smaller limits than the primary are allowed and pg_ctl returns once recovery is over and it is promoted.
+    if ! pg_ctl -D "$DRILL_DIR" -w -t 900 -l "$DRILL_DIR.log" -o "-c listen_addresses='' -c unix_socket_directories=$DRILL_SOCKET \
+        -c port=$DRILL_PORT -c archive_mode=off -c hot_standby=off -c shared_buffers=32MB -c max_connections=10 -c work_mem=4MB \
+        -c maintenance_work_mem=16MB -c max_wal_senders=0 -c max_parallel_workers_per_gather=0" start > /dev/null; then
+      tail -30 "$DRILL_DIR.log" >&2
+      notes+=("restored PostgreSQL did not start"); ok=0
+    fi
+  fi
+  if [[ $ok == 1 ]]; then
+    local promoted=0
+    for _ in $(seq 1 450); do
+      [[ "$(drill_sql 'select pg_is_in_recovery()' 2> /dev/null)" == f ]] && { promoted=1; break; }
+      sleep 2
+    done
+    [[ $promoted == 1 ]] || { notes+=("recovery did not finish"); ok=0; }
+  fi
+  if [[ $ok == 1 ]]; then
+    restored=$(count_tables drill_sql) || { notes+=("count on restored database failed"); ok=0; }
+    # Same module schemas as the live database (a restore to an older time may predate a new module: noted only).
+    local schema_query="select string_agg(nspname, ' ' order by nspname) from pg_namespace
+                        where nspname not like 'pg\\_%' and nspname not in ('information_schema', 'public')"
+    local live_schemas restored_schemas
+    live_schemas=$(live_sql "$schema_query" 2> /dev/null || true)
+    restored_schemas=$(drill_sql "$schema_query")
+    if [[ "$restored_schemas" != "$live_schemas" ]]; then
+      notes+=("schemas: restored [$restored_schemas], live [$live_schemas]")
+      [[ -z "$target_time" ]] && ok=0
+    fi
+  fi
+
+  # The live counts were taken just before the restore point: a write committed in between makes a table differ,
+  # but the append-only lesson ledger can only have grown.
+  local tables_json='{}' line table r l
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    table="${line%%=*}"; r="${line#*=}"
+    l=$(printf '%s\n' "$live" | sed -n "s/^$table=//p")
+    tables_json=$(jq -c --arg t "$table" --argjson r "$r" --arg l "$l" '. + {($t): {restored: $r, live: (if $l == "" then null else ($l | tonumber) end)}}' <<< "$tables_json")
+    if [[ -n "$l" && "$r" != "$l" ]]; then
+      notes+=("$table: restored $r, live $l")
+      [[ "$table" == billing.credit_ledger_entry && "$r" -lt "$l" ]] && ok=0
+    fi
+  done <<< "$restored"
+
+  local duration=$(( $(date -u +%s) - started ))
+  state_set drill_ok "$ok"
+  [[ $ok == 1 ]] && state_set drill_ok_at "$(date -u +%s)"
+  local notes_json
+  notes_json=$(printf '%s\n' "${notes[@]+"${notes[@]}"}" | jq -R . | jq -sc 'map(select(. != ""))')
+  jq -n --arg at "$(iso "$started")" --argjson ok "$ok" --arg target "$target_desc" --argjson seconds "$duration" \
+    --argjson restore_seconds "$restore_seconds" --argjson tables "$tables_json" --argjson notes "$notes_json" \
+    '{at: $at, ok: ($ok == 1), target: $target, duration_seconds: $seconds, restore_seconds: $restore_seconds, tables: $tables, notes: $notes}' \
+    | publish drill.json
+  refresh_status
+
+  log "drill: $([[ $ok == 1 ]] && echo PASSED || echo FAILED) in ${duration} s ($target_desc)"
+  printf '%s\n' "$restored" | sed 's/^/  restored /'
+  [[ -n "$live" ]] && printf '%s\n' "$live" | sed 's/^/  live     /'
+  printf '%s\n' "${notes[@]+"${notes[@]}"}" | sed '/^$/d; s/^/  note: /'
+
+  if [[ $keep == 1 && $ok == 1 ]]; then
+    log "drill: kept running. Inside this container: psql -h $DRILL_SOCKET -p $DRILL_PORT -U konnyaku konnyaku ; then: kk-backup drill-stop"
+  else
+    drill_stop
+  fi
+  [[ $ok == 1 ]]
+}
+
+# --- restore into the database volume ----------------------------------------------------------------------------------
+
+run_restore() {
+  configured || die "object storage is not configured (BACKUP_S3_BUCKET)"
+  local mode="${1:-}" args=()
+  shift || true
+  case "$mode" in
+    latest) args=(--type=default) ;;
+    time) args=(--type=time "--target=${1:?time}" --target-action=promote); shift ;;
+    name) args=(--type=name "--target=${1:?restore point}" --target-action=promote); shift ;;
+    *) die "usage: kk-backup restore latest|time <ts>|name <restore point> [pgbackrest options, e.g. --set=<label> --target-timeline=1]" ;;
+  esac
+  args+=("$@")
+  local data="${PGBACKREST_PG1_PATH:-/var/lib/postgresql/data}"
+  if pg_isready -q 2> /dev/null || [[ -f "$data/postmaster.pid" ]]; then
+    die "PostgreSQL is running (or did not shut down cleanly): stop it first (scripts/restore.sh does)"
+  fi
+  # A volume that already holds a cluster is restored in place (only changed files are fetched).
+  [[ -f "$data/PG_VERSION" ]] && args+=(--delta)
+  log "restore: pgbackrest restore ${args[*]}"
+  pgbackrest restore "${args[@]}"
+}
+
+# --- scheduler ---------------------------------------------------------------------------------------------------------
+
+# PID 1 of the service: without a handler bash ignores SIGTERM and `docker stop` waits for the grace period. A backup
+# or drill in progress is a child process and is stopped with the container (pgBackRest resumes or redoes it).
+pause() { sleep "$1" & wait $!; }
+
+daemon() {
+  trap 'log "stopping"; exit 0' TERM INT
+  local at="${BACKUP_TIME_UTC:-19:30}" full_day="${BACKUP_FULL_WEEKDAY:-7}" drill_day="${BACKUP_DRILL_DAY:-1}"
+  mkdir -p "$STATUS_DIR"
+  log "backup service: daily at $at UTC, full on weekday $full_day (1 = Monday), drill on day $drill_day of the month (0 = never)"
+  wait_for_postgres || log "PostgreSQL is not reachable yet"
+  if ! configured; then
+    log "BACKUP_S3_BUCKET is empty: continuous backup is OFF (WAL is not kept). Status files still report it."
+  else
+    until ensure_stanza; do
+      log "stanza/check failed, retrying in 5 min" >&2
+      refresh_status
+      pause 300
+    done
+    refresh_info
+    [[ "$(newest_full)" == 0 ]] && run_backup full
+  fi
+
+  local tick=0
+  while true; do
+    if configured; then
+      local today now slot
+      today=$(date -u +%F); now=$(date -u +%s); slot=$(date -u -d "$today $at" +%s)
+      if (( now >= slot )) && [[ "$(state_get scheduled_on)" != "$today" ]]; then
+        state_set scheduled_on "$today"
+        local type=diff
+        # Weekly full, or whenever the newest full is older than a week (the service was down on that day).
+        if [[ "$(date -u +%u)" == "$full_day" ]] || (( now - $(newest_full) > 7 * 86400 )); then type=full; fi
+        run_backup "$type"
+        if [[ "$drill_day" != 0 && "$(date -u +%-d)" == "$drill_day" ]]; then
+          run_drill || true
+        fi
+      fi
+      (( tick % 10 == 0 )) && refresh_info
+    fi
+    refresh_status
+    tick=$((tick + 1))
+    pause 60
+  done
+}
+
+command="${1:-daemon}"
+shift || true
+case "$command" in
+  daemon) daemon ;;
+  backup) wait_for_postgres || die "PostgreSQL is not reachable"; run_backup "${1:-diff}" ;;
+  info) pgbackrest info "$@" ;;
+  check) pgbackrest check ;;
+  drill) wait_for_postgres || die "PostgreSQL is not reachable"; run_drill "$@" ;;
+  drill-stop) drill_stop ;;
+  restore) run_restore "$@" ;;
+  status) refresh_info; refresh_status; cat "$STATUS_DIR/backup.json" ;;
+  *) exec "$command" "$@" ;;
+esac

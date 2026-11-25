@@ -12,6 +12,7 @@ Konnyaku.Academic.Contracts.ClassDto
   Int32 Capacity
   Int32 EnrolledCount
   Int32 SessionMinutes
+  String BookingMode
   String Code
   String DeliveryMode
   String LanguageCode
@@ -27,16 +28,39 @@ Konnyaku.Academic.Contracts.EnrollmentDroppedV1
   Guid ClassId
   Guid EnrollmentId
   Guid StudentId
+Konnyaku.Academic.Contracts.EnrollmentDto
+  Guid ClassId
+  Guid Id
+  Guid StudentId
+  Nullable`1 FrozenFrom
+  Nullable`1 FrozenTo
+  Nullable`1 OrderId
+  String PreferredMode
+  String Status
+  String Type
+Konnyaku.Academic.Contracts.EnrollmentFrozenV1
+  DateOnly From
+  DateOnly To
+  Guid ClassId
+  Guid EnrollmentId
+  Guid StudentId
 Konnyaku.Academic.Contracts.EnrollmentRejectedV1
   Guid ClassId
   Guid OrderId
   Guid StudentId
   String Reason
+Konnyaku.Academic.Contracts.EnrollmentUnfrozenV1
+  Guid ClassId
+  Guid EnrollmentId
+  Guid StudentId
 Konnyaku.Academic.Contracts.IAcademicApi
   Task`1 GetClassAsync(Guid, CancellationToken)
+  Task`1 GetEnrollmentAsync(Guid, CancellationToken)
   Task`1 GetLessonsAsync(Guid, CancellationToken)
   Task`1 GetRosterAsync(Guid, CancellationToken)
   Task`1 ListClassIdsOfStudentsAsync(IReadOnlyCollection`1, CancellationToken)
+  Task`1 ListEnrollmentsAsync(Guid, CancellationToken)
+  Task`1 ListEnrollmentsOfStudentsAsync(IReadOnlyCollection`1, CancellationToken)
 Konnyaku.Academic.Contracts.IAcademicUsageApi
   Task`1 CountActiveClassesAsync(CancellationToken)
 Konnyaku.Academic.Contracts.LessonDto
@@ -284,6 +308,7 @@ Konnyaku.Platform.Contracts.TenantStatuses
 Konnyaku.Scheduling.Contracts.ISchedulingApi
   Task`1 CountClassSessionsAsync(Guid, CancellationToken)
   Task`1 GetSessionAsync(Guid, CancellationToken)
+  Task`1 GetSessionRosterAsync(Guid, CancellationToken)
   Task`1 ListClassIdsOfTeacherAsync(Guid, CancellationToken)
 Konnyaku.Scheduling.Contracts.SessionCancelledV1
   Guid SessionId
@@ -306,6 +331,13 @@ Konnyaku.Scheduling.Contracts.SessionRescheduledV1
   DateTimeOffset EndsAt
   DateTimeOffset StartsAt
   Guid SessionId
+Konnyaku.Scheduling.Contracts.SessionRosterEntryDto
+  Guid BookingId
+  Guid EnrollmentId
+  Guid StudentId
+  String Kind
+  String Mode
+  String Status
 Konnyaku.Scheduling.Contracts.SessionScheduledV1
   DateTimeOffset EndsAt
   DateTimeOffset StartsAt
@@ -314,6 +346,8 @@ Konnyaku.Scheduling.Contracts.SessionScheduledV1
   Guid SessionId
   Nullable`1 TeacherId
   String DeliveryMode
+Konnyaku.Scheduling.Contracts.SessionSeatReleasedV1
+  Guid SessionId
 Konnyaku.Workspace.Contracts.MeetingProvisionedV1
   Guid SessionId
   String MeetingUri
