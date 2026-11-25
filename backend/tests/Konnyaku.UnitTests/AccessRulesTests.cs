@@ -11,6 +11,8 @@ public class AccessRulesTests
     [Theory]
     [InlineData("TenantAdmin", Permissions.Branches, true)]
     [InlineData("TenantAdmin", Permissions.Payments, true)]
+    [InlineData("TenantAdmin", Permissions.Notifications, true)]
+    [InlineData("BranchManager", Permissions.Notifications, false)]
     [InlineData("BranchManager", Permissions.Classes, true)]
     [InlineData("BranchManager", Permissions.Programs, false)]
     [InlineData("Coordinator", Permissions.Holidays, true)]

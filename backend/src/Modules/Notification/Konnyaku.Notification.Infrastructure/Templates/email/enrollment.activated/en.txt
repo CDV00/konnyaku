@@ -1,0 +1,6 @@
+Hi {{studentName}},
+
+You are now enrolled in class {{classCode}}.
+{{#startsOn}}The class starts on {{startsOn}}.{{/startsOn}} Every session is on your student page.
+
+See your schedule: {{siteUrl}}/learn

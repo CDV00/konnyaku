@@ -1,0 +1,6 @@
+Chào {{recipientName}},
+
+Buổi {{sequenceNo}} của lớp {{classCode}} đã được dời sang:
+{{startsAt}} ({{timeZone}})
+
+Xem lịch: {{siteUrl}}{{zonePath}}

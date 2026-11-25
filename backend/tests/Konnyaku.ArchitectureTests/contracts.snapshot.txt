@@ -37,6 +37,8 @@ Konnyaku.Academic.Contracts.IAcademicApi
   Task`1 GetLessonsAsync(Guid, CancellationToken)
   Task`1 GetRosterAsync(Guid, CancellationToken)
   Task`1 ListClassIdsOfStudentsAsync(IReadOnlyCollection`1, CancellationToken)
+Konnyaku.Academic.Contracts.IAcademicUsageApi
+  Task`1 CountActiveClassesAsync(CancellationToken)
 Konnyaku.Academic.Contracts.LessonDto
   Guid Id
   IReadOnlyDictionary`2 Title
@@ -105,12 +107,29 @@ Konnyaku.Catalog.Contracts.SkillDto
 Konnyaku.Crm.Contracts.ICrmApi
   Task`1 GetStudentAsync(Guid, CancellationToken)
   Task`1 ListStudentsOfUserAsync(Guid, CancellationToken)
+Konnyaku.Crm.Contracts.ICrmContactsApi
+  Task`1 GetLeadSummaryAsync(Guid, CancellationToken)
+  Task`1 GetStudentContactAsync(Guid, CancellationToken)
+  Task`1 ListStudentContactsOfUserAsync(Guid, CancellationToken)
+Konnyaku.Crm.Contracts.ICrmUsageApi
+  Task`1 CountStudentsAsync(CancellationToken)
 Konnyaku.Crm.Contracts.LeadCreatedV1
   Guid LeadId
   Nullable`1 AssignedConsultantId
   Nullable`1 FollowUpDueAt
   String LanguageCode
   String Locale
+Konnyaku.Crm.Contracts.LeadSummaryDto
+  Guid LeadId
+  String LanguageCode
+  String Locale
+  String StudentName
+Konnyaku.Crm.Contracts.StudentContactDto
+  Guid StudentId
+  Nullable`1 UserId
+  String CommunicationLocale
+  String Email
+  String FullName
 Konnyaku.Crm.Contracts.StudentDto
   Boolean IsActive
   Guid Id
@@ -130,6 +149,9 @@ Konnyaku.Hr.Contracts.PayrollPeriodLockedV1
 Konnyaku.Identity.Contracts.IIdentityApi
   Task`1 GetMemberAsync(Guid, CancellationToken)
   Task`1 ListUsersWithRoleAsync(String, CancellationToken)
+Konnyaku.Identity.Contracts.IIdentityPlatformApi
+  Task`1 CountStaffAsync(CancellationToken)
+  Task`1 ProvisionTenantAdminAsync(String, String, CancellationToken)
 Konnyaku.Identity.Contracts.LearnerAccountCreatedV1
   Guid UserId
   String Role
@@ -141,6 +163,10 @@ Konnyaku.Identity.Contracts.MeDto
   String DisplayName
   String Email
   String PreferredLocale
+Konnyaku.Identity.Contracts.TenantAdminProvisionedDto
+  Guid UserId
+  String Email
+  String TemporaryPassword
 Konnyaku.Learning.Contracts.AttendanceConfirmedV1
   Boolean Billable
   DateOnly LocalDate
@@ -158,6 +184,35 @@ Konnyaku.Learning.Contracts.SessionAttendanceConfirmedV1
   Guid ConfirmedBy
   Guid SessionId
   Int32 StudentCount
+Konnyaku.Notification.Contracts.INotificationApi
+  Task`1 EnqueueAsync(NotificationRequest, CancellationToken)
+Konnyaku.Notification.Contracts.NotificationChannels
+Konnyaku.Notification.Contracts.NotificationQueued
+  Boolean Duplicate
+  Guid NotificationId
+Konnyaku.Notification.Contracts.NotificationRecipient
+  Nullable`1 UserId
+  String Address
+  String DisplayName
+  String Locale
+Konnyaku.Notification.Contracts.NotificationRequest
+  Boolean Sensitive
+  IReadOnlyDictionary`2 Data
+  NotificationRecipient Recipient
+  Nullable`1 NotBefore
+  String Channel
+  String DeduplicationKey
+  String TemplateKey
+Konnyaku.Notification.Contracts.NotificationRequestedV1
+  Boolean Sensitive
+  IReadOnlyDictionary`2 Data
+  Nullable`1 RecipientUserId
+  String Channel
+  String DeduplicationKey
+  String Locale
+  String RecipientAddress
+  String RecipientName
+  String TemplateKey
 Konnyaku.Organization.Contracts.BranchCreatedV1
   Boolean IsVirtual
   Guid BranchId
@@ -200,7 +255,9 @@ Konnyaku.Platform.Contracts.TenantInfo
   String DefaultLocale
   String Name
   String Slug
+  String Status
   String TimeZone
+Konnyaku.Platform.Contracts.TenantStatuses
 Konnyaku.Scheduling.Contracts.ISchedulingApi
   Task`1 CountClassSessionsAsync(Guid, CancellationToken)
   Task`1 GetSessionAsync(Guid, CancellationToken)

@@ -1,0 +1,211 @@
+{
+  "templateNotice": "Template prepared by the Konnyaku platform under Decree 13/2023/ND-CP and the Law on Personal Data Protection. {center} should have it reviewed by legal counsel and add its legal entity and data protection contact before relying on it.",
+  "version": "Version {version} · Effective {date}",
+  "contents": "Contents",
+  "otherDocument": "See also",
+  "privacy": {
+    "title": "Privacy policy",
+    "description": "How {center} collects, uses, keeps and protects the personal data of students, parents and people asking for advice.",
+    "intro": "{center} (“we”) respects and protects the personal data of students, parents and people who ask for advice. This policy explains what we collect, why, how long we keep it, who we share it with and what your rights are.",
+    "sections": [
+      {
+        "id": "controller",
+        "title": "Who is responsible for your data",
+        "blocks": [
+          "{center} is the controller and processor of the personal data collected through this website and during your studies.",
+          "The Konnyaku platform processes data on behalf of {center}: it hosts and runs the software under contract and never uses the data for its own purposes. Each center's data is kept separate and cannot be accessed by other centers."
+        ]
+      },
+      {
+        "id": "data",
+        "title": "Data we collect",
+        "blocks": [
+          "We only collect what is needed to advise you and teach:",
+          [
+            "When you ask for advice: the student's name, year of birth, a parent's name (for students under 18), phone number, email, the language to learn, goal, preferred schedule, interface language and the traffic source (utm parameters of an advertising link, if any).",
+            "While studying: sign-in account, classes and schedule, attendance, time spent in online lessons, homework and results, packages and payments.",
+            "Technical data: IP address (only to stop automated submissions, not stored in your record), cookies needed for sign-in, language and light/dark theme."
+          ],
+          "We do not collect sensitive personal data (health, religion, biometrics…), and we use no advertising cookies or third-party trackers. The anti-spam step of the form runs in your browser and sends nothing to outside services."
+        ]
+      },
+      {
+        "id": "purposes",
+        "title": "Why we process it",
+        "blocks": [
+          [
+            "To contact you, assess your level and place you in a suitable class.",
+            "To run lessons: schedules, online classrooms, attendance, homework and progress reports for students and parents.",
+            "To manage packages, fees and accounting records as the law requires.",
+            "To send notices about your studies (schedule changes, lesson reminders)."
+          ],
+          "We never sell personal data and do not use it for advertising or marketing unless you give separate consent for that."
+        ]
+      },
+      {
+        "id": "basis",
+        "title": "Legal basis",
+        "blocks": [
+          [
+            "Your consent: the consent box of the advice form, stored with the policy version and the time you agreed.",
+            "Performance of the study contract between you and {center}.",
+            "Legal obligations, such as keeping accounting records."
+          ]
+        ]
+      },
+      {
+        "id": "children",
+        "title": "Children's data",
+        "blocks": [
+          [
+            "Students under 18 must register with the details of a parent or guardian.",
+            "For children under 16 we only process data with the consent of a parent or guardian; for children aged 7 and over we also ask for the child's own consent, as the law requires.",
+            "Parents or guardians exercise the rights listed under “Your rights” on the child's behalf.",
+            "Children's data is used for their studies only, never for marketing."
+          ]
+        ]
+      },
+      {
+        "id": "retention",
+        "title": "How long we keep it",
+        "blocks": [
+          [
+            "Advice requests that do not lead to enrolment: at most 24 months after the last contact, or until you withdraw consent.",
+            "Student records and results: while you study and at most 5 years after the last course, to issue certificates and handle complaints.",
+            "Fee records and invoices: for the period required by accounting law.",
+            "Technical logs: at most 90 days."
+          ],
+          "After that, the data is deleted or anonymised."
+        ]
+      },
+      {
+        "id": "sharing",
+        "title": "Who we share it with",
+        "blocks": [
+          [
+            "Staff of {center} according to their role (advisors, teachers, accountants), limited to what their work needs.",
+            "Infrastructure providers processing data on our behalf (servers, email delivery, the meeting service used for online lessons) under contracts with data protection clauses. If a provider stores data abroad, the transfer follows the legal requirements.",
+            "Competent authorities when the law requires it."
+          ]
+        ]
+      },
+      {
+        "id": "security",
+        "title": "How we protect it",
+        "blocks": [
+          [
+            "Encrypted connections (HTTPS); passwords are hashed, never stored in readable form.",
+            "Role-based access; each center's data is isolated at the database level.",
+            "Regular backups and a short list of people with server access.",
+            "If a data breach happens, we notify the personal data protection authority within the legal deadline (72 hours) and inform the people affected when needed."
+          ]
+        ]
+      },
+      {
+        "id": "rights",
+        "title": "Your rights",
+        "blocks": [
+          "You (or the parent or guardian of a student who is a child) have the right to:",
+          [
+            "Be informed about the processing of your data.",
+            "See and receive a copy of the data we hold.",
+            "Have incorrect or incomplete data corrected.",
+            "Have your data deleted, except what the law requires us to keep (such as accounting records).",
+            "Withdraw consent at any time. Withdrawal does not affect processing already done, but we may be unable to continue advising or teaching without the data we need.",
+            "Ask us to restrict or stop processing.",
+            "Complain, report, take legal action and claim compensation as provided by law."
+          ],
+          "Send your request using the contact details below. We may verify your identity first and will answer within the time limits set by law."
+        ]
+      },
+      {
+        "id": "contact",
+        "title": "Contact",
+        "blocks": [
+          "For any question or request about personal data, contact {center} through its official phone number, email or campus address, or ask the advisor who contacted you to pass on your request.",
+          "[To be completed by the center: legal entity, address, contact email and the person in charge of personal data protection.]"
+        ]
+      },
+      {
+        "id": "changes",
+        "title": "Changes to this policy",
+        "blocks": [
+          "When this policy changes, we update the version and effective date on this page. Every advice request records the policy version you agreed to. Changes that widen the purposes of processing will ask for your consent again.",
+          "Legal basis: the Law on Personal Data Protection (in force from 1 January 2026), Decree 13/2023/ND-CP and their implementing regulations."
+        ]
+      }
+    ]
+  },
+  "terms": {
+    "title": "Terms of use",
+    "description": "Conditions for using the website and online learning system of {center}.",
+    "intro": "These terms apply when you use the website and online learning system of {center}. By using the service you accept the terms below.",
+    "sections": [
+      {
+        "id": "service",
+        "title": "The service",
+        "blocks": [
+          "The website presents courses, receives advice requests and provides learning areas for the students, parents, teachers and staff of {center}. The software is operated by the Konnyaku platform."
+        ]
+      },
+      {
+        "id": "accounts",
+        "title": "Accounts",
+        "blocks": [
+          [
+            "Accounts are issued by {center}. You are responsible for keeping your password secret and for changing the temporary password at first sign-in.",
+            "Do not share your account or classroom links with others.",
+            "Tell the center straight away if you suspect someone else is using your account."
+          ]
+        ]
+      },
+      {
+        "id": "conduct",
+        "title": "Acceptable use",
+        "blocks": [
+          [
+            "Give truthful information when registering.",
+            "Do not send automated requests, try to bypass the anti-spam step or access data that is not yours.",
+            "Respect teachers and other students in lessons; do not record lessons without permission."
+          ]
+        ]
+      },
+      {
+        "id": "fees",
+        "title": "Fees and packages",
+        "blocks": [
+          "Fees, number of lessons, deferral and refund rules follow the contract or enrolment form signed with {center}. Lessons taken are recorded from attendance in the system."
+        ]
+      },
+      {
+        "id": "content",
+        "title": "Content and materials",
+        "blocks": [
+          "Materials, lessons and lesson recordings (if any) belong to {center} or their authors and are for personal study only; do not copy or distribute them without permission."
+        ]
+      },
+      {
+        "id": "liability",
+        "title": "Liability",
+        "blocks": [
+          "We aim to keep the service available but it may be interrupted for maintenance or by events beyond our control. Affected lessons are rescheduled under the center's policy."
+        ]
+      },
+      {
+        "id": "data",
+        "title": "Personal data",
+        "blocks": [
+          "Personal data is collected and processed under the privacy policy of {center}."
+        ]
+      },
+      {
+        "id": "changes",
+        "title": "Changes and governing law",
+        "blocks": [
+          "These terms may be updated; the version and effective date are shown at the top of the page. They are governed by the laws of Vietnam, and disputes are first settled by negotiation.",
+          "For any question, contact {center} through the official details on the website or at a campus."
+        ]
+      }
+    ]
+  }
+}

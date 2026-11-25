@@ -1,0 +1,211 @@
+{
+  "templateNotice": "Bản mẫu do nền tảng Konnyaku soạn theo Nghị định 13/2023/NĐ-CP và Luật Bảo vệ dữ liệu cá nhân. {center} cần nhờ bộ phận pháp chế rà soát, bổ sung thông tin pháp nhân và người phụ trách bảo vệ dữ liệu trước khi áp dụng chính thức.",
+  "version": "Phiên bản {version} · Hiệu lực từ {date}",
+  "contents": "Mục lục",
+  "otherDocument": "Xem thêm",
+  "privacy": {
+    "title": "Chính sách quyền riêng tư",
+    "description": "Cách {center} thu thập, sử dụng, lưu trữ và bảo vệ dữ liệu cá nhân của học viên, phụ huynh và người đăng ký tư vấn.",
+    "intro": "{center} (“chúng tôi”) tôn trọng và bảo vệ dữ liệu cá nhân của học viên, phụ huynh và người đăng ký tư vấn. Chính sách này cho biết chúng tôi thu thập dữ liệu gì, dùng vào việc gì, lưu trong bao lâu, chia sẻ với ai và bạn có những quyền gì.",
+    "sections": [
+      {
+        "id": "controller",
+        "title": "Ai chịu trách nhiệm về dữ liệu",
+        "blocks": [
+          "{center} là bên kiểm soát và xử lý dữ liệu cá nhân thu thập qua trang web này và trong quá trình học.",
+          "Nền tảng Konnyaku là bên xử lý dữ liệu thay mặt {center}: lưu trữ và vận hành phần mềm theo hợp đồng, không dùng dữ liệu cho mục đích riêng. Dữ liệu của mỗi trung tâm được tách riêng, trung tâm khác không truy cập được."
+        ]
+      },
+      {
+        "id": "data",
+        "title": "Dữ liệu chúng tôi thu thập",
+        "blocks": [
+          "Chúng tôi chỉ thu thập dữ liệu cần cho việc tư vấn và dạy học:",
+          [
+            "Khi đăng ký tư vấn: họ tên học viên, năm sinh, họ tên phụ huynh (nếu học viên chưa đủ 18 tuổi), số điện thoại, email, ngôn ngữ muốn học, mục tiêu, khung giờ mong muốn, ngôn ngữ giao diện và nguồn truy cập (tham số utm của đường dẫn quảng cáo, nếu có).",
+            "Khi học tại trung tâm: tài khoản đăng nhập, lớp và lịch học, điểm danh, thời gian tham gia buổi học trực tuyến, bài tập và kết quả học tập, gói học và thanh toán.",
+            "Dữ liệu kỹ thuật: địa chỉ IP (chỉ dùng để chống gửi tự động, không lưu vào hồ sơ), cookie cần thiết cho đăng nhập, ngôn ngữ và giao diện sáng/tối."
+          ],
+          "Chúng tôi không thu thập dữ liệu cá nhân nhạy cảm (sức khỏe, tôn giáo, sinh trắc học…), không dùng cookie quảng cáo hay công cụ theo dõi của bên thứ ba. Bước chống spam trên form chạy ngay trong trình duyệt của bạn và không gửi dữ liệu cho dịch vụ bên ngoài."
+        ]
+      },
+      {
+        "id": "purposes",
+        "title": "Mục đích xử lý",
+        "blocks": [
+          [
+            "Liên hệ tư vấn, kiểm tra trình độ và xếp lớp phù hợp.",
+            "Tổ chức dạy học: lịch học, phòng học trực tuyến, điểm danh, bài tập, báo cáo tiến độ cho học viên và phụ huynh.",
+            "Quản lý gói học, học phí và chứng từ theo quy định kế toán.",
+            "Gửi thông báo liên quan đến việc học (đổi lịch, nhắc buổi học)."
+          ],
+          "Chúng tôi không bán dữ liệu cá nhân và không dùng dữ liệu cho quảng cáo, tiếp thị nếu bạn chưa đồng ý riêng cho mục đích đó."
+        ]
+      },
+      {
+        "id": "basis",
+        "title": "Căn cứ xử lý",
+        "blocks": [
+          [
+            "Sự đồng ý của bạn: ô đồng ý trên form đăng ký tư vấn, được lưu kèm phiên bản chính sách và thời điểm đồng ý.",
+            "Thực hiện hợp đồng học tập giữa bạn và {center}.",
+            "Nghĩa vụ theo pháp luật, ví dụ lưu chứng từ kế toán."
+          ]
+        ]
+      },
+      {
+        "id": "children",
+        "title": "Dữ liệu của trẻ em",
+        "blocks": [
+          [
+            "Học viên chưa đủ 18 tuổi phải có thông tin cha mẹ hoặc người giám hộ khi đăng ký.",
+            "Với trẻ em dưới 16 tuổi, chúng tôi chỉ xử lý dữ liệu khi có sự đồng ý của cha mẹ hoặc người giám hộ; với trẻ từ đủ 7 tuổi, chúng tôi lấy thêm sự đồng ý của chính trẻ theo quy định.",
+            "Cha mẹ hoặc người giám hộ thay mặt trẻ thực hiện các quyền nêu ở mục “Quyền của bạn”.",
+            "Dữ liệu của trẻ chỉ dùng cho việc học, không dùng để tiếp thị."
+          ]
+        ]
+      },
+      {
+        "id": "retention",
+        "title": "Thời gian lưu trữ",
+        "blocks": [
+          [
+            "Yêu cầu tư vấn không trở thành học viên: tối đa 24 tháng kể từ lần liên hệ cuối, hoặc đến khi bạn rút lại sự đồng ý.",
+            "Hồ sơ học viên và kết quả học tập: trong thời gian học và tối đa 5 năm sau khóa học cuối cùng, để cấp xác nhận và giải quyết khiếu nại.",
+            "Chứng từ học phí, hóa đơn: theo thời hạn pháp luật kế toán quy định.",
+            "Nhật ký kỹ thuật: tối đa 90 ngày."
+          ],
+          "Hết thời hạn, dữ liệu được xóa hoặc ẩn danh hóa."
+        ]
+      },
+      {
+        "id": "sharing",
+        "title": "Chia sẻ dữ liệu",
+        "blocks": [
+          [
+            "Nhân viên của {center} theo vai trò (tư vấn viên, giáo viên, kế toán), chỉ với phần dữ liệu cần cho công việc.",
+            "Nhà cung cấp hạ tầng xử lý dữ liệu thay chúng tôi (máy chủ, gửi email, dịch vụ họp trực tuyến cho buổi học online) theo hợp đồng có điều khoản bảo vệ dữ liệu. Nếu dịch vụ đặt máy chủ ở nước ngoài, việc chuyển dữ liệu ra nước ngoài được thực hiện theo quy định.",
+            "Cơ quan nhà nước có thẩm quyền khi pháp luật yêu cầu."
+          ]
+        ]
+      },
+      {
+        "id": "security",
+        "title": "Bảo vệ dữ liệu",
+        "blocks": [
+          [
+            "Kết nối được mã hóa (HTTPS); mật khẩu được băm, không lưu ở dạng đọc được.",
+            "Phân quyền theo vai trò; dữ liệu của mỗi trung tâm được cách ly ở tầng cơ sở dữ liệu.",
+            "Sao lưu định kỳ và giới hạn người có quyền truy cập máy chủ.",
+            "Khi xảy ra sự cố lộ lọt dữ liệu, chúng tôi thông báo cho cơ quan chuyên trách bảo vệ dữ liệu cá nhân trong thời hạn luật định (72 giờ) và báo cho người bị ảnh hưởng khi cần."
+          ]
+        ]
+      },
+      {
+        "id": "rights",
+        "title": "Quyền của bạn",
+        "blocks": [
+          "Bạn (hoặc cha mẹ, người giám hộ của học viên là trẻ em) có quyền:",
+          [
+            "Được biết về việc xử lý dữ liệu của mình.",
+            "Xem và nhận bản sao dữ liệu chúng tôi đang lưu.",
+            "Yêu cầu chỉnh sửa dữ liệu sai hoặc chưa đầy đủ.",
+            "Yêu cầu xóa dữ liệu, trừ phần pháp luật buộc phải lưu (ví dụ chứng từ kế toán).",
+            "Rút lại sự đồng ý bất cứ lúc nào. Việc rút lại không ảnh hưởng đến việc xử lý đã thực hiện trước đó, nhưng chúng tôi có thể không tiếp tục tư vấn hoặc dạy học được nếu thiếu dữ liệu cần thiết.",
+            "Yêu cầu hạn chế hoặc phản đối việc xử lý.",
+            "Khiếu nại, tố cáo, khởi kiện và yêu cầu bồi thường theo quy định."
+          ],
+          "Gửi yêu cầu qua thông tin liên hệ bên dưới. Chúng tôi có thể xác minh danh tính trước khi thực hiện và phản hồi trong thời hạn pháp luật quy định."
+        ]
+      },
+      {
+        "id": "contact",
+        "title": "Liên hệ",
+        "blocks": [
+          "Mọi câu hỏi hoặc yêu cầu về dữ liệu cá nhân, vui lòng liên hệ {center} qua số điện thoại, email hoặc địa chỉ cơ sở được công bố chính thức, hoặc nhờ tư vấn viên đã liên hệ với bạn chuyển yêu cầu.",
+          "[Trung tâm bổ sung: tên pháp nhân, địa chỉ, email liên hệ và người phụ trách bảo vệ dữ liệu cá nhân.]"
+        ]
+      },
+      {
+        "id": "changes",
+        "title": "Thay đổi chính sách",
+        "blocks": [
+          "Khi chính sách thay đổi, chúng tôi cập nhật phiên bản và ngày hiệu lực trên trang này. Mỗi lần đăng ký tư vấn đều ghi lại phiên bản chính sách bạn đã đồng ý. Thay đổi làm mở rộng mục đích xử lý sẽ được hỏi lại sự đồng ý.",
+          "Căn cứ: Luật Bảo vệ dữ liệu cá nhân (hiệu lực từ 01/01/2026), Nghị định 13/2023/NĐ-CP và các văn bản hướng dẫn."
+        ]
+      }
+    ]
+  },
+  "terms": {
+    "title": "Điều khoản sử dụng",
+    "description": "Điều kiện sử dụng trang web và hệ thống học trực tuyến của {center}.",
+    "intro": "Điều khoản này áp dụng khi bạn dùng trang web và hệ thống học trực tuyến của {center}. Khi sử dụng dịch vụ, bạn đồng ý với các điều khoản dưới đây.",
+    "sections": [
+      {
+        "id": "service",
+        "title": "Dịch vụ",
+        "blocks": [
+          "Trang web giới thiệu khóa học, nhận đăng ký tư vấn và cung cấp khu vực học tập cho học viên, phụ huynh, giáo viên và nhân viên của {center}. Phần mềm do nền tảng Konnyaku vận hành."
+        ]
+      },
+      {
+        "id": "accounts",
+        "title": "Tài khoản",
+        "blocks": [
+          [
+            "Tài khoản do {center} cấp. Bạn chịu trách nhiệm giữ bí mật mật khẩu và đổi mật khẩu tạm ở lần đăng nhập đầu tiên.",
+            "Không chia sẻ tài khoản hoặc đường dẫn phòng học cho người khác.",
+            "Báo ngay cho trung tâm khi nghi ngờ tài khoản bị dùng trái phép."
+          ]
+        ]
+      },
+      {
+        "id": "conduct",
+        "title": "Sử dụng hợp lệ",
+        "blocks": [
+          [
+            "Cung cấp thông tin trung thực khi đăng ký.",
+            "Không gửi yêu cầu tự động, không tìm cách vượt qua bước chống spam hay truy cập dữ liệu không thuộc về mình.",
+            "Tôn trọng giáo viên và học viên khác trong buổi học; không ghi âm, ghi hình buổi học khi chưa được phép."
+          ]
+        ]
+      },
+      {
+        "id": "fees",
+        "title": "Học phí và gói học",
+        "blocks": [
+          "Học phí, số buổi, chính sách bảo lưu và hoàn phí theo hợp đồng hoặc phiếu đăng ký ký với {center}. Số buổi đã học được ghi nhận theo điểm danh trên hệ thống."
+        ]
+      },
+      {
+        "id": "content",
+        "title": "Nội dung và tài liệu",
+        "blocks": [
+          "Tài liệu, bài giảng và bản ghi buổi học (nếu có) thuộc quyền của {center} hoặc tác giả, chỉ dùng cho việc học cá nhân, không sao chép hay phát tán khi chưa được phép."
+        ]
+      },
+      {
+        "id": "liability",
+        "title": "Trách nhiệm",
+        "blocks": [
+          "Chúng tôi cố gắng duy trì dịch vụ ổn định nhưng có thể tạm gián đoạn để bảo trì hoặc do sự cố ngoài tầm kiểm soát. Buổi học bị ảnh hưởng được sắp xếp bù theo chính sách của trung tâm."
+        ]
+      },
+      {
+        "id": "data",
+        "title": "Dữ liệu cá nhân",
+        "blocks": [
+          "Việc thu thập và xử lý dữ liệu cá nhân thực hiện theo Chính sách quyền riêng tư của {center}."
+        ]
+      },
+      {
+        "id": "changes",
+        "title": "Thay đổi và luật áp dụng",
+        "blocks": [
+          "Điều khoản có thể được cập nhật; phiên bản và ngày hiệu lực ghi ở đầu trang. Điều khoản được điều chỉnh theo pháp luật Việt Nam; tranh chấp được ưu tiên giải quyết bằng thương lượng.",
+          "Mọi thắc mắc, vui lòng liên hệ {center} qua thông tin chính thức trên trang web hoặc tại cơ sở."
+        ]
+      }
+    ]
+  }
+}

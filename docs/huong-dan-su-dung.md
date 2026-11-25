@@ -51,8 +51,23 @@ Trang chủ của trung tâm liệt kê các chương trình đang tuyển sinh.
     - **Số điện thoại** hoặc **Email**: cần ít nhất một.
     - **Năm sinh**: nếu học viên dưới 18 tuổi thì phải điền **Họ tên phụ huynh**.
     - **Mục tiêu**, **Khung giờ mong muốn**: không bắt buộc, giúp tư vấn viên xếp lớp.
-4. Đánh dấu ô đồng ý cho trung tâm xử lý thông tin, rồi bấm **Gửi đăng ký**.
-5. Màn hình **Cảm ơn bạn!** xác nhận đã gửi. Tư vấn viên gọi lại trong giờ làm việc.
+4. Đánh dấu ô đồng ý cho trung tâm xử lý thông tin. Liên kết **Chính sách quyền riêng tư** trong câu đồng ý mở chính sách ở tab mới; phiên bản ghi trong câu là phiên bản được lưu cùng đăng ký.
+5. Bấm **Gửi đăng ký**. Ngay khi bạn bắt đầu điền, trình duyệt tự giải một bài kiểm tra chống spam (vài phần mười giây, không cần bấm chọn hình); dòng nhỏ phía trên nút cho biết **Đã xác minh**. Bài kiểm tra chạy trên máy bạn, không gửi dữ liệu cho dịch vụ bên ngoài.
+6. Màn hình **Cảm ơn bạn!** xác nhận đã gửi. Tư vấn viên gọi lại trong giờ làm việc.
+
+Nếu thấy báo lỗi xác minh (ví dụ để form mở quá 30 phút), bấm **Gửi đăng ký** lại: trang đã tự chuẩn bị lượt xác minh mới. Gửi quá nhiều lần trong một phút sẽ bị chặn tạm thời.
+
+### Chính sách quyền riêng tư và điều khoản
+
+Chân trang có liên kết **Chính sách quyền riêng tư** và **Điều khoản sử dụng** (tiếng Việt: `/vi/chinh-sach-quyen-rieng-tu`, `/vi/dieu-khoan-su-dung`; tiếng Anh: `/en/privacy`, `/en/terms`). Chính sách nêu dữ liệu thu thập, mục đích, thời gian lưu, quyền xem / sửa / xóa / rút đồng ý, quy định riêng cho dữ liệu trẻ em và cách liên hệ, kèm phiên bản và ngày hiệu lực.
+
+> Đây là **bản mẫu** do nền tảng soạn, đã điền sẵn tên trung tâm. Trung tâm cần nhờ pháp chế rà lại và bổ sung tên pháp nhân, địa chỉ, email và người phụ trách bảo vệ dữ liệu trước khi dùng chính thức. Khi đổi nội dung, đội kỹ thuật tăng phiên bản trong `frontend/apps/site/app/[locale]/legal.ts` để các đăng ký mới ghi đúng phiên bản.
+
+### Trang lỗi
+
+- Đường dẫn sai: trang **Không tìm thấy trang** (mã 404) theo ngôn ngữ đang xem, có nút về trang chủ và đăng ký tư vấn. Trong `learn` / `teach` / `ops` trang này nằm trong khung của khu vực, có nút về trang chính.
+- Sự cố hệ thống: trang **Đã có lỗi xảy ra** với nút **Thử lại** và **mã tham chiếu**; gửi mã này cho bộ phận kỹ thuật để tra log.
+- Địa chỉ trung tâm sai (tên miền không thuộc trung tâm nào): trang **Không tìm thấy trung tâm**.
 
 ## Học viên và phụ huynh (`learn`)
 
@@ -251,7 +266,23 @@ Sửa lớp trên trang chi tiết:
 
 1. Bấm **Tạo kỳ lương**, chọn Từ ngày và Đến ngày. Mọi công nháp đến ngày kết thúc, kể cả công đến muộn của kỳ trước, được gom vào kỳ này. Hai kỳ không được chồng ngày.
 2. Kiểm tra bảng theo giáo viên: Buổi, Phút, Thành tiền. Dòng **Thiếu đơn giá** cần đặt đơn giá trước khi chốt.
-3. Bấm **Chốt kỳ**. Số tiền được đóng băng và không sửa được nữa.
+3. Bấm **Chốt kỳ**. Số tiền được đóng băng và không sửa được nữa. Giáo viên nhận email báo kỳ lương đã chốt.
+
+### Thông báo
+
+Hệ thống tự gửi email, mỗi người theo ngôn ngữ của mình (học viên: ngôn ngữ liên lạc trong hồ sơ; nhân viên: ngôn ngữ của tài khoản):
+
+| Khi nào | Ai nhận |
+| --- | --- |
+| Có lead mới | Tư vấn viên được giao; chưa giao ai thì các quản trị |
+| Cấp tài khoản học viên | Học viên (email liên lạc trong hồ sơ) |
+| Học viên vào lớp | Học viên |
+| Còn ít buổi | Học viên |
+| Đổi giờ hoặc hủy một buổi | Học viên đang học của lớp và giáo viên của buổi |
+| 24 giờ trước mỗi buổi | Học viên đang học của lớp và giáo viên của buổi |
+| Chốt kỳ lương | Giáo viên |
+
+Học viên không có email trong hồ sơ thì không nhận email. Mục **Thông báo** (chỉ quản trị thấy) liệt kê thư đã gửi, đang chờ và lỗi; lọc theo trạng thái. Thư lỗi tạm thời được thử lại tự động; thư lỗi vĩnh viễn (ví dụ địa chỉ không tồn tại) hiện lý do. **Gửi lại** gửi lần nữa tới đúng địa chỉ cũ (dùng khi lỗi đã được khắc phục, ví dụ máy chủ thư hết lỗi hoặc người nhận đã mở lại hộp thư).
 
 ## Quy trình mẫu từ đầu đến cuối
 
@@ -279,6 +310,34 @@ flowchart LR
 
 Bước tô đậm là bước không hoàn tác được: sau khi giáo viên xác nhận điểm danh, buổi của học viên bị trừ và công được ghi ngay.
 
+## Người vận hành nền tảng (`platform`)
+
+Phần này dành cho nhân viên Konnyaku quản lý các trung tâm, không dành cho trung tâm.
+
+### Đăng nhập
+
+1. Mở `https://admin.<tên miền Konnyaku>/platform` (trang này không mở được từ địa chỉ của trung tâm).
+2. Nhập email và mật khẩu, bấm **Tiếp tục**.
+3. Nhập mã 6 số trong ứng dụng xác thực (Google Authenticator, Microsoft Authenticator, 1Password…), bấm **Xác minh**.
+
+Lần đăng nhập đầu tiên, trang hiện **mã QR**: mở ứng dụng xác thực, thêm tài khoản bằng cách quét mã (hoặc nhập khoá thủ công), rồi nhập mã 6 số ứng dụng hiển thị. Sau đó trang hiện **10 mã khôi phục**: lưu vào trình quản lý mật khẩu; mỗi mã dùng được một lần khi mất điện thoại (bấm **Dùng mã khôi phục** ở bước nhập mã). Người được mời đăng nhập bằng mật khẩu tạm phải đặt mật khẩu mới (ít nhất 12 ký tự) trước khi dùng các mục khác.
+
+Mỗi mã chỉ dùng một lần; nhập sai mật khẩu hoặc mã 5 lần liên tiếp thì tài khoản bị khóa 15 phút.
+
+### Trung tâm
+
+- **Danh sách**: tên, mã, địa chỉ, trạng thái, số học viên, lớp đang mở, nhân sự, ngày tạo. Bấm tên trung tâm để mở trang chi tiết.
+- **Tạo trung tâm**: nhập tên, mã (thành địa chỉ `<mã>.<tên miền Konnyaku>`, chỉ chữ thường, số, dấu gạch ngang), ngôn ngữ mặc định, ngôn ngữ giao diện được bật, múi giờ, rồi họ tên và email của quản trị viên đầu tiên. Màn hình hiện **mật khẩu tạm** của quản trị viên một lần: sao chép và gửi qua kênh an toàn. Nếu email đã là nhân viên ở trung tâm khác, người đó dùng mật khẩu hiện có.
+- **Tạm khóa trung tâm** (trang chi tiết): nhập lý do (không bắt buộc) rồi xác nhận. Trong lúc khóa, không ai của trung tâm đăng nhập được, người đang đăng nhập bị đưa ra ngoài trong vòng một phút, trang công khai hiện "Trung tâm tạm ngừng hoạt động". Dữ liệu được giữ nguyên. Bấm **Mở lại trung tâm** để hoạt động lại ngay.
+- **Thêm tên miền riêng**: trung tâm trỏ bản ghi DNS (A hoặc CNAME) của tên miền về máy chủ Konnyaku trước, rồi thêm tên miền ở đây. Chứng chỉ HTTPS được cấp tự động ở lần truy cập đầu. Gỡ được tên miền riêng, không gỡ được địa chỉ mặc định.
+- **Thêm quản trị viên**: khi quản trị viên cũ nghỉ hoặc mất quyền truy cập, cấp quyền quản trị cho người khác (nhận mật khẩu tạm nếu chưa có tài khoản nhân viên).
+
+### Nhật ký và người vận hành
+
+- **Nhật ký**: mọi thao tác (đăng nhập, tạo, khóa, mở lại trung tâm, thêm tên miền, mời người vận hành…) kèm người thực hiện, thời điểm, trung tâm và địa chỉ IP. Không sửa hay xoá được. Dòng "Tự động hoá (khoá nền tảng)" là thao tác của script dùng khoá hệ thống.
+- **Người vận hành**: mời người mới (mật khẩu tạm hiện một lần), xem ai đã bật xác minh hai bước và lần đăng nhập gần nhất, **Vô hiệu** tài khoản của người nghỉ việc (mất quyền ngay, kể cả phiên đang mở).
+- **Tài khoản**: đổi mật khẩu, xem số mã khôi phục còn lại.
+
 ## Câu hỏi thường gặp
 
 | Tình huống | Cách xử lý |
@@ -296,5 +355,7 @@ Bước tô đậm là bước không hoàn tác được: sau khi giáo viên x
 | Xác nhận điểm danh nhầm | Không sửa được trên giao diện; liên hệ quản trị để điều chỉnh số buổi. |
 | “Bạn không có quyền thực hiện thao tác này” | Vai trò của bạn không được làm việc đó; nhờ người có vai trò Quản trị. |
 | “Phiên đăng nhập đã hết” | Đăng nhập lại rồi làm lại thao tác. |
+| Trang trung tâm báo “Trung tâm tạm ngừng hoạt động” | Trung tâm đang bị tạm khóa trên Konnyaku; quản trị viên trung tâm liên hệ Konnyaku. |
+| Người vận hành mất điện thoại và hết mã khôi phục | Chưa tự đặt lại được trên giao diện; liên hệ quản trị kỹ thuật để đặt lại. |
 
 Chưa có trên giao diện ở bản này: sửa/xoá bản ghi, đổi lịch từng buổi, bảo lưu, học bù, thanh toán online, đăng nhập bằng Google.

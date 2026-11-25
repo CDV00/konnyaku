@@ -1,31 +1,61 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "motion/react";
-import { PartyPopper } from "lucide-react";
+import { LoaderCircle, PartyPopper, ShieldAlert, ShieldCheck } from "lucide-react";
 import { Button } from "@konnyaku/ui/components/animate-ui/components/buttons/button";
 import { Input } from "@konnyaku/ui/components/ui/input";
 import { Textarea } from "@konnyaku/ui/components/ui/textarea";
 import { FormMessage } from "@konnyaku/ui/kk/blocks";
 import { CheckRow, Field, NativeSelect } from "@konnyaku/ui/kk/field";
+import { legalVersion } from "../legal";
+import { fetchAndSolve, type CaptchaSolution } from "./pow";
 
-const consentVersion = "2026-11";
+type CaptchaState = "idle" | "solving" | "ready" | "off" | "failed";
 
-export function RegisterForm({ languages, locale, defaultLanguage }: {
+export function RegisterForm({ languages, locale, defaultLanguage, center, privacyHref }: {
   languages: { code: string; label: string }[];
   locale: string;
   defaultLanguage?: string;
+  center: string;
+  privacyHref: string;
 }) {
   const t = useTranslations("register");
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [captcha, setCaptcha] = useState<CaptchaState>("idle");
+  const solution = useRef<Promise<CaptchaSolution | null | undefined> | null>(null);
+
+  /** Starts the proof-of-work once (first focus in the form, or submit); a solution is good for one submission. */
+  function startCaptcha() {
+    if (solution.current) return solution.current;
+    setCaptcha("solving");
+    solution.current = fetchAndSolve().then(
+      (solved) => {
+        setCaptcha(solved === undefined ? "off" : solved ? "ready" : "failed");
+        return solved;
+      },
+      () => {
+        setCaptcha("failed");
+        return null;
+      },
+    );
+    return solution.current;
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setState("sending");
     setError(null);
     const form = new FormData(event.currentTarget);
+    const solved = await startCaptcha();
+    if (solved === null) {
+      solution.current = null;
+      setError(t("captcha.failed"));
+      setState("idle");
+      return;
+    }
     const text = (name: string) => {
       const value = String(form.get(name) ?? "").trim();
       return value === "" ? null : value;
@@ -44,10 +74,11 @@ export function RegisterForm({ languages, locale, defaultLanguage }: {
         goal: text("goal"),
         preferredSchedule: text("preferredSchedule"),
         consentGiven: form.get("consent") === "on",
-        consentVersion,
+        consentVersion: legalVersion.version,
         locale,
         utm,
         website: text("website"),
+        captcha: solved ?? null,
       }),
     });
     if (response.ok) {
@@ -55,9 +86,12 @@ export function RegisterForm({ languages, locale, defaultLanguage }: {
       return;
     }
     const body = (await response.json().catch(() => ({}))) as { code?: string };
-    const key = `errors.${(body.code ?? "unknown").replace(".", "_")}`;
+    const key = `errors.${(body.code ?? "unknown").replaceAll(".", "_")}`;
     setError(t.has(key) ? t(key) : t("errors.unknown"));
     setState("idle");
+    // A solution is single use: get the next one ready while the visitor fixes the form.
+    solution.current = null;
+    void startCaptcha();
   }
 
   return (
@@ -77,7 +111,14 @@ export function RegisterForm({ languages, locale, defaultLanguage }: {
           <p className="max-w-sm text-muted-foreground">{t("sent")}</p>
         </motion.div>
       ) : (
-        <motion.form key="form" method="post" onSubmit={onSubmit} exit={{ opacity: 0 }} className="grid gap-4 sm:grid-cols-2">
+        <motion.form
+          key="form"
+          method="post"
+          onSubmit={onSubmit}
+          onFocusCapture={() => void startCaptcha()}
+          exit={{ opacity: 0 }}
+          className="grid gap-4 sm:grid-cols-2"
+        >
           <Field label={t("studentName")} className="sm:col-span-2">
             <Input name="studentName" required autoComplete="name" />
           </Field>
@@ -108,13 +149,38 @@ export function RegisterForm({ languages, locale, defaultLanguage }: {
             <Input name="preferredSchedule" />
           </Field>
           <input name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[10000px]" />
-          <CheckRow name="consent" required className="items-start text-muted-foreground sm:col-span-2">{t("consent")}</CheckRow>
+          <CheckRow name="consent" required className="items-start text-muted-foreground sm:col-span-2">
+            {t.rich("consent", {
+              center,
+              version: legalVersion.version,
+              privacy: (chunks) => (
+                <a href={privacyHref} target="_blank" rel="noopener" className="font-medium text-primary underline-offset-2 hover:underline">
+                  {chunks}
+                </a>
+              ),
+            })}
+          </CheckRow>
           {error && <div className="sm:col-span-2"><FormMessage>{error}</FormMessage></div>}
+          <CaptchaStatus state={captcha} />
           <Button type="submit" size="lg" disabled={state === "sending"} className="sm:col-span-2">
             {t(state === "sending" ? "sending" : "submit")}
           </Button>
         </motion.form>
       )}
     </AnimatePresence>
+  );
+}
+
+/** One quiet line under the form: the anti-spam check runs in the browser, nothing goes to a third party. */
+function CaptchaStatus({ state }: { state: CaptchaState }) {
+  const t = useTranslations("register.captcha");
+  if (state === "idle" || state === "off") return null;
+  const Icon = state === "solving" ? LoaderCircle : state === "ready" ? ShieldCheck : ShieldAlert;
+  const tone = state === "solving" ? "animate-spin" : state === "ready" ? "text-success" : "text-destructive";
+  return (
+    <p role="status" aria-live="polite" className="flex items-center gap-2 text-xs text-muted-foreground sm:col-span-2">
+      <Icon className={`size-3.5 shrink-0 ${tone}`} aria-hidden />
+      {t(state)}
+    </p>
   );
 }
