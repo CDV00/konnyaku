@@ -20,7 +20,7 @@ Tài liệu này trả lời ba câu hỏi: RAM của stack `infra/deploy` đi �
 | Mục | Giá trị |
 | --- | --- |
 | Máy | Laptop Windows 11, Docker Desktop (WSL2) 8 vCPU / 11,6 GB cho VM, amd64. Máy **dùng chung** với các phiên làm việc khác (build Rust, test tích hợp), nên **thông lượng và độ trễ dao động mạnh giữa các lần chạy** (cùng cấu hình: 5,4 → 13 req/s). RAM ổn định giữa các lần (±10 MiB) |
-| Phiên bản | `main` tại `0caaa04`: 11 module, chưa có module Notification, service `signaling` (Rust) và `coturn` của phòng học. Hai service này không nằm trong số đo và chưa có trần bộ nhớ |
+| Phiên bản | `main` tại `0caaa04`: 11 module, chưa có module Notification, service `signaling` (Rust) và `coturn` của phòng học. Hai service này đo riêng ở [mục 9](#9-phòng-học-signaling-rust-và-coturn) |
 | Stack | `infra/deploy/compose.yaml` với Caddyfile HTTP (`auto_https off`), cổng 8089, tenant `demo` từ `infra/scripts/seed_demo.py` |
 | Đo RAM/CPU | `docker stats` mỗi ~2 s: lúc rảnh (45 s sau khi khởi động), trong lúc tải (đỉnh, CPU trung bình) và 30 s sau tải ("sau tải": RAM mà tiến trình còn giữ) |
 | Tải | k6 trong container, gọi qua Caddy ([`infra/loadtest/mixed.js`](../infra/loadtest/mixed.js)), 2 phút: 10 khách xem trang chủ → form đăng ký → gửi lead; 5 nhân viên đăng nhập rồi mở `/ops`, `/ops/classes`, `/ops/students`, `/ops/leads`; 5 học viên mở `/learn`; 2 người đăng nhập liên tục (PBKDF2). **load**: nghỉ 1 s giữa các vòng (22 người dùng ảo). **stress**: gấp 4 số người, không nghỉ |
@@ -125,6 +125,22 @@ Sửa: `KEEP_ALIVE_TIMEOUT=130000` cho web (server standalone của Next.js đ�
 
 Worker ghi log mỗi lần quét outbox (11 module × mỗi 2 s ≈ 5 câu SQL mỗi giây khi rảnh, cấp Information). Hạ `Microsoft.EntityFrameworkCore.Database.Command` xuống Warning trong `appsettings.json` của Worker (API đã làm vậy qua Serilog). Không đổi RAM, bớt CPU và dung lượng log.
 
+### 9. Phòng học: signaling (Rust) và coturn
+
+Hai service thêm vào sau đợt đo chính, nên đo riêng: container signaling đứng một mình, k6 mở WebSocket với vé ký bằng `SIGNALING_SECRET` ([`infra/loadtest/signaling.js`](../infra/loadtest/signaling.js)), mỗi phòng 6 người, mỗi người đổi trạng thái mic và gửi một tin `signal` ~1 KB tới từng người khác mỗi 2 giây, giữ 60 s.
+
+| Tải | RAM đỉnh | CPU trung bình | Sau khi mọi người rời phòng |
+| --- | --- | --- | --- |
+| Rảnh | ~1 MiB | 0 % | — |
+| 50 phòng, 300 người (~870 tin/giây vào) | 66 MiB | 12 % | 16 MiB |
+| 200 phòng, 1 200 người (~3 400 tin/giây vào) | 250–255 MiB | 44–66 % | 35–45 MiB |
+
+- Khoảng **210 KiB mỗi người đang kết nối**, tăng tuyến tính, không rò rỉ (trả lại sau khi rời phòng). Phần lớn có lẽ là bộ đệm đọc/ghi mặc định 128 KiB của tungstenite cho mỗi WebSocket; tin signaling chỉ vài KB nên có thể hạ xuống ~16 KiB nếu cần (chưa đo).
+- `MALLOC_ARENA_MAX=2` không đổi gì (đã thử), nên không dùng.
+- coturn lúc rảnh ~7 MiB; chưa đo khi relay thật (cần client TURN). Dải cổng relay mặc định 101 cổng giới hạn số kết nối relay đồng thời.
+
+Trần: `SIGNALING_MEM_LIMIT` 256m ở hồ sơ 8 GB (~1 100 người cùng lúc), 96m ở hồ sơ 2 GB (~400 người, tức ~65 lớp 6 người — quá đủ cho máy 1–2 vCPU); `COTURN_MEM_LIMIT` 128m / 64m. Phòng nằm trong bộ nhớ của một bản signaling duy nhất: chạm trần thì mọi phòng rớt, nên trần đặt theo giờ cao điểm chứ không sát số đo. Không có GC hay heap để chỉnh như .NET/Node.
+
 ## Sau khi tối ưu
 
 Cùng cách đọc như bảng trước. Hai dòng "chưa sửa keep-alive" là lượt đo trước khi thêm `KEEP_ALIVE_TIMEOUT` (mục 7).
@@ -161,10 +177,11 @@ Hai khối trong [`infra/deploy/.env.example`](../infra/deploy/.env.example); co
 | web | 1 × (heap 384 MB, trần 640m) | 2 × (heap 512 MB, trần 768m) |
 | api | 1 × trần 384m, **chạy luôn outbox** | 2 × trần 512m |
 | worker | 0 | 1 × trần 256m |
+| signaling, coturn | trần 96m, 64m | trần 256m, 128m |
 | pool mỗi module | api 6 | api 6, worker 3 |
 | PostgreSQL | 80 kết nối, `shared_buffers` 128MB, trần 512m | 200 kết nối, `shared_buffers` 512MB, trần 2g |
 | RAM stack đo được: load / stress (tổng đỉnh) | ~470 / 630–780 MiB | ~880 / 1 080–1 375 MiB |
-| Tổng các trần | ~1,5 GB (web 640 + api 384 + PostgreSQL 512; còn ~0,5 GB cho hệ điều hành, Docker, Caddy) | ~4,75 GB (phần còn lại là page cache cho PostgreSQL) |
+| Tổng các trần | ~1,65 GB (web 640 + api 384 + PostgreSQL 512 + signaling 96 + coturn 64). Trần là mức tối đa, không phải mức dùng: số đo thực tế ~0,5–0,8 GB, phần còn lại cho hệ điều hành, Docker, Caddy | ~5,1 GB (phần còn lại là page cache cho PostgreSQL) |
 
 Máy 2 GB nên bật thêm swap 1–2 GB (`fallocate -l 2G /swapfile && mkswap /swapfile && swapon /swapfile`, thêm vào `/etc/fstab`) để đỡ những lúc build/pull image.
 
@@ -195,7 +212,7 @@ Tiêu chí của dự án ([06-evolution-strategy.md §6.6](06-evolution-strateg
 | **api** (.NET, 11 module, ~7 400 dòng C# + 1 750 dòng test) | ~120–150 MiB / bản sao | Một service axum + sqlx tương đương thường 20–40 MiB: **~100 MiB mỗi bản sao** (~200 MiB ở hồ sơ 8 GB, ~100 MiB ở 2 GB) | Viết lại toàn bộ nghiệp vụ, outbox/inbox, RLS, hash mật khẩu tương thích ASP.NET Identity, migration; mất ArchitectureTests và test tích hợp hiện có. Ước lượng 6–10 tuần một người, rủi ro hồi quy cao | Không. Cấu hình đã lấy lại nhiều RAM hơn mức này với ~0 rủi ro |
 | **worker** (outbox) | ~80 MiB | Không tách được riêng: handler là nghiệp vụ .NET của từng module, chạy trong process | Phải viết lại handler = viết lại module | Không. Máy nhỏ dùng `API_RUNS_WORKER=true` (tiết kiệm ~80 MiB, không đổi code nghiệp vụ) |
 | Một module tải cao (ví dụ đăng nhập PBKDF2, form công khai) | Không đo được phần riêng vượt 40 % process | — | Tách module = playbook §6.7, cần HTTP giữa các module | Chưa đạt tiêu chí "tải khác biệt" |
-| Signaling WebRTC | — | — | Đã viết bằng Rust ở nhánh riêng (phòng học P2P) | Đúng chỗ: service mới, không có nghiệp vụ cũ, nhiều kết nối dài |
+| Signaling WebRTC | ~1 MiB rảnh, ~210 KiB mỗi người kết nối (mục 9) | — | Đã viết bằng Rust (phòng học P2P) | Đúng chỗ: service mới, không có nghiệp vụ cũ, nhiều kết nối dài |
 
 Tóm lại: RAM thừa nằm ở **cấu hình** (heap Node, pool kết nối, container worker), không nằm ở ngôn ngữ. Rust đáng dùng cho **service mới, độc lập, nhiều kết nối đồng thời** (như signaling), không đáng để viết lại phần nghiệp vụ đang chạy.
 
@@ -210,5 +227,5 @@ Xem xét lại khi một trong các điều sau xảy ra:
 - **CPU của web**: một trang SSR tốn ~100–150 ms CPU; trang công khai (`/vi`, `/vi/dang-ky`) giống nhau cho mọi khách, nên cache được (ISR theo tenant hoặc cache ở Caddy) → giảm phần lớn CPU từ khách vãng lai.
 - **Cache tenant ở API**: `ResolveHostAsync` không chống "cache stampede" khi hết hạn; dùng `HybridCache` hoặc khóa theo key để chỉ một request truy vấn.
 - **Caddy với một bản sao web**: `fail_duration 30s` biến mọi lỗi kết nối lẻ thành 30 s gián đoạn khi chỉ có một upstream (mục 7). Đã loại nguyên nhân chính bằng `KEEP_ALIVE_TIMEOUT`; nên cân nhắc giảm `fail_duration` hoặc bỏ passive health check khi `WEB_REPLICAS=1`.
-- Đo `signaling` và `coturn` (thêm sau đợt đo này) theo cùng cách, rồi đặt trần bộ nhớ cho chúng và cộng vào hai hồ sơ.
+- Đo coturn khi relay thật; nếu lớp học đông hơn dự kiến, hạ bộ đệm WebSocket của signaling (mục 9).
 - Đo lại trên máy arm64 thật và máy 2 GB thật (không dùng chung với việc khác) để có độ trễ đáng tin.

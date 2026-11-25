@@ -156,6 +156,12 @@ services:
       API_URL: http://api:8080
       # People per room. Mesh: everyone sends video to everyone; above ~6 upload bandwidth and CPU of each device suffer.
       ROOM_CAPACITY: ${ROOM_CAPACITY:-6}
+    # ~1 MiB idle, ~210 KiB per connected person (docs/toi-uu-tai-nguyen.md). Rooms live in memory: if this limit is
+    # hit every room drops, so size it for the busiest hour (256m: ~1 100 people).
+    deploy:
+      resources:
+        limits:
+          memory: ${SIGNALING_MEM_LIMIT:-256m}
     networks: [edge, app]
     depends_on: [api]
     logging: *logging
@@ -190,6 +196,10 @@ services:
         --denied-peer-ip=fc00::-fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
         --denied-peer-ip=fe80::-febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff
         --user-quota=12 --total-quota=1200
+    deploy:
+      resources:
+        limits:
+          memory: ${COTURN_MEM_LIMIT:-128m}
     logging: *logging
 
   # Runs on every `up`, applies pending EF migrations with the schema owner, then exits.
