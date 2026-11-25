@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { requireMe } from "@konnyaku/session";
 import { Onboarding } from "@konnyaku/ui/kk/onboarding";
+import { guideUrl } from "../../guide-url";
 
 const steps = ["schedule", "join", "attendance", "timesheet"] as const;
 
@@ -15,6 +16,7 @@ export async function TeachOnboarding() {
       intro={t("teach.intro")}
       steps={steps.map((step) => ({ key: step, title: t(`teach.steps.${step}.title`), description: t(`teach.steps.${step}.description`) }))}
       labels={{ show: t("show"), hide: t("hide") }}
+      guide={{ href: guideUrl("giao-vien"), label: t("guide") }}
     />
   );
 }

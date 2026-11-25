@@ -48,7 +48,7 @@ python infra/scripts/seed_demo.py
 - Thêm module mới: thêm dòng role/schema trong `infra/docker/postgres/init/01-modules.sql` rồi tạo lại volume dev (`docker compose ... down -v`).
 - Giao diện: package `frontend/packages/ui` (`@konnyaku/ui`) — Tailwind v4 (giữ 4.1.x vì Node 20.18 chưa hỗ trợ `require(esm)`), token màu sáng/tối trong `src/styles/globals.css`, component [animate-ui](https://animate-ui.com) + shadcn/ui chép vào `src/components` (code vendored, sửa tối thiểu), component riêng của Konnyaku trong `src/kk` (khung trang, thẻ thống kê, field, logo). Thêm component: `cd frontend/packages/ui && npx shadcn@latest add @animate-ui/<tên>` (registry khai báo trong `components.json`); sau đó kiểm tra import `cn` trỏ về `@konnyaku/ui/lib/utils`.
 
-Hướng dẫn cho người dùng cuối (học viên, giáo viên, nhân viên vận hành): [docs/huong-dan-su-dung.md](docs/huong-dan-su-dung.md). Triển khai lên VPS: [docs/trien-khai.md](docs/trien-khai.md); RAM/CPU theo cỡ máy (2 GB, 8 GB), RAM của bộ giám sát và đánh giá tách service Rust: [docs/toi-uu-tai-nguyen.md](docs/toi-uu-tai-nguyen.md); giám sát, dashboard và cảnh báo: [docs/trien-khai.md#giám-sát-và-cảnh-báo](docs/trien-khai.md#giám-sát-và-cảnh-báo).
+Hướng dẫn sử dụng cho người dùng cuối (trung tâm mới, quản trị, nhân viên vận hành, giáo viên, học viên, phụ huynh, người vận hành nền tảng): [docs/huong-dan/](docs/huong-dan/README.md). Triển khai lên VPS: [docs/trien-khai.md](docs/trien-khai.md); RAM/CPU theo cỡ máy (2 GB, 8 GB), RAM của bộ giám sát và đánh giá tách service Rust: [docs/toi-uu-tai-nguyen.md](docs/toi-uu-tai-nguyen.md); giám sát, dashboard và cảnh báo: [docs/trien-khai.md#giám-sát-và-cảnh-báo](docs/trien-khai.md#giám-sát-và-cảnh-báo).
 
 ## Trạng thái triển khai
 
