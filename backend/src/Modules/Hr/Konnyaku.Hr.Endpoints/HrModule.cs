@@ -40,7 +40,7 @@ public sealed class HrModule : IModule
             .RequireClaim(KonnyakuClaims.Audience, Audiences.Staff)
             .RequireRole("TenantAdmin", "Accountant"));
 
-        var rates = group.MapGroup("").RequirePermission(Permissions.PayRates);
+        var rates = group.MapGroup("").RequireCenterPermission(Permissions.PayRates);
         rates.MapPut("/teachers/{teacherId:guid}/rate", async (Guid teacherId, SetRateCommand command, PayrollHandlers handlers, CancellationToken ct) =>
             ApiResults.From(await handlers.SetRateAsync(teacherId, command, ct), Results.Ok));
         rates.MapPut("/rates/{id:guid}", async (Guid id, SetRateCommand command, PayrollHandlers handlers, CancellationToken ct) =>

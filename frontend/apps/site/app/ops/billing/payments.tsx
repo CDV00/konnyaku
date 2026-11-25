@@ -6,8 +6,18 @@ import { Input } from "@konnyaku/ui/components/ui/input";
 import { StatusBadge } from "@konnyaku/ui/kk/blocks";
 import { NativeSelect } from "@konnyaku/ui/kk/field";
 import { ActionButton, ActionForm } from "../action-form";
+import { ReceiptLink } from "./order-money";
 
-type Payment = { id: string; amount: number; method: string; reference: string | null; receivedAt: string; voidedAt: string | null };
+type Payment = {
+  id: string;
+  amount: number;
+  method: string;
+  reference: string | null;
+  receivedAt: string;
+  voidedAt: string | null;
+  receiptCode: string;
+  receivedByName: string | null;
+};
 
 const methods = ["cash", "bank_transfer", "card"] as const;
 
@@ -43,8 +53,14 @@ export function PaymentList({ orderId, currency, editable, pending }: { orderId:
       {payments.map((p) => (
         <li key={p.id} className="grid gap-2 rounded-lg border p-3 text-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="font-medium tabular-nums">{format.number(p.amount, { style: "currency", currency })}</span>
+            <span className="font-medium tabular-nums">
+              {p.receiptCode} · {format.number(p.amount, { style: "currency", currency })}
+            </span>
             <span className="text-xs text-muted-foreground">{format.dateTime(new Date(p.receivedAt), { dateStyle: "short", timeStyle: "short" })}</span>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span>{p.receivedByName ? t("billing.collectedBy", { name: p.receivedByName }) : null}</span>
+            <ReceiptLink kind="receipt" id={p.id} />
           </div>
           {p.voidedAt ? (
             <StatusBadge tone="destructive">{t("billing.voided")}</StatusBadge>

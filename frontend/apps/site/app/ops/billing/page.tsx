@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getFormatter, getLocale, getTranslations } from "next-intl/server";
 import { Package as PackageIcon, Receipt } from "lucide-react";
 import { requireMe } from "@konnyaku/session";
@@ -8,6 +9,7 @@ import { Field, NativeSelect } from "@konnyaku/ui/kk/field";
 import { ActionButton, ActionForm, FormSheet } from "../action-form";
 import { ChangeHistory } from "../history";
 import { getAccess, getJson, localized, statusTone, type ClassRow, type Package, type Student } from "../lib";
+import { Ledger, RefundForm, RefundList } from "./order-money";
 import { PaymentList } from "./payments";
 
 type Order = {
@@ -19,12 +21,20 @@ type Order = {
   amountReceived: number;
   currency: string;
   status: string;
+  branchId: string | null;
+  amountRefunded: number;
 };
+
+/** Filters of the orders list, as the API names them (`/api/billing/orders?status=`). */
+const filters = ["all", "unpaid", "partial", "paid", "refund_required", "refunded"] as const;
+type Filter = (typeof filters)[number];
 
 const paymentMethods = ["cash", "bank_transfer", "card"] as const;
 
-export default async function BillingPage() {
+export default async function BillingPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const { token } = await requireMe("staff");
+  const requested = (await searchParams).status;
+  const filter: Filter = filters.find((f) => f === requested) ?? "all";
   const t = await getTranslations("admin");
   const locale = await getLocale();
   const format = await getFormatter();
@@ -35,7 +45,7 @@ export default async function BillingPage() {
   const canSell = canOrders || access.any("crm.students");
   const [packages, orders, students, classes] = await Promise.all([
     getJson<Package[]>(`/api/billing/packages${canPackages ? "?includeInactive=true" : ""}`, token, []),
-    getJson<Order[]>("/api/billing/orders", token, []),
+    getJson<Order[]>(`/api/billing/orders${filter === "all" ? "" : `?status=${filter}`}`, token, []),
     getJson<Student[]>("/api/crm/students", token, []),
     getJson<ClassRow[]>("/api/academic/classes", token, []),
   ]);
@@ -110,7 +120,26 @@ export default async function BillingPage() {
         }
       />
 
-      <Panel title={t("billing.orders")} bodyClassName="p-0">
+      <Panel
+        title={t("billing.orders")}
+        bodyClassName="p-0"
+        action={
+          <nav aria-label={t("billing.filterLabel")} className="flex flex-wrap gap-1.5">
+            {filters.map((f) => (
+              <Link
+                key={f}
+                href={f === "all" ? "/ops/billing" : `/ops/billing?status=${f}`}
+                aria-current={f === filter ? "page" : undefined}
+                className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                  f === filter ? "border-primary bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                {t(`billing.filters.${f}`)}
+              </Link>
+            ))}
+          </nav>
+        }
+      >
         {orders.length === 0 ? (
           <div className="p-5"><EmptyState icon={Receipt} title={t("billing.noOrders")} /></div>
         ) : (
@@ -128,6 +157,8 @@ export default async function BillingPage() {
             <TableBody>
               {orders.map((o) => {
                 const pending = o.status === "PendingPayment";
+                const refundable = o.status === "Paid" || o.status === "RefundRequired" || (pending && o.amountReceived > 0);
+                const canRefund = refundable && access.can("billing.refunds", o.branchId);
                 return (
                   <TableRow key={o.id}>
                     <TableCell className="pl-5">
@@ -161,6 +192,18 @@ export default async function BillingPage() {
                             </ActionForm>
                           </FormSheet>
                         )}
+                        {canRefund && (
+                          <FormSheet
+                            triggerLabel={t("billing.refund")}
+                            title={t("billing.refundTitle", { name: studentName.get(o.studentId) ?? "" })}
+                            description={t("billing.refundDescription")}
+                            variant={o.status === "RefundRequired" ? "destructive" : "outline"}
+                            size="sm"
+                            icon={false}
+                          >
+                            <RefundForm orderId={o.id} />
+                          </FormSheet>
+                        )}
                         <FormSheet triggerLabel={t("billing.details")} title={t("billing.orderOf", { name: studentName.get(o.studentId) ?? "" })} variant="ghost" size="sm" icon={false}>
                           {pending && canOrders && (
                             <section className="space-y-3 pt-4">
@@ -179,6 +222,11 @@ export default async function BillingPage() {
                           <section className="mt-6 space-y-3">
                             <h3 className="text-sm font-semibold">{t("billing.payments")}</h3>
                             <PaymentList orderId={o.id} currency={o.currency} editable={canPayments} pending={pending} />
+                          </section>
+                          <RefundList orderId={o.id} />
+                          <section className="mt-6 space-y-3">
+                            <h3 className="text-sm font-semibold">{t("billing.ledger")}</h3>
+                            <Ledger orderId={o.id} canAdjust={o.status === "Paid" && access.can("billing.orders", o.branchId)} />
                           </section>
                           <section className="mt-6 space-y-3">
                             <h3 className="text-sm font-semibold">{t("history.title")}</h3>

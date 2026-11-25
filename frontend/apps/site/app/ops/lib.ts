@@ -97,6 +97,7 @@ export type Permission =
   | "billing.packages"
   | "billing.orders"
   | "billing.payments"
+  | "billing.refunds"
   | "crm.leads"
   | "crm.students"
   | "crm.students.view"
@@ -159,6 +160,7 @@ export const statusTone: Record<string, Tone> = {
   PendingPayment: "warning",
   Paid: "success",
   RefundRequired: "destructive",
+  Refunded: "muted",
   // payroll
   Locked: "success",
   // staff

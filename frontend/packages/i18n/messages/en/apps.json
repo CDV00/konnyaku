@@ -35,10 +35,24 @@
     "title": "Student & parent portal",
     "zone": "Learner",
     "nav": {
-      "home": "Overview"
+      "home": "Overview",
+      "payments": "Payments"
     },
     "subtitle": "Your schedule, remaining lessons and replays.",
-    "nextLesson": "Next lesson"
+    "nextLesson": "Next lesson",
+    "payments": {
+      "title": "Payment history",
+      "description": "Tuition payments and refunds, with receipts to download.",
+      "empty": "No payments yet.",
+      "receipt": "Receipt",
+      "refund": "Refund",
+      "voided": "Voided",
+      "download": "Download",
+      "code": "No.",
+      "date": "Date",
+      "package": "Package",
+      "amount": "Amount"
+    }
   },
   "teach": {
     "title": "Teacher app",
@@ -343,7 +357,8 @@
       "PendingPayment": "Awaiting payment",
       "Paid": "Paid",
       "Cancelled": "Cancelled",
-      "RefundRequired": "Refund due"
+      "RefundRequired": "Refund due",
+      "Refunded": "Refunded"
     },
     "result": {
       "username": "Username:",
@@ -530,7 +545,64 @@
       "payments": "Payments",
       "editPackage": "Edit package {code}",
       "packageEditHint": "A new price applies to new orders; existing orders keep theirs.",
-      "deactivatePackageConfirm": "Stop selling this package? Existing orders stay."
+      "deactivatePackageConfirm": "Stop selling this package? Existing orders stay.",
+      "filters": {
+        "all": "All",
+        "unpaid": "Awaiting payment",
+        "partial": "Partly paid",
+        "paid": "Paid",
+        "refund_required": "Refund due",
+        "refunded": "Refunded",
+        "cancelled": "Cancelled"
+      },
+      "filterLabel": "Filter by status",
+      "refunded": "Refunded",
+      "refund": "Refund",
+      "refundTitle": "Refund {name}",
+      "refundDescription": "Unused paid lessons × unit price are refunded; bonus lessons are not. You may change the suggested amount — give the reason.",
+      "refundKinds": {
+        "ClassUnavailable": "Class could not take the student",
+        "Withdrawal": "Leaving mid-course",
+        "Cancellation": "Stopping before paying in full"
+      },
+      "quoteReceived": "Received",
+      "quotePaidLeft": "Unused paid lessons",
+      "quoteBonusLeft": "Bonus lessons (not refunded)",
+      "quoteUnit": "Price per lesson",
+      "quoteSuggested": "Suggested amount",
+      "quoteNotRefundable": "This order cannot be refunded in its current state.",
+      "refundAmount": "Amount to refund",
+      "refundAmountHint": "At most {max}. If it differs from the suggestion, explain below.",
+      "refundReason": "Reason",
+      "refundReasonHint": "Printed on the refund voucher and kept in the lesson ledger.",
+      "refundSubmit": "Confirm refund",
+      "refunds": "Refunds",
+      "refundLine": "{code} · {amount} · {who}",
+      "viewReceipt": "View receipt",
+      "collectedBy": "Collected by {name}",
+      "ledger": "Lesson ledger",
+      "ledgerEmpty": "No lessons in the ledger yet (the order is not fully paid).",
+      "ledgerHint": "Append-only: every change is a new line.",
+      "entryTypes": {
+        "Purchase": "Purchase",
+        "Bonus": "Bonus",
+        "Consume": "Lesson",
+        "Refund": "Refund",
+        "TransferOut": "Transfer out",
+        "TransferIn": "Transfer in",
+        "Expire": "Expired",
+        "Adjust": "Adjustment"
+      },
+      "creditKinds": {
+        "Paid": "paid",
+        "Bonus": "bonus"
+      },
+      "ledgerCredits": "{credits} {kind} lessons",
+      "adjust": "Adjust lessons",
+      "adjustCredits": "Lessons (+ add, − remove)",
+      "adjustKind": "Kind",
+      "adjustReason": "Reason",
+      "adjustSubmit": "Add entry"
     },
     "errors": {
       "unknown": "Could not do that ({code}).",
@@ -627,7 +699,16 @@
       "billing_student_unknown": "Unknown student.",
       "notification_message_not_found": "Notification not found.",
       "notification_already_pending": "This notification is already waiting to be sent.",
-      "notification_resend_not_allowed": "This notification held confidential data and was already sent; it cannot be resent."
+      "notification_resend_not_allowed": "This notification held confidential data and was already sent; it cannot be resent.",
+      "billing_order_already_refunded": "This order has already been refunded.",
+      "billing_order_not_refundable": "This order cannot be refunded in its current state.",
+      "billing_refund_amount_invalid": "The refund must be above 0 and at most what was received ({max}).",
+      "billing_refund_reason_required": "A reason is required (at most {max} characters).",
+      "billing_receipt_not_found": "Receipt not found.",
+      "billing_receipt_print_limit": "This receipt was printed or downloaded {limit} times in the last 24 hours.",
+      "billing_order_filter_invalid": "Invalid filter.",
+      "billing_adjustment_invalid": "Lessons must not be 0 and a reason is required (at most 300 characters).",
+      "billing_account_not_found": "This order has no lesson ledger yet (not fully paid)."
     },
     "classStatus": {
       "Planned": "Planned",
@@ -783,6 +864,39 @@
       "preferredSchedule": "Preferred schedule",
       "consultant": "Consultant",
       "noConsultant": "Unassigned"
+    },
+    "receipts": {
+      "receiptTitle": "Receipt {code}",
+      "refundTitle": "Refund voucher {code}",
+      "back": "Billing",
+      "print": "Print",
+      "download": "Download PDF",
+      "voided": "Voided receipt (payment entered by mistake)",
+      "center": "Center",
+      "branch": "Branch",
+      "date": "Date",
+      "student": "Student",
+      "package": "Package",
+      "amount": "Amount",
+      "inWords": "In words",
+      "method": "Method",
+      "reference": "Transaction reference",
+      "reason": "Refund reason",
+      "issuedBy": "Issued by",
+      "credits": "Lessons",
+      "creditsValue": "{paid} unused paid lessons refunded · {bonus} bonus lessons not refundable",
+      "prints": "Print and download log",
+      "noPrints": "Nobody has printed or downloaded this yet.",
+      "printLine": "{who} · {action} · {when}",
+      "actions": {
+        "print": "printed",
+        "download": "downloaded"
+      },
+      "audiences": {
+        "staff": "staff",
+        "learn": "learner"
+      },
+      "notice": "Every print and download is logged; the PDF shows who printed it (partly masked)."
     }
   },
   "shell": {
