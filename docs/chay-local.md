@@ -10,6 +10,7 @@ Hệ thống local gồm 3 phần: hạ tầng trong Docker, backend .NET (API +
 | API | 5080 | Tài liệu API: `http://localhost:5080/scalar` |
 | Worker | 5090 | Xử lý outbox (ghi danh sau thanh toán, tạo phòng học, trừ buổi, công) |
 | PostgreSQL | 5433 | User `konnyaku` / `konnyaku_dev`, DB `konnyaku` |
+| Signaling phòng học (`services/signaling`) | 5100 | WebSocket `ws://localhost:5100/rtc/ws`, sức khoẻ `/rtc/health`; container `signaling` trong docker compose |
 | Redis | 6380 | |
 | Mailpit (xem email gửi đi) | 8025 (web), 1025 (SMTP) | `http://localhost:8025` |
 
@@ -95,6 +96,14 @@ Mở `http://review.localhost:4000/login`. Mật khẩu chung: nhân viên `Revi
 Biến môi trường `KONNYAKU_API` và `KONNYAKU_PLATFORM_KEY` cho phép chạy script vào API khác (ví dụ stack staging); tham số `--base-domain` khớp với `Platform:BaseDomain` của API đó.
 
 Dùng Claude Code: các dịch vụ trên đã khai báo trong `.claude/launch.json` (`api`, `worker`, `site`); bảo Claude "chạy dev server" là đủ. Hạ tầng Docker và migration vẫn phải chạy trước.
+
+## Phòng học có sẵn (WebRTC)
+
+1. Bước 1 ở trên đã bật container `signaling` (lần đầu build image Rust mất vài phút). Chạy riêng: `docker compose -f infra/docker/docker-compose.yml up -d --build signaling`. Container gọi API dev ở `http://host.docker.internal:5080` để báo vào/ra phòng.
+2. Đổi provider của tenant demo (seed dùng `Fake`) bằng tài khoản quản trị: `PUT /api/workspace/connection` với `{"provider":"Konnyaku"}`. Buổi được xếp hoặc đổi giờ **sau đó** có link `/room/{mã}`; buổi cũ giữ phòng mô phỏng.
+3. Thử nhiều người cùng lúc: mỗi realm một cookie, nên một trình duyệt giữ được một giáo viên và một học viên; người thứ ba dùng cửa sổ ẩn danh hoặc trình duyệt khác. `*.localhost` là ngữ cảnh an toàn nên camera/micro dùng được không cần HTTPS.
+4. Không cần TURN khi thử trên một máy. Secret dùng chung giữa API (`Rtc:SignalingSecret` trong `appsettings.Development.json`) và container (`SIGNALING_SECRET`) phải giống nhau.
+5. Test của service: cần Rust (hoặc chạy trong Docker), `cd services/signaling && cargo test && cargo clippy --all-targets -- -D warnings`.
 
 ## Tắt hệ thống
 

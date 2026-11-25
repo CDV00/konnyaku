@@ -38,6 +38,7 @@ python infra/scripts/seed_demo.py
   - Tab **Học viên · Phụ huynh**: `hv000001` / mật khẩu tạm script in ra → bắt buộc đổi mật khẩu → `/learn`.
 - Kỳ lương: `admin` mở `/ops/payroll` → tạo kỳ → chốt; giáo viên xem "Công tháng này" ở `/teach`.
 - Giáo viên mở **Điểm danh** của buổi trong `/teach` → xác nhận → số buổi của học viên giảm ở `/learn`.
+- Phòng học có sẵn (WebRTC): đổi provider của tenant sang `Konnyaku` (`PUT /api/workspace/connection` với `{"provider":"Konnyaku"}`), bật signaling (`docker compose -f infra/docker/docker-compose.yml up -d signaling`, cổng 5100) → buổi được xếp sau đó có **Vào lớp** mở `/room/{mã}`. Chi tiết: [docs/chay-local.md](docs/chay-local.md#phòng-học-có-sẵn-webrtc).
 - Học viên bấm **Vào lớp** → `/learn/join/{buổi}` → phòng học mô phỏng (provider Fake). Mô phỏng kết thúc buổi học: `POST /api/workspace/dev/sessions/{id}/simulate` (vai trò TenantAdmin/Coordinator).
 - Trang công khai: `http://demo.localhost:4000/vi` (danh mục khóa học), form đăng ký `http://demo.localhost:4000/vi/dang-ky`; lead hiện ở `/ops/leads`.
 - API: `http://localhost:5080`, tài liệu API tại `/scalar`. Thao tác cấp nền tảng (tạo tenant) cần header `X-Platform-Key` (dev: `dev-platform-key`).
@@ -60,6 +61,7 @@ Hướng dẫn cho người dùng cuối (học viên, giáo viên, nhân viên 
 | 6 | Learning: điểm danh nháp tự động từ dữ liệu người tham gia (có mặt ≥ 70%, muộn > 10 phút, < 30% là vắng; học viên bảo lưu = vắng có phép), giáo viên xác nhận (hoặc điểm danh tay cho lớp offline) → Billing trừ buổi (vắng có phép không trừ); chính sách xem lại video (mặc định mọi học viên trong lớp + giáo viên) → Workspace cấp quyền → học viên thấy trong mục xem lại; trang điểm danh trong `teach` | ✅ — còn để sau: học bù, chính sách điểm danh theo tenant, cảnh báo nghỉ học |
 | 7 | Hr & payroll: đơn giá theo giờ có hiệu lực theo ngày; bảng công tự sinh — lớp online từ dữ liệu phòng học (trả phút thực dạy, tối đa bằng kế hoạch, ghi nhận số phút vào muộn), lớp offline khi giáo viên xác nhận điểm danh (trả theo kế hoạch); kỳ lương gom công nháp đến hết kỳ (kể cả công đến muộn của kỳ đã khóa), chặn kỳ chồng ngày, chốt kỳ đóng băng giá; đổi đơn giá chỉ áp cho công nháp; "Công tháng này" trong `teach`, trang "Kỳ lương" trong `ops` | ✅ — còn để sau: phụ cấp/phạt, nhiều mức giá theo vai trò/ngôn ngữ, xuất phiếu lương PDF, availability giáo viên |
 | 8 | Màn quản trị trong `ops`: thanh điều hướng chung; Cơ sở (thêm cơ sở); Nhân sự (thêm nhân sự + vai trò, đặt đơn giá giáo viên); Chương trình (thêm chương trình, cấp độ theo khung trình độ); Lớp học (mở lớp, xếp lịch theo ngày trong tuần + giáo viên, xem buổi học và danh sách lớp); Học viên (thêm hồ sơ, cấp tài khoản đăng nhập kèm mật khẩu tạm hiện một lần); Thu phí (gói học, đơn hàng, ghi nhận thanh toán → Worker tự xếp vào lớp); Lead (chuyển trạng thái). API mới: danh sách nhân sự, gói học, đơn giá. Các form gửi qua relay `/ops/api/relay/*` có danh sách đường dẫn cho phép; API vẫn kiểm quyền | ✅ — còn để sau: sửa/ngừng dùng bản ghi, phòng học và ngày nghỉ, đổi lịch/giáo viên từng buổi, bảo lưu/nghỉ học, báo cáo doanh thu |
+| 9 | Phòng học có sẵn (provider **Konnyaku**, thay Google Meet): WebRTC P2P mesh, signaling Rust (`services/signaling`, axum + WebSocket, vé JWT 2 phút do API ký, tối đa 6 người/phòng có giữ chỗ cho giáo viên), TURN coturn với mật khẩu tạm; giao diện `/room/{mã}`: kiểm tra camera/micro + chọn thiết bị, bật/tắt mic/camera, chia sẻ màn hình, chat DataChannel, giáo viên kết thúc phòng, tự kết nối lại; vào/ra báo về API → `ParticipantsCollectedV1` → điểm danh nháp + bảng công | ✅ — còn để sau: ghi hình (chưa có object storage), SFU cho lớp > 6 người, TURN qua TLS 443, nhiều bản signaling, chat lưu lại |
 
 ## Tài liệu phân tích
 
@@ -83,6 +85,7 @@ Hướng dẫn cho người dùng cuối (học viên, giáo viên, nhân viên 
 | **Cơ sở** (branch) | Địa điểm học của một trung tâm, kể cả cơ sở ảo "Online" |
 | **GV** / **HV** | Giáo viên / Học viên |
 | Module **`Workspace`** | Meeting Engine của Konnyaku (host pool, phòng Meet, recording) — khác *Google Workspace* (sản phẩm của Google) |
+| **Phòng học có sẵn** / provider `Konnyaku` | Phòng học WebRTC của chính Konnyaku (`/room/{mã}` + `services/signaling`), dùng khi không có Google Meet |
 | App **`site` / `ops` / `teach` / `learn`** | Trang công khai & đăng nhập / vận hành / giáo viên / học viên & phụ huynh |
 | Realm **`learn` / `staff`** | Hai phiên đăng nhập tách biệt: học viên·phụ huynh và giáo viên·nhân viên |
 
