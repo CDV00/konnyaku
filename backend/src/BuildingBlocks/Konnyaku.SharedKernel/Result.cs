@@ -6,6 +6,9 @@ public sealed record Error(string Code, ErrorKind Kind = ErrorKind.Validation, I
     public static Error Validation(string code, IReadOnlyDictionary<string, object?>? @params = null) => new(code, ErrorKind.Validation, @params);
     public static Error Conflict(string code, IReadOnlyDictionary<string, object?>? @params = null) => new(code, ErrorKind.Conflict, @params);
     public static Error NotFound(string code) => new(code, ErrorKind.NotFound);
+
+    /// <summary>The signed-in member may not act on this record (e.g. a branch outside their scope).</summary>
+    public static Error Forbidden(string code) => new(code, ErrorKind.Forbidden);
 }
 
 public enum ErrorKind
@@ -13,6 +16,7 @@ public enum ErrorKind
     Validation,
     Conflict,
     NotFound,
+    Forbidden,
 }
 
 public readonly struct Result<T>

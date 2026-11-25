@@ -108,7 +108,7 @@ public sealed class AttendanceConfirmedTimesheetConsumer(IHrDbContext db, ISched
 
 public sealed record SetRateCommand(decimal HourlyRate, string Currency, DateOnly EffectiveFrom);
 
-public sealed record RateView(Guid TeacherId, decimal HourlyRate, string Currency, DateOnly EffectiveFrom);
+public sealed record RateView(Guid TeacherId, decimal HourlyRate, string Currency, DateOnly EffectiveFrom, Guid Id);
 
 public sealed record TimesheetView(
     Guid Id, Guid TeacherId, Guid SessionId, Guid BranchId, DateOnly LocalDate, int PlannedMinutes, int ActualMinutes, int PaidMinutes,
@@ -147,14 +147,89 @@ public sealed class PayrollHandlers(IHrDbContext db, IIdentityApi identity, Time
         }
 
         await db.SaveChangesAsync(ct);
-        return new RateView(teacherId, created.Value.HourlyRate, created.Value.Currency, created.Value.EffectiveFrom);
+        return ToView(created.Value);
     }
+
+    /// <summary>
+    /// Corrects a rate (amount, currency, start date). Refused when a timesheet priced with it is already approved or
+    /// locked — the frozen pay must not change; add a new rate from a later date instead. Drafts are re-priced.
+    /// </summary>
+    public async Task<Result<RateView>> UpdateRateAsync(Guid rateId, SetRateCommand command, CancellationToken ct)
+    {
+        var rate = await db.PayRates.FirstOrDefaultAsync(r => r.Id == rateId, ct);
+        if (rate is null)
+        {
+            return Error.NotFound("hr.rate_not_found");
+        }
+
+        var oldFrom = rate.EffectiveFrom;
+        if (await FrozenUseAsync(rate, ct) ||
+            (command.EffectiveFrom < oldFrom && await FrozenBetweenAsync(rate.TeacherId, command.EffectiveFrom, oldFrom, ct)))
+        {
+            return Error.Conflict("hr.rate_in_use");
+        }
+
+        var updated = rate.Update(command.HourlyRate, command.Currency ?? string.Empty, command.EffectiveFrom);
+        if (!updated.IsSuccess)
+        {
+            return updated.Error!;
+        }
+
+        await db.SaveChangesAsync(ct);
+        await RepriceDraftsAsync(rate.TeacherId, oldFrom < rate.EffectiveFrom ? oldFrom : rate.EffectiveFrom, ct);
+        return ToView(rate);
+    }
+
+    /// <summary>Removes a rate entered by mistake, under the same rule as a correction (no frozen pay depends on it).</summary>
+    public async Task<Result<bool>> DeleteRateAsync(Guid rateId, CancellationToken ct)
+    {
+        var rate = await db.PayRates.FirstOrDefaultAsync(r => r.Id == rateId, ct);
+        if (rate is null)
+        {
+            return Error.NotFound("hr.rate_not_found");
+        }
+
+        if (await FrozenUseAsync(rate, ct))
+        {
+            return Error.Conflict("hr.rate_in_use");
+        }
+
+        db.PayRates.Remove(rate);
+        await db.SaveChangesAsync(ct);
+        await RepriceDraftsAsync(rate.TeacherId, rate.EffectiveFrom, ct);
+        return true;
+    }
+
+    /// <summary>An approved or locked timesheet dated within the rate's validity (until the next rate of the teacher).</summary>
+    private async Task<bool> FrozenUseAsync(PayRate rate, CancellationToken ct)
+    {
+        var next = await db.PayRates.Where(r => r.TeacherId == rate.TeacherId && r.Id != rate.Id && r.EffectiveFrom > rate.EffectiveFrom)
+            .OrderBy(r => r.EffectiveFrom).Select(r => (DateOnly?)r.EffectiveFrom).FirstOrDefaultAsync(ct);
+        return await db.Timesheets.AnyAsync(t => t.TeacherId == rate.TeacherId && t.Status != TimesheetStatus.Draft &&
+                                                 t.LocalDate >= rate.EffectiveFrom && (next == null || t.LocalDate < next), ct);
+    }
+
+    /// <summary>Moving a rate earlier would take over frozen timesheets between the new and the old start.</summary>
+    private Task<bool> FrozenBetweenAsync(Guid teacherId, DateOnly from, DateOnly until, CancellationToken ct) =>
+        db.Timesheets.AnyAsync(t => t.TeacherId == teacherId && t.Status != TimesheetStatus.Draft && t.LocalDate >= from && t.LocalDate < until, ct);
+
+    private async Task RepriceDraftsAsync(Guid teacherId, DateOnly from, CancellationToken ct)
+    {
+        foreach (var draft in await db.Timesheets.Where(t => t.TeacherId == teacherId && t.Status == TimesheetStatus.Draft && t.LocalDate >= from).ToListAsync(ct))
+        {
+            draft.Price(await Rates.EffectiveAsync(db, teacherId, draft.LocalDate, ct));
+        }
+
+        await db.SaveChangesAsync(ct);
+    }
+
+    private static RateView ToView(PayRate r) => new(r.TeacherId, r.HourlyRate, r.Currency, r.EffectiveFrom, r.Id);
 
     /// <summary>Every rate, newest first per teacher (the first row of a teacher is the latest one).</summary>
     public async Task<IReadOnlyList<RateView>> ListRatesAsync(CancellationToken ct) =>
         await db.PayRates.AsNoTracking()
             .OrderBy(r => r.TeacherId).ThenByDescending(r => r.EffectiveFrom).ThenByDescending(r => r.CreatedAt)
-            .Select(r => new RateView(r.TeacherId, r.HourlyRate, r.Currency, r.EffectiveFrom))
+            .Select(r => new RateView(r.TeacherId, r.HourlyRate, r.Currency, r.EffectiveFrom, r.Id))
             .ToListAsync(ct);
 
     public async Task<IReadOnlyList<TimesheetView>> ListAsync(Guid? teacherId, DateOnly from, DateOnly to, CancellationToken ct)

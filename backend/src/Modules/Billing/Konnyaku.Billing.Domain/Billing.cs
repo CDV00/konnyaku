@@ -3,7 +3,7 @@ using Konnyaku.SharedKernel;
 namespace Konnyaku.Billing.Domain;
 
 /// <summary>A sellable package: N paid credits (lessons) + optional bonus credits for a price.</summary>
-public sealed class Package : Entity, ITenantOwned
+public sealed class Package : Entity, ITenantOwned, IAuditable
 {
     private Package()
     {
@@ -17,6 +17,30 @@ public sealed class Package : Entity, ITenantOwned
     public decimal Price { get; private set; }
     public string Currency { get; private set; } = "VND";
     public bool IsActive { get; private set; }
+
+    Guid IAuditable.AuditSubjectId => Id;
+
+    /// <summary>Orders copy amounts and credits when they are placed, so a new price applies to new orders only.</summary>
+    public Result<Package> Update(string code, IReadOnlyDictionary<string, string> name, decimal paidCredits, decimal bonusCredits,
+        decimal price, string currency)
+    {
+        var valid = Create(code, name, paidCredits, bonusCredits, price, currency);
+        if (!valid.IsSuccess)
+        {
+            return valid.Error!;
+        }
+
+        Code = valid.Value.Code;
+        Name = valid.Value.Name;
+        PaidCredits = paidCredits;
+        BonusCredits = bonusCredits;
+        Price = price;
+        Currency = valid.Value.Currency;
+        return this;
+    }
+
+    /// <summary>An inactive package is no longer sold; existing orders keep it.</summary>
+    public void SetActive(bool active) => IsActive = active;
 
     public static Result<Package> Create(string code, IReadOnlyDictionary<string, string> name, decimal paidCredits,
         decimal bonusCredits, decimal price, string currency)
@@ -53,7 +77,7 @@ public enum OrderStatus
 }
 
 /// <summary>A student buying a package (optionally for a class). Amounts and credits are snapshots of the package.</summary>
-public sealed class Order : Entity, ITenantOwned
+public sealed class Order : Entity, ITenantOwned, IAuditable
 {
     private Order()
     {
@@ -118,9 +142,68 @@ public sealed class Order : Entity, ITenantOwned
     }
 
     public void RequireRefund() => Status = OrderStatus.RefundRequired;
+
+    Guid IAuditable.AuditSubjectId => Id;
+
+    /// <summary>
+    /// Price (a discount, for example) and target class of an order still waiting for payment. Once paid, its credits are
+    /// in the ledger: corrections go through ledger adjustments instead.
+    /// </summary>
+    public Result<Order> Edit(decimal amount, Guid? classId, Guid? branchId)
+    {
+        if (Status != OrderStatus.PendingPayment)
+        {
+            return Error.Conflict("billing.order_not_editable");
+        }
+
+        if (amount < 0 || amount <= AmountReceived)
+        {
+            return Error.Validation("billing.order_amount_invalid", new Dictionary<string, object?> { ["received"] = AmountReceived });
+        }
+
+        Amount = amount;
+        ClassId = classId;
+        BranchId = branchId;
+        return this;
+    }
+
+    /// <summary>An order nobody paid anything for can be cancelled; one with payments needs its payments voided first.</summary>
+    public Result<Order> Cancel()
+    {
+        if (Status != OrderStatus.PendingPayment)
+        {
+            return Error.Conflict("billing.order_not_editable");
+        }
+
+        if (AmountReceived > 0)
+        {
+            return Error.Conflict("billing.order_has_payments");
+        }
+
+        Status = OrderStatus.Cancelled;
+        return this;
+    }
+
+    /// <summary>A payment of a pending order was corrected or voided (the order stays below its amount).</summary>
+    public Result<Order> CorrectReceived(decimal delta)
+    {
+        if (Status != OrderStatus.PendingPayment)
+        {
+            return Error.Conflict("billing.order_not_editable");
+        }
+
+        var received = AmountReceived + delta;
+        if (received < 0 || received >= Amount)
+        {
+            return Error.Validation("billing.payment_amount_invalid", new Dictionary<string, object?> { ["outstanding"] = Amount - AmountReceived });
+        }
+
+        AmountReceived = received;
+        return this;
+    }
 }
 
-public sealed class Payment : Entity, ITenantOwned
+public sealed class Payment : Entity, ITenantOwned, IAuditable
 {
     private Payment()
     {
@@ -141,6 +224,21 @@ public sealed class Payment : Entity, ITenantOwned
     public string Method { get; private set; } = string.Empty;
     public string? Reference { get; private set; }
     public DateTimeOffset ReceivedAt { get; private set; }
+
+    /// <summary>Set when the payment was entered by mistake; the row stays as a trace.</summary>
+    public DateTimeOffset? VoidedAt { get; private set; }
+
+    /// <summary>Logged under its order.</summary>
+    Guid IAuditable.AuditSubjectId => OrderId;
+
+    public void Correct(decimal amount, string method, string? reference)
+    {
+        Amount = amount;
+        Method = method;
+        Reference = string.IsNullOrWhiteSpace(reference) ? null : reference.Trim();
+    }
+
+    public void Void(DateTimeOffset now) => VoidedAt = now;
 }
 
 public enum LedgerEntryType

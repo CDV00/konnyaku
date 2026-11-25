@@ -1,4 +1,5 @@
 using Konnyaku.Application.Tenancy;
+using Konnyaku.Infrastructure.Auditing;
 using Konnyaku.Infrastructure.Persistence;
 using Konnyaku.Infrastructure.Tenancy;
 using Konnyaku.Scheduling.Application;
@@ -52,6 +53,7 @@ public sealed class SchedulingDbContext(DbContextOptions<SchedulingDbContext> op
             b.Property(x => x.ResourceType).HasMaxLength(20);
             b.HasIndex(x => new { x.TenantId, x.SessionId });
         });
+        modelBuilder.AddChangeLog();
     }
 }
 

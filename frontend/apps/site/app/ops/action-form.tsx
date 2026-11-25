@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Copy, Plus } from "lucide-react";
+import { Copy, Pencil, Plus } from "lucide-react";
 import { Button, type ButtonProps } from "@konnyaku/ui/components/animate-ui/components/buttons/button";
 import {
   Sheet,
@@ -20,7 +20,8 @@ import { cn } from "@konnyaku/ui/lib/utils";
  * Turns form fields into the JSON body the API expects:
  * - dotted names nest (`name.vi` -> { name: { vi } }), empty fields are left out;
  * - `type="number"` or `data-kind="number"` fields become numbers;
- * - a lone checkbox is a boolean, checkboxes named `x[]` collect the checked values into an array.
+ * - a lone checkbox is a boolean, checkboxes named `x[]` collect the checked values into an array;
+ * - a `data-kind="json"` field (hidden, written by a client widget) is parsed as JSON.
  */
 function serialize(form: HTMLFormElement): Record<string, unknown> {
   const body: Record<string, unknown> = {};
@@ -48,10 +49,16 @@ function serialize(form: HTMLFormElement): Record<string, unknown> {
       continue;
     }
     if (element.value === "") continue;
+    if (element.dataset.kind === "json") {
+      set(name, JSON.parse(element.value) as unknown, append);
+      continue;
+    }
     set(name, numeric ? Number(element.value) : element.value, append);
   }
   return body;
 }
+
+export type Method = "POST" | "PUT" | "DELETE";
 
 export function useAdminAction() {
   const t = useTranslations("admin");
@@ -59,14 +66,14 @@ export function useAdminAction() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  async function send(path: string, method: "POST" | "PUT", body?: unknown): Promise<Record<string, unknown> | null> {
+  async function send(path: string, method: Method, body?: unknown): Promise<Record<string, unknown> | null> {
     setError(null);
     setPending(true);
     try {
       const response = await fetch(path, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body ?? {}),
+        body: method === "DELETE" ? undefined : JSON.stringify(body ?? {}),
       });
       const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
       if (response.ok) {
@@ -75,7 +82,11 @@ export function useAdminAction() {
       }
       const code = typeof data.code === "string" ? data.code : "unknown";
       const key = `errors.${code.replaceAll(".", "_")}`;
-      setError(t.has(key) ? t(key) : t("errors.unknown", { code }));
+      // Error params (a count, an amount) fill the message; numbers and text only.
+      const params = Object.fromEntries(
+        Object.entries((data.params ?? {}) as Record<string, unknown>).filter(([, v]) => typeof v === "number" || typeof v === "string"),
+      ) as Record<string, string | number>;
+      setError(t.has(key) ? t(key, params) : t("errors.unknown", { code }));
       return null;
     } finally {
       setPending(false);
@@ -88,7 +99,10 @@ export function useAdminAction() {
 /** Lets a form inside a FormSheet close it after a successful save. */
 const SheetCloser = createContext<(() => void) | null>(null);
 
-/** Side drawer holding one create/edit form: keeps the list in view and the page uncluttered. */
+/**
+ * Side drawer holding one create/edit form: keeps the list in view and the page uncluttered.
+ * `icon` is the trigger's icon: a plus (create), a pencil ("edit") or none.
+ */
 export function FormSheet({ triggerLabel, title, description, children, variant = "default", size = "default", icon = true }: {
   triggerLabel: string;
   title: string;
@@ -96,7 +110,7 @@ export function FormSheet({ triggerLabel, title, description, children, variant 
   children: ReactNode;
   variant?: ButtonProps["variant"];
   size?: ButtonProps["size"];
-  icon?: boolean;
+  icon?: boolean | "edit";
 }) {
   const [open, setOpen] = useState(false);
   const t = useTranslations("shell");
@@ -104,7 +118,7 @@ export function FormSheet({ triggerLabel, title, description, children, variant 
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button variant={variant} size={size}>
-          {icon && <Plus />}
+          {icon === "edit" ? <Pencil /> : icon && <Plus />}
           {triggerLabel}
         </Button>
       </SheetTrigger>
@@ -138,7 +152,7 @@ export function ActionForm({
 }: {
   api?: string;
   endpoint?: string;
-  method?: "POST" | "PUT";
+  method?: Method;
   submitLabel: string;
   showResult?: string[];
   layout?: "stack" | "inline";
@@ -191,18 +205,27 @@ export function ActionForm({
   );
 }
 
-/** One-click write without fields (a status change, for example). */
-export function ActionButton({ api, endpoint, body, label, variant = "outline" }: {
+/**
+ * One-click write without fields (a status change, deactivating a record). `confirm` asks first — for actions that
+ * stop something (deactivate, cancel, delete).
+ */
+export function ActionButton({ api, endpoint, body, label, variant = "outline", method = "POST", confirm }: {
   api?: string;
   endpoint?: string;
   body?: unknown;
   label: string;
   variant?: ButtonProps["variant"];
+  method?: Method;
+  confirm?: string;
 }) {
   const { error, pending, send } = useAdminAction();
+  function onClick() {
+    if (confirm && !window.confirm(confirm)) return;
+    void send(endpoint ?? `/ops/api/relay/${api}`, method, body);
+  }
   return (
     <span className="inline-flex flex-col gap-1">
-      <Button type="button" size="sm" variant={variant} disabled={pending} onClick={() => send(endpoint ?? `/ops/api/relay/${api}`, "POST", body)}>
+      <Button type="button" size="sm" variant={variant} disabled={pending} onClick={onClick}>
         {label}
       </Button>
       {error && <span role="alert" className="text-xs text-destructive">{error}</span>}

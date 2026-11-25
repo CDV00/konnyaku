@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Konnyaku.Application.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -85,6 +86,29 @@ public static class KonnyakuAuthExtensions
         }
 
         return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+    }
+
+    /// <summary>
+    /// Staff endpoint that changes data: the member must hold <paramref name="permission"/> (in any scope, read live from
+    /// their role assignments). Handlers then check the branch of the record with <see cref="IAccessControl"/>.
+    /// </summary>
+    public static TBuilder RequirePermission<TBuilder>(this TBuilder builder, params string[] anyOf) where TBuilder : IEndpointConventionBuilder
+    {
+        builder.RequireAuthorization(Policies.Staff);
+        builder.AddEndpointFilter(async (context, next) =>
+        {
+            var access = context.HttpContext.RequestServices.GetRequiredService<IAccessControl>();
+            foreach (var permission in anyOf)
+            {
+                if (await access.HasAsync(permission, context.HttpContext.RequestAborted))
+                {
+                    return await next(context);
+                }
+            }
+
+            return Results.Json(new { code = "access.forbidden", @params = new Dictionary<string, object?>() }, statusCode: StatusCodes.Status403Forbidden);
+        });
+        return builder;
     }
 
     /// <summary>Platform operations (creating tenants) require the <c>X-Platform-Key</c> header.</summary>

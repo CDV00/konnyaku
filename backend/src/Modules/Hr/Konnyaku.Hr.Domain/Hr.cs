@@ -3,7 +3,7 @@ using Konnyaku.SharedKernel;
 namespace Konnyaku.Hr.Domain;
 
 /// <summary>Hourly teaching rate of a teacher, valid from a date (a new rate never rewrites past timesheets).</summary>
-public sealed class PayRate : Entity, ITenantOwned
+public sealed class PayRate : Entity, ITenantOwned, IAuditable
 {
     private PayRate()
     {
@@ -15,6 +15,22 @@ public sealed class PayRate : Entity, ITenantOwned
     public string Currency { get; private set; } = string.Empty;
     public DateOnly EffectiveFrom { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
+
+    /// <summary>Logged under the teacher: the staff page shows a teacher's rate history.</summary>
+    Guid IAuditable.AuditSubjectId => TeacherId;
+
+    public Result<PayRate> Update(decimal hourlyRate, string currency, DateOnly effectiveFrom)
+    {
+        if (hourlyRate < 0 || currency is not { Length: 3 })
+        {
+            return Error.Validation("hr.rate_invalid");
+        }
+
+        HourlyRate = hourlyRate;
+        Currency = currency.ToUpperInvariant();
+        EffectiveFrom = effectiveFrom;
+        return this;
+    }
 
     public static Result<PayRate> Create(Guid teacherId, decimal hourlyRate, string currency, DateOnly effectiveFrom, DateTimeOffset now)
     {

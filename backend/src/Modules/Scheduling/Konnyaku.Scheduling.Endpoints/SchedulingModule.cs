@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using Konnyaku.Application.Authorization;
+using Konnyaku.Infrastructure.Auditing;
 using Konnyaku.Infrastructure.Auth;
 using Konnyaku.Infrastructure.Http;
 using Konnyaku.Infrastructure.Messaging;
@@ -27,6 +29,9 @@ public sealed class SchedulingModule : IModule
         services.AddScoped<ResourceValidator>();
         services.AddScoped<ScheduleClassHandler>();
         services.AddScoped<SessionChangeHandler>();
+        services.AddScoped<ReplanScheduleHandler>();
+        services.AddScoped<Konnyaku.Application.Messaging.IIntegrationEventHandler<Konnyaku.Academic.Contracts.ClassDeliveryModeChangedV1>, ClassDeliveryModeChangedConsumer>();
+        services.AddScoped<Konnyaku.Application.Messaging.IIntegrationEventHandler<Konnyaku.Academic.Contracts.ClassClosedV1>, ClassClosedConsumer>();
         services.AddScoped<Konnyaku.Application.Messaging.IIntegrationEventHandler<Konnyaku.Workspace.Contracts.MeetingProvisionedV1>, MeetingProvisionedConsumer>();
     }
 
@@ -34,18 +39,25 @@ public sealed class SchedulingModule : IModule
 
     public void MapEndpoints(RouteGroupBuilder group)
     {
-        var coordinators = group.MapGroup("").RequireAuthorization(p => p.RequireAuthenticatedUser()
-            .RequireClaim(KonnyakuClaims.Audience, Audiences.Staff)
-            .RequireRole("TenantAdmin", "Coordinator"));
+        // Branch managers and coordinators too, for classes of their branches (checked in the handlers).
+        var coordinators = group.MapGroup("").RequirePermission(Permissions.Schedules);
 
         coordinators.MapPost("/classes/{classId:guid}/schedule", async (Guid classId, ScheduleClassCommand command, ScheduleClassHandler handler, CancellationToken ct) =>
             ApiResults.From(await handler.HandleAsync(classId, command, ct), s => Results.Created($"classes/{classId}/sessions", s)));
+        coordinators.MapPut("/classes/{classId:guid}/schedule", async (Guid classId, ReplanScheduleCommand command, ReplanScheduleHandler handler, CancellationToken ct) =>
+            ApiResults.From(await handler.HandleAsync(classId, command, ct), Results.Ok));
         coordinators.MapPost("/sessions/{id:guid}/reschedule", async (Guid id, RescheduleCommand command, SessionChangeHandler handler, CancellationToken ct) =>
             ApiResults.From(await handler.RescheduleAsync(id, command, ct), Results.Ok));
         coordinators.MapPost("/sessions/{id:guid}/teacher", async (Guid id, AssignTeacherCommand command, SessionChangeHandler handler, CancellationToken ct) =>
             ApiResults.From(await handler.AssignTeacherAsync(id, command, ct), Results.Ok));
         coordinators.MapPost("/sessions/{id:guid}/cancel", async (Guid id, CancelSessionCommand command, SessionChangeHandler handler, CancellationToken ct) =>
             ApiResults.From(await handler.CancelAsync(id, command, ct), Results.Ok));
+
+        group.MapGet("/classes/{classId:guid}/pattern", async (Guid classId, SchedulingQueries queries, CancellationToken ct) =>
+                await queries.GetPatternAsync(classId, ct) is { } pattern ? Results.Ok(pattern) : Results.NoContent())
+            .RequireAuthorization(Policies.Staff);
+
+        group.MapChangeHistory<SchedulingDbContext>();
 
         group.MapGet("/classes/{classId:guid}/sessions", async (Guid classId, SchedulingQueries queries, CancellationToken ct) =>
                 Results.Ok(await queries.ListClassSessionsAsync(classId, ct)))

@@ -26,11 +26,11 @@ public interface IBillingDbContext
 
 public sealed record CreatePackageCommand(string Code, IReadOnlyDictionary<string, string> Name, decimal PaidCredits, decimal BonusCredits, decimal Price, string Currency);
 
-public sealed record PackageView(Guid Id, string Code, IReadOnlyDictionary<string, string> Name, decimal PaidCredits, decimal BonusCredits, decimal Price, string Currency);
+public sealed record PackageView(Guid Id, string Code, IReadOnlyDictionary<string, string> Name, decimal PaidCredits, decimal BonusCredits, decimal Price, string Currency, bool IsActive);
 
 public sealed record CreateOrderCommand(Guid StudentId, Guid PackageId, Guid? ClassId, Guid? BranchId);
 
-public sealed record OrderView(Guid Id, Guid StudentId, Guid PackageId, Guid? ClassId, decimal Amount, decimal AmountReceived, string Currency, string Status);
+public sealed record OrderView(Guid Id, Guid StudentId, Guid PackageId, Guid? ClassId, decimal Amount, decimal AmountReceived, string Currency, string Status, Guid? BranchId);
 
 public sealed record RecordPaymentCommand(decimal Amount, string Method, string? Reference);
 
@@ -56,9 +56,15 @@ public sealed class OrderHandlers(IBillingDbContext db, ICrmApi crm, IAcademicAp
 
     public async Task<Result<OrderView>> CreateOrderAsync(CreateOrderCommand command, CancellationToken ct)
     {
-        if (await crm.GetStudentAsync(command.StudentId, ct) is null)
+        var student = await crm.GetStudentAsync(command.StudentId, ct);
+        if (student is null)
         {
             return Error.Validation("billing.student_unknown");
+        }
+
+        if (!student.IsActive)
+        {
+            return Error.Conflict("billing.student_inactive");
         }
 
         var package = await db.Packages.FirstOrDefaultAsync(p => p.Id == command.PackageId && p.IsActive, ct);
@@ -227,8 +233,13 @@ public sealed class BillingQueries(IBillingDbContext db, ICrmApi crm) : IBilling
         return students.Count == 0 ? [] : await ListCreditAccountsAsync(students.Select(s => s.Id).ToList(), ct);
     }
 
-    public async Task<IReadOnlyList<PackageView>> ListPackagesAsync(CancellationToken ct) =>
-        (await db.Packages.AsNoTracking().Where(p => p.IsActive).OrderBy(p => p.Code).ToListAsync(ct)).Select(p => p.ToView()).ToList();
+    public async Task<IReadOnlyList<PackageView>> ListPackagesAsync(bool includeInactive, CancellationToken ct) =>
+        (await db.Packages.AsNoTracking().Where(p => includeInactive || p.IsActive).OrderBy(p => p.Code).ToListAsync(ct)).Select(p => p.ToView()).ToList();
+
+    public async Task<IReadOnlyList<PaymentView>> ListPaymentsAsync(Guid orderId, CancellationToken ct) =>
+        await db.Payments.AsNoTracking().Where(p => p.OrderId == orderId).OrderBy(p => p.ReceivedAt)
+            .Select(p => new PaymentView(p.Id, p.OrderId, p.Amount, p.Method, p.Reference, p.ReceivedAt, p.VoidedAt))
+            .ToListAsync(ct);
 
     public async Task<IReadOnlyList<OrderView>> ListOrdersAsync(Guid? studentId, CancellationToken ct)
     {
@@ -252,10 +263,10 @@ public sealed class BillingQueries(IBillingDbContext db, ICrmApi crm) : IBilling
 
 public static class BillingMapping
 {
-    public static PackageView ToView(this Package p) => new(p.Id, p.Code, p.Name.Values, p.PaidCredits, p.BonusCredits, p.Price, p.Currency);
+    public static PackageView ToView(this Package p) => new(p.Id, p.Code, p.Name.Values, p.PaidCredits, p.BonusCredits, p.Price, p.Currency, p.IsActive);
 
     public static OrderView ToView(this Order o) =>
-        new(o.Id, o.StudentId, o.PackageId, o.ClassId, o.Amount, o.AmountReceived, o.Currency, o.Status.ToString());
+        new(o.Id, o.StudentId, o.PackageId, o.ClassId, o.Amount, o.AmountReceived, o.Currency, o.Status.ToString(), o.BranchId);
 
     public static CreditAccountDto ToDto(this CreditBalance b) =>
         new(b.OrderId, b.StudentId, b.EnrollmentId, b.PaidCredits, b.BonusCredits, b.Total, b.Currency);

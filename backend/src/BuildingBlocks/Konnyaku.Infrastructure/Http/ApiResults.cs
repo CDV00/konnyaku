@@ -13,6 +13,7 @@ public static class ApiResults
         {
             ErrorKind.NotFound => Results.NotFound(body),
             ErrorKind.Conflict => Results.Conflict(body),
+            ErrorKind.Forbidden => Results.Json(body, statusCode: StatusCodes.Status403Forbidden),
             _ => Results.BadRequest(body),
         };
     }

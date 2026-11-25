@@ -2,6 +2,8 @@ using System.Security.Claims;
 using Konnyaku.Application.Messaging;
 using Konnyaku.Hr.Application;
 using Konnyaku.Hr.Infrastructure;
+using Konnyaku.Application.Authorization;
+using Konnyaku.Infrastructure.Auditing;
 using Konnyaku.Infrastructure.Auth;
 using Konnyaku.Infrastructure.Http;
 using Konnyaku.Infrastructure.Messaging;
@@ -38,8 +40,14 @@ public sealed class HrModule : IModule
             .RequireClaim(KonnyakuClaims.Audience, Audiences.Staff)
             .RequireRole("TenantAdmin", "Accountant"));
 
-        payroll.MapPut("/teachers/{teacherId:guid}/rate", async (Guid teacherId, SetRateCommand command, PayrollHandlers handlers, CancellationToken ct) =>
+        var rates = group.MapGroup("").RequirePermission(Permissions.PayRates);
+        rates.MapPut("/teachers/{teacherId:guid}/rate", async (Guid teacherId, SetRateCommand command, PayrollHandlers handlers, CancellationToken ct) =>
             ApiResults.From(await handlers.SetRateAsync(teacherId, command, ct), Results.Ok));
+        rates.MapPut("/rates/{id:guid}", async (Guid id, SetRateCommand command, PayrollHandlers handlers, CancellationToken ct) =>
+            ApiResults.From(await handlers.UpdateRateAsync(id, command, ct), Results.Ok));
+        rates.MapDelete("/rates/{id:guid}", async (Guid id, PayrollHandlers handlers, CancellationToken ct) =>
+            ApiResults.From(await handlers.DeleteRateAsync(id, ct), _ => Results.NoContent()));
+        payroll.MapChangeHistory<HrDbContext>();
         payroll.MapGet("/rates", async (PayrollHandlers handlers, CancellationToken ct) => Results.Ok(await handlers.ListRatesAsync(ct)));
         payroll.MapGet("/timesheets", async (DateOnly from, DateOnly to, Guid? teacherId, PayrollHandlers handlers, CancellationToken ct) =>
             Results.Ok(await handlers.ListAsync(teacherId, from, to, ct)));
