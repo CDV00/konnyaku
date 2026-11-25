@@ -28,7 +28,7 @@ Trình duyệt ◄────── hình/tiếng trực tiếp giữa các má
 | `migrator` | — | Áp migration bằng role chủ schema `konnyaku`; `api`/`worker` chỉ khởi động khi migrator thành công |
 | `postgres` | 1 | Mạng `data` không có đường ra Internet. Mỗi module một role `kk_<module>` với mật khẩu riêng |
 | `signaling` | **1** | Phòng học có sẵn (`services/signaling`, Rust): WebSocket `/rtc/ws` qua Caddy, chỉ nhận vé ngắn hạn do API ký (`SIGNALING_SECRET`), giữ ai đang ở phòng nào **trong bộ nhớ** nên chỉ chạy một bản. Báo vào/ra/kết thúc về API qua mạng nội bộ |
-| `redis` | 1 | Bộ đếm giới hạn tần suất dùng chung cho mọi bản sao API (mạng `data`, có mật khẩu, không lưu xuống đĩa). Redis dừng thì mỗi bản sao tạm đếm riêng trong RAM, không lỗi request |
+| `redis` | 1 | Bộ đếm giới hạn tần suất dùng chung cho mọi bản sao API (mạng `data`, cổng 6379 chỉ trong mạng nội bộ, mật khẩu `REDIS_PASSWORD`, không lưu xuống đĩa). Redis dừng thì mỗi bản sao tạm đếm riêng trong RAM, không lỗi request |
 | `coturn` | 1 | TURN cho người dùng sau NAT/tường lửa chặt. Dùng mạng host (`network_mode: host`). Mật khẩu tạm theo TURN REST API (`TURN_SECRET`, hạn 6 giờ); không chuyển tiếp tới địa chỉ nội bộ/loopback |
 
 Giới hạn tần suất (form công khai `RateLimits:PublicFormsPerMinute`, quên/đặt lại mật khẩu `RateLimits:PasswordResetPerMinute`, theo IP mỗi phút) đếm trong **Redis**, nên đúng với mọi số bản sao API; khoá trong Redis chỉ chứa mã băm của IP. Không cấu hình `Redis:ConnectionString` (dev, test) thì mỗi process đếm trong RAM như trước.
@@ -201,6 +201,7 @@ ALERT_EMAIL_TO=ops@congty.vn          # nhận cảnh báo; gửi qua SMTP_* nh�
 ```
 
 - `COMPOSE_PROFILES=monitoring` chạy 11 container giám sát (RAM thêm: [toi-uu-tai-nguyen.md](toi-uu-tai-nguyen.md#bộ-giám-sát)). Máy 2 GB nên đặt bộ giám sát trên VPS riêng (cùng mục đó).
+- Cổng: không mở thêm cổng nào ra Internet. Grafana `127.0.0.1:GRAFANA_LOCAL_PORT` (3000) trên server; trong mạng nội bộ: Alloy OTLP 4318/4317, Prometheus 9090, Alertmanager 9093, Loki 3100, Tempo 3200, Caddy metrics 2020, signaling `/metrics` 5100.
 - `OTEL_ENDPOINT` bật trace và metric của api/worker/web. Để trống thì ứng dụng không xuất gì (dev, test, máy không bật profile).
 - Lấy một phần trace khi tải lớn: `OTEL_TRACES_RATIO=0.2` (20 % request; metric vẫn đủ 100 %).
 - Tắt: xoá hai dòng trên rồi `docker compose up -d --remove-orphans`; dữ liệu giám sát nằm trong volume `prometheus-data`, `loki-data`, `tempo-data`, `grafana-data` (xoá bằng `docker volume rm` nếu không cần).
@@ -242,6 +243,26 @@ Rule trong `monitoring/prometheus/rules.yml.tmpl` (số bản sao và ngưỡng 
 | `BackupNotConfigured`, `RestoreDrillOverdue`, `BackupStatusMissing` | warning | Chưa có kho backup / diễn tập khôi phục thành công cũ hơn 35 ngày / không có file trạng thái backup nào trong 26 giờ |
 | `CertificateExpiresSoon` / `VerySoon` | warning / critical | Chứng chỉ của `PROBE_PUBLIC_URL` hết hạn sau < 14 / < 3 ngày (Caddy tự gia hạn trước 30 ngày) |
 | `MonitoringTargetDown` | warning | Không thu được số liệu từ một exporter 5 phút |
+
+#### Khi nhận cảnh báo
+
+Mỗi thư có `summary` (chuyện gì) và `description` (lệnh nên chạy đầu tiên). Các bước chung, trong `/opt/konnyaku`:
+
+| Cảnh báo | Làm gì |
+| --- | --- |
+| `ServiceDown`, `*ReplicaMissing`, `ContainerRestarting` | `docker compose ps` (container nào `exited`/`restarting`/`unhealthy`), `docker compose logs --tail 200 <service>`. Hết RAM (`OOMKilled` trong `docker inspect`) → xem `ContainerMemoryNearLimit` và [toi-uu-tai-nguyen.md](toi-uu-tai-nguyen.md) trước khi nâng trần. Lỗi sau deploy → quay lại bản trước (mục [Deploy](#deploy)). Không rõ lỗi → `docker compose up -d <service>` rồi theo dõi |
+| `PublicSiteDown` khi `ServiceDown` không báo | Caddy hoặc DNS/chứng chỉ: `docker compose logs --tail 200 caddy`, `dig admin.BASE_DOMAIN`, thử `curl -I https://admin.BASE_DOMAIN/api/health` từ máy khác |
+| `PostgresDown`, `PostgresConnectionsHigh` | `docker compose logs postgres`; đĩa đầy là nguyên nhân thường gặp. Nhiều kết nối → công thức pool ở [toi-uu-tai-nguyen.md](toi-uu-tai-nguyen.md) mục 1 |
+| `ApiHigh5xxRate`, `SiteHigh5xxRate` | Dashboard → *Lỗi 5xx theo endpoint*; Grafana Explore → Tempo, lọc `status = error` để xem trace lỗi; issue mới trong Sentry/GlitchTip (có `trace_id`). 502/503 ở Caddy mà API không lỗi → web hoặc api đang khởi động lại |
+| `ApiSlowP95`, `SiteSlowP95` | Dashboard → *p95 theo endpoint*; mở trace chậm trong Tempo, xem câu SQL nào lâu; CPU web gần 100 % → thêm vCPU / bản sao web |
+| `OutboxBacklog`, `OutboxDeadMessages`, `NotificationsOverdue` | `docker compose logs --tail 200 worker` (máy 2 GB: `api`), tìm `Outbox message … failed`. Event hết lượt thử: đọc `last_error` (câu SQL trong thư), sửa nguyên nhân rồi đặt lại `attempts = 0` cho dòng đó để worker chạy lại |
+| `DiskAlmostFull`, `DiskFillsWithin24h` | `df -h`, `docker system df`; dọn `docker image prune -a`, backup cũ, giảm `PROMETHEUS_RETENTION` / `LOKI_RETENTION` / `TEMPO_RETENTION` |
+| `Backup*`, `WalArchivingFailing`, `DumpOverdue` | Mục [Backup](#backup); WAL lỗi kéo dài làm đầy đĩa PostgreSQL, xử lý trong ngày |
+| `Certificate*` | `docker compose logs caddy \| grep -i acme`; cổng 80 phải mở và DNS đúng để gia hạn HTTP-01 |
+| `ClassroomPresenceDropped` | `docker compose logs signaling`; buổi liên quan có thể thiếu điểm danh → giáo viên xác nhận điểm danh tay |
+| `MonitoringTargetDown` | `docker compose --profile monitoring ps`; khởi động lại exporter đó |
+
+Tạm im một cảnh báo đã biết (bảo trì): `docker compose exec alertmanager amtool silence add alertname=<tên> --duration=2h --comment="bảo trì" --alertmanager.url=http://localhost:9093`.
 
 **Trạng thái backup**: node-exporter đọc các file `*.prom` trong `METRICS_TEXTFILE_DIR` (mặc định `BACKUP_DIR/status`), nơi các job backup ghi `konnyaku_backup_*` và `konnyaku_dump_*` (tên và ý nghĩa ở mục [Backup](#backup)). Chưa có file nào thì `BackupStatusMissing` báo sau 26 giờ.
 
