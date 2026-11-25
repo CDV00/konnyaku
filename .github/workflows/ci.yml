@@ -87,3 +87,73 @@ jobs:
             -t konnyaku-signaling:ci
       - name: Smoke test
         run: infra/deploy/scripts/smoke-test.sh konnyaku ci
+
+  # Main user flows on a real browser (Playwright, Chromium) against Api + Worker + web built from this commit, on a
+  # fresh database with the review seed. Same script as locally: frontend/e2e/run.mjs (docs/chay-local.md).
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: konnyaku
+          POSTGRES_PASSWORD: konnyaku_dev
+          POSTGRES_DB: konnyaku
+        ports:
+          - 5450:5432
+        options: >-
+          --health-cmd "pg_isready -U konnyaku -d konnyaku" --health-interval 2s --health-retries 30
+      mailpit:
+        image: axllent/mailpit:latest
+        ports:
+          - 1030:1025
+          - 8030:8025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: backend/global.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('backend/**/*.csproj', 'backend/Directory.*.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: frontend
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+      - run: pnpm exec playwright install --with-deps chromium
+        working-directory: frontend/e2e
+      - uses: actions/cache@v4
+        with:
+          path: frontend/apps/site/.next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: next-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}-
+      # Service containers start before the checkout, so the schema/role bootstrap of the dev volume runs here.
+      - name: Database roles and schemas
+        run: psql -v ON_ERROR_STOP=1 -h localhost -p 5450 -U konnyaku -d konnyaku -f infra/docker/postgres/init/01-modules.sql
+        env:
+          PGPASSWORD: konnyaku_dev
+      - name: Build, start, seed, test
+        run: node frontend/e2e/run.mjs --infra=external
+      - name: Upload traces, videos, screenshots and server logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: |
+            frontend/e2e/test-results
+            frontend/e2e/playwright-report
+            frontend/e2e/logs
+          retention-days: 14

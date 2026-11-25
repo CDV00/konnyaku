@@ -187,7 +187,7 @@ S2, S3, S4 đã sửa trong P2 + P3 (phase 11 ở README): phiên đăng nhập 
 | A3 | Tìm kiếm, lọc, phân trang cho mọi danh sách | 1 tuần |
 | C4 | Bảo vệ dữ liệu cá nhân + trang chính sách quyền riêng tư và điều khoản | 1 tuần |
 | C3, C5, C2, C1 | Giám sát và cảnh báo, backup theo thời điểm + diễn tập khôi phục, deploy cuốn chiếu, giới hạn tần suất qua Redis | 1,5 tuần |
-| C6 | Test giao diện tự động cho 5 luồng chính | 1 tuần |
+| C6 | Test giao diện tự động cho 5 luồng chính — **xong**: Playwright 8 luồng (`frontend/e2e`), job CI `e2e` | 1 tuần |
 | P5 | Bảng điều khiển super-admin tối thiểu: danh sách trung tâm, tạo trung tâm + quản trị viên, tạm khóa, tài khoản riêng có 2FA | 1 tuần |
 | P6 | Trang lỗi 404 / 500, captcha cho form công khai, sitemap và robots — **xong** (kèm trang chính sách quyền riêng tư và điều khoản của C4) | 0,5 tuần |
 
