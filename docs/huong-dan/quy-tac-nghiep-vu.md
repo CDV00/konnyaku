@@ -118,6 +118,16 @@ Hai học viên cùng đặt chỗ cuối cùng một lúc: chỉ một người
 - Tiền = phút × đơn giá mỗi giờ ÷ 60, theo đơn giá có hiệu lực vào ngày dạy.
 - Kỳ lương gom mọi công **nháp** đến ngày kết thúc kỳ (kể cả công đến muộn của kỳ trước). Hai kỳ không chồng ngày. **Chốt kỳ** đóng băng số tiền; đơn giá mới không làm thay đổi công đã duyệt / đã chốt.
 
+## Bài tập và kiểm tra
+
+- **Giờ làm bài theo máy chủ.** Hết giờ, bài tự nộp với giờ nộp là giờ hết hạn, kể cả khi học viên tắt máy. Mỗi bài chỉ có một lượt đang làm.
+- **Nộp muộn**: **Nhận bài nộp muộn** (ghi **Nộp muộn**), **Trừ điểm khi nộp muộn** (trừ % trên điểm), **Khoá khi hết hạn** (không làm mới được, bài đang làm dừng đúng hạn).
+- **Điểm của bài** khi làm nhiều lần: lần cao nhất, lần cuối hoặc trung bình, chỉ tính lần đã chấm xong.
+- **Máy chấm**: một / nhiều đáp án, đúng / sai, sắp xếp đúng cả câu mới có điểm; điền chỗ trống, nối cặp chia điểm theo phần đúng; trả lời ngắn khớp đáp án thì đủ điểm, không khớp thì giáo viên chấm.
+- **Thang tiêu chí**: điểm câu = điểm tối đa × tổng mức / tổng mức tối đa (ví dụ IELTS 6 + 6,5 + 6 + 5,5 trên 36 của câu 10 điểm = 6,67).
+- **Công bố**: học viên chỉ thấy điểm, đúng / sai khi đến lúc công bố; đáp án và giải thích không bao giờ hiện trước điểm.
+- Sửa câu hỏi sau khi học viên đã làm không đổi bài cũ (mỗi bài giữ phiên bản câu hỏi lúc làm).
+
 ## Phân quyền theo vai trò và cơ sở
 
 Một người có thể giữ nhiều vai trò; quyền là hợp của các vai trò. Bạn chỉ thấy nút cho việc mình được làm; hệ thống cũng kiểm tra lại mỗi lần lưu (thiếu quyền báo "Bạn không có quyền thực hiện thao tác này" hoặc "Bạn không phụ trách cơ sở này").
@@ -144,6 +154,8 @@ Một người có thể giữ nhiều vai trò; quyền là hợp của các va
 | Quyền riêng tư, nhật ký truy cập | ✓ | | | | | |
 | Nhật ký thông báo | ✓ | | | | | |
 | Điểm danh, vào lớp dạy (trong `/teach`) | | | | | | ✓ (buổi mình dạy) |
+| Bài tập, kiểm tra: soạn ngân hàng, đề; giao bài; chấm | ✓ | ✓ (cơ sở mình) | ✓ (cơ sở mình) | | | ✓ (lớp mình dạy; ngân hàng, đề của mình) |
+| Bài tập, kiểm tra: tổng quan trong Vận hành | ✓ | ✓ (cơ sở mình) | ✓ (cơ sở mình) | | | |
 
 Giáo viên chỉ có vai trò Giáo viên không vào được khu vực Vận hành (được chuyển về `/teach`).
 

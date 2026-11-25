@@ -2,7 +2,7 @@
 
 [← Mục lục](README.md)
 
-Giáo viên dùng khu vực **Giáo viên** (`/teach`): xem lịch dạy, vào lớp online, điểm danh sau mỗi buổi, xem công tháng này. Giáo viên không vào khu vực Vận hành: mở địa chỉ `/ops/...` sẽ được chuyển về `/teach`.
+Giáo viên dùng khu vực **Giáo viên** (`/teach`): xem lịch dạy, vào lớp online, điểm danh sau mỗi buổi, giao bài tập và bài kiểm tra, chấm bài, xem công tháng này. Giáo viên không vào khu vực Vận hành: mở địa chỉ `/ops/...` sẽ được chuyển về `/teach`.
 
 Đăng nhập ở tab **Giáo viên · Nhân viên** bằng email công việc (xem [Đăng nhập](dang-nhap-va-bao-mat.md#đăng-nhập)).
 
@@ -71,6 +71,83 @@ Xác nhận nhầm: báo kế toán hoặc quản trị để **điều chỉnh 
 
 Buổi không dạy được (giáo viên ốm, mất điện…) mà trung tâm chưa đổi lịch: hỏi giáo vụ; nếu được đồng ý, chọn **Vắng có phép** cho mọi học viên và xác nhận để học viên không bị trừ buổi.
 
+## Bài tập và kiểm tra
+
+Mục **Bài tập & kiểm tra** trên thanh trên cùng có 4 thẻ: **Bài giao**, **Ngân hàng câu hỏi**, **Đề**, **Chấm bài**. Một bộ công cụ dùng cho bài tập về nhà, kiểm tra nhanh, bài kiểm tra, thi thử và kiểm tra xếp lớp; chúng chỉ khác nhau ở thiết lập khi giao bài.
+
+Bạn soạn ngân hàng và đề của mình, dùng được ngân hàng **Dùng chung** của giáo viên khác, và giao bài, chấm bài cho **lớp mình dạy**. Quản lý cơ sở và điều phối làm được các việc này cho mọi lớp của cơ sở họ.
+
+![Bài đã giao](images/giao-vien-bai-tap.webp)
+
+### Ngân hàng câu hỏi
+
+1. Thẻ **Ngân hàng câu hỏi** → **Ngân hàng mới**: **Tên ngân hàng**, ngôn ngữ, **Phạm vi** (**Riêng tư**: chỉ bạn và quản lý; **Dùng chung**: mọi giáo viên dùng được) → **Lưu**. Trang ngân hàng mở ra.
+2. **Câu hỏi mới**: chọn dạng câu, nhập **Đề bài**, phương án, đánh dấu **Đúng**, điểm, kỹ năng và trình độ (theo khung của chương trình: JLPT, CEFR, HSK…), thẻ (ví dụ `n5, bài 3, ngữ pháp`), giải thích → **Lưu**.
+3. Câu đọc hiểu: **Nhóm mới** (tiêu đề + đoạn văn), rồi **Thêm câu hỏi** trong nhóm.
+
+![Soạn câu hỏi](images/giao-vien-soan-cau-hoi.webp)
+
+| Dạng câu | Cách chấm |
+| --- | --- |
+| Một đáp án, nhiều đáp án, đúng / sai, sắp xếp | Máy chấm, đúng cả câu mới có điểm |
+| Điền vào chỗ trống | Máy chấm, điểm chia theo từng chỗ trống |
+| Nối cặp | Máy chấm, điểm chia theo từng cặp |
+| Trả lời ngắn | Khớp đáp án chấp nhận thì máy cho điểm; không khớp thì vào **Chấm bài** |
+| Tự luận | Giáo viên chấm (đếm số từ, hoặc số ký tự với tiếng Nhật, tiếng Trung) |
+
+Mẹo soạn:
+
+- **Furigana, pinyin**: bôi đen chữ trong ô, bấm **Furigana / pinyin**, gõ cách đọc, bấm **Gắn cách đọc**. Ô hiện dạng `[漢字|かんじ]`; khung **Xem trước** hiện chữ nhỏ phía trên.
+- **Điền vào chỗ trống**: viết `[[1]]`, `[[2]]` vào đề bài ở chỗ cần điền, rồi nhập **Đáp án chấp nhận** cho từng chỗ trống. Liệt kê đủ cách viết (ví dụ `学校` và `がっこう`). Có tuỳ chọn bỏ qua chữ hoa / thường và bỏ qua dấu tiếng Việt.
+- Mỗi lần sửa câu hỏi tạo **phiên bản** mới; bài học viên đã làm giữ nguyên phiên bản lúc làm. Câu không dùng nữa thì **Lưu trữ**.
+
+### Tạo đề
+
+1. Thẻ **Đề** → **Đề mới**: tên đề, ngôn ngữ, khung trình độ.
+2. Mỗi **phần** (thường là một kỹ năng) thêm mục bằng ô **Thêm**:
+    - **Câu hỏi**: một câu cố định từ ngân hàng;
+    - **Nhóm bài đọc**: cả đoạn văn và các câu của nó;
+    - **Bốc ngẫu nhiên**: N câu theo ngân hàng, thẻ, kỹ năng, trình độ; mỗi học viên nhận bộ câu khác nhau.
+3. **Thêm phần** nếu đề có nhiều phần. Đặt **Thời gian (phút)** cho từng phần nếu muốn chạy giờ riêng như JLPT, IELTS: hoặc mọi phần đều có giờ, hoặc không phần nào có.
+4. Câu tự luận chấm theo tiêu chí: thêm **Mẫu IELTS Writing** (4 tiêu chí, band 0–9) hoặc **Thang trống**, rồi chọn thang ở câu đó.
+5. Bỏ **Hiện furigana / pinyin khi làm bài** nếu đề kiểm tra cách đọc chữ Hán. Bấm **Lưu**.
+
+![Tạo đề](images/giao-vien-tao-de.webp)
+
+### Giao bài
+
+Bấm **Giao bài** (trên trang đề hoặc thẻ **Bài giao**):
+
+1. Chọn đề, **Loại bài** (Bài tập về nhà, Kiểm tra nhanh, Bài kiểm tra, Thi thử, Kiểm tra xếp lớp) và **Lớp**.
+2. **Giao cho**: **Cả lớp**, **Một buổi học** hoặc **Một số học viên** (đánh dấu tên).
+3. Thiết lập:
+
+    | Ô | Ý nghĩa |
+    | --- | --- |
+    | **Mở lúc**, **Hạn nộp** | Học viên làm được từ lúc mở |
+    | **Nộp muộn** | **Nhận bài nộp muộn**, **Trừ điểm khi nộp muộn** (nhập %), hoặc **Khoá khi hết hạn** (bài đang làm tự nộp đúng hạn) |
+    | **Số lần làm**, **Tính điểm** | Để trống là không giới hạn; tính **lần cao nhất**, **lần cuối** hoặc **trung bình** |
+    | **Thời gian làm (phút)** | Đề chia phần có giờ thì lấy theo đề |
+    | **Ai chấm** | **Máy chấm, giáo viên chấm tự luận**, hoặc **Giáo viên duyệt mọi bài** |
+    | **Công bố điểm** | **Ngay khi nộp**, **Khi chấm xong**, hoặc **Vào thời điểm định sẵn** (cả lớp cùng thấy, tránh lộ đáp án) |
+    | **Xem đáp án** | Không, sau khi nộp, hoặc sau hạn nộp |
+
+4. Bấm **Giao bài**. Trang chi tiết mở ra: từng học viên đã làm chưa, nộp lúc nào, có muộn không, điểm, số lần rời tab / dán văn bản. **Công bố điểm ngay** khi đã chấm xong; bài chưa ai làm thì **Xoá** được.
+
+![Giao bài](images/giao-vien-giao-bai.webp)
+
+### Chấm bài
+
+Câu máy chấm có điểm ngay khi học viên nộp. Thẻ **Chấm bài** liệt kê bài đang chờ: câu tự luận, câu trả lời ngắn không khớp đáp án, và mọi bài giao với **Giáo viên duyệt mọi bài**. Lọc theo lớp và hạn nộp.
+
+1. Bấm tên học viên. Mỗi câu hiện câu trả lời cạnh đáp án; câu cần chấm có nhãn **Cần chấm**.
+2. Chọn mức cho từng tiêu chí (hoặc nhập điểm), viết **Nhận xét** → **Lưu điểm câu này**. Câu máy chấm cũng sửa được bằng **Chấm / sửa điểm**.
+3. Viết **Nhận xét chung** → **Hoàn tất và lưu điểm**. Điểm thành chính thức và hiện cho học viên theo thiết lập **Công bố điểm**.
+
+Khung **Rời tab và dán** cho biết học viên rời trang hay dán văn bản lúc nào, ở câu nào. Chỉ để tham khảo; hệ thống không chặn học viên.
+
+![Chấm bài tự luận theo tiêu chí](images/giao-vien-cham-bai.webp)
+
 ## Công và lương
 
 - Lớp online: công được ghi tự động từ dữ liệu phòng học sau buổi học (số phút thực dạy, tối đa bằng thời lượng kế hoạch; vào muộn được ghi lại).
@@ -83,4 +160,4 @@ Thắc mắc về số phút hay đơn giá: liên hệ kế toán trước khi 
 
 Bấm tên của bạn → **Tài khoản & bảo mật**: đổi mật khẩu, bật xác thực 2 bước, xem thiết bị đang đăng nhập (xem [Đăng nhập và bảo mật](dang-nhap-va-bao-mat.md)).
 
-> Chưa có: lịch rảnh, xin nghỉ, dạy thay, giao bài tập, nhận xét học viên, xem danh sách lớp trong `/teach` (danh sách học viên chỉ hiện trong trang điểm danh của buổi).
+> Chưa có: lịch rảnh, xin nghỉ, dạy thay, nhận xét học viên, xem danh sách lớp trong `/teach` (danh sách học viên chỉ hiện trong trang điểm danh của buổi).

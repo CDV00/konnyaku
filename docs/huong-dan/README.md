@@ -50,8 +50,8 @@ Mỗi trung tâm có một địa chỉ riêng (ví dụ `https://tentrungtam.ko
 | Khu vực | Đường dẫn | Ai dùng | Dùng để |
 | --- | --- | --- | --- |
 | Trang công khai | `/vi` (tiếng Việt), `/en` (tiếng Anh) | Khách, phụ huynh | Xem khoá học, đăng ký tư vấn, đọc chính sách, đăng nhập |
-| Học viên | `/learn` | Học viên, phụ huynh | Số buổi còn lại, lịch học, xin nghỉ, học bù, đặt buổi lớp linh hoạt, vào lớp, xem lại video, lịch sử thanh toán |
-| Giáo viên | `/teach` | Giáo viên | Lịch dạy, vào lớp, điểm danh, công tháng này |
+| Học viên | `/learn` | Học viên, phụ huynh | Số buổi còn lại, lịch học, xin nghỉ, học bù, đặt buổi lớp linh hoạt, vào lớp, xem lại video, làm bài tập và bài kiểm tra, lịch sử thanh toán |
+| Giáo viên | `/teach` | Giáo viên | Lịch dạy, vào lớp, điểm danh, ngân hàng câu hỏi, đề, giao bài, chấm bài, công tháng này |
 | Vận hành | `/ops` | Quản trị, quản lý cơ sở, điều phối, tư vấn, kế toán | Lead, học viên, thu phí, lớp, chương trình, nhân sự, cơ sở, kỳ lương, bảo mật, quyền riêng tư |
 
 Người vận hành nền tảng Konnyaku dùng một địa chỉ riêng (`https://admin.<tên miền Konnyaku>/platform`), không nằm trên địa chỉ của trung tâm.
@@ -69,7 +69,7 @@ Người vận hành nền tảng Konnyaku dùng một địa chỉ riêng (`htt
 - Thêm học viên vào lớp bằng tay (học viên chỉ vào lớp khi đơn hàng gắn lớp được trả đủ).
 - Sửa điểm danh sau khi đã xác nhận.
 - Thanh toán online, đăng nhập bằng Google, tự đăng ký tài khoản.
-- Tài liệu, bài tập, kiểm tra, điểm số, nhận xét; báo cáo doanh thu, công nợ, chuyên cần.
+- Tài liệu, bảng điểm tổng hợp, nhận xét định kỳ; báo cáo doanh thu, công nợ, chuyên cần. Câu hỏi nghe / nói (file âm thanh, ghi âm), nhập câu hỏi từ Excel / Word, chấm chéo, kiểm tra xếp lớp cho khách.
 - Chọn phòng học Google Meet / phòng có sẵn trên giao diện (đội kỹ thuật cấu hình).
 - Ghi hình buổi học trong phòng học có sẵn của Konnyaku.
 

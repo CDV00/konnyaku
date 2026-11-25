@@ -2,7 +2,7 @@
 
 [← Mục lục](README.md)
 
-Cổng học viên (`/learn`) cho bạn biết còn bao nhiêu buổi, buổi kế tiếp lúc nào, có nút vào lớp online, video xem lại và lịch sử đóng học phí. Mục **Lịch học** để xin nghỉ, đặt buổi bù, đổi học online / tại cơ sở và đặt buổi lớp linh hoạt.
+Cổng học viên (`/learn`) cho bạn biết còn bao nhiêu buổi, buổi kế tiếp lúc nào, có nút vào lớp online, video xem lại, bài tập và bài kiểm tra, lịch sử đóng học phí. Mục **Lịch học** để xin nghỉ, đặt buổi bù, đổi học online / tại cơ sở và đặt buổi lớp linh hoạt.
 
 ## Đăng nhập lần đầu
 
@@ -81,6 +81,28 @@ Lớp linh hoạt (câu lạc bộ nói, lớp giao tiếp) không có lịch c�
 
 Số buổi đặt trước không vượt số buổi còn trong gói; mỗi buổi có mặt trừ một buổi.
 
+## Bài tập và kiểm tra
+
+Mục **Bài tập & kiểm tra** liệt kê bài giáo viên giao cho bạn: nhóm **Cần làm** và **Đã nộp**, mỗi bài có loại, hạn nộp, trạng thái và điểm khi đã công bố.
+
+![Danh sách bài tập và kiểm tra](images/hoc-vien-bai-tap.webp)
+
+1. Bấm vào bài để xem số câu, thời gian, hạn nộp, số lần được làm, khi nào có điểm và đáp án.
+2. Bấm **Bắt đầu làm bài**. Mỗi màn hình một câu; dải số phía trên là danh sách câu (câu đã trả lời có nền màu, câu đánh dấu **Xem lại** có chấm vàng). Dùng **Câu trước** / **Câu sau** hoặc bấm số câu.
+3. Bài **tự lưu** vài giây một lần (góc trên ghi **Đã lưu**). Mất mạng, tắt máy hay đổi máy: mở lại bài, bấm **Làm tiếp**, câu trả lời vẫn còn.
+4. Đồng hồ chạy theo máy chủ. Hết giờ, bài **tự nộp**, kể cả khi bạn đã đóng trình duyệt. Đề chia phần có giờ riêng: hết giờ phần nào thì phần đó khoá và chuyển sang phần sau; bấm **Phần tiếp theo** để sang sớm (không quay lại được).
+5. Bấm **Nộp bài** → **Xác nhận**. Hệ thống báo nếu còn câu chưa trả lời.
+
+![Làm bài trên điện thoại hay máy tính](images/hoc-vien-lam-bai.webp)
+
+Cách trả lời: chọn đáp án; gõ vào ô trống trong câu; **Nối cặp** chọn ở ô bên phải; **Sắp xếp** dùng mũi tên lên / xuống; **Tự luận** có đếm số từ (hoặc số ký tự với tiếng Nhật, tiếng Trung). Câu đọc hiểu có đoạn văn phía trên, bấm tiêu đề để thu gọn.
+
+**Kết quả** hiện điểm, điểm theo từng kỹ năng, câu đúng / sai, nhận xét của giáo viên. Điểm và đáp án hiện theo thiết lập của bài: ngay khi nộp, khi giáo viên chấm xong, hoặc vào giờ định sẵn cho cả lớp. Câu tự luận và câu trả lời ngắn chưa khớp đáp án ghi **Chờ giáo viên chấm**.
+
+![Kết quả theo kỹ năng](images/hoc-vien-ket-qua.webp)
+
+Khi làm bài, việc rời khỏi trang và dán văn bản được ghi lại cho giáo viên xem; hệ thống không chặn.
+
 ## Vào lớp online
 
 1. Gần giờ học, mở **Tổng quan**.
@@ -111,4 +133,4 @@ Cổng học viên dùng được trên điện thoại: menu thu vào nút ba g
 
 ![Cổng học viên trên điện thoại](images/hoc-vien-dien-thoai.webp)
 
-> Chưa có: bài tập, tài liệu, điểm số, nhận xét của giáo viên, xin nghỉ / bảo lưu trực tuyến, thanh toán online. Liên hệ trung tâm cho các việc này.
+> Chưa có: tài liệu, bảng điểm tổng hợp, nhận xét định kỳ của giáo viên, xin nghỉ / bảo lưu trực tuyến, thanh toán online. Liên hệ trung tâm cho các việc này.
