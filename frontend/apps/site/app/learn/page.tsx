@@ -4,6 +4,7 @@ import { apiFetch, requireMe } from "@konnyaku/session";
 import { SessionList, type SessionView } from "@konnyaku/session/schedule";
 import { EmptyState, PageHeader, Panel, StatCard } from "@konnyaku/ui/kk/blocks";
 import { Fade } from "@konnyaku/ui/components/animate-ui/primitives/effects/fade";
+import { LearnOnboarding } from "./learn-onboarding";
 
 type Account = { total: number; bonusCredits: number };
 type Recording = { sessionId: string; sequenceNo: number; startsAt: string };
@@ -32,6 +33,7 @@ export default async function HomePage() {
   return (
     <div className="space-y-8">
       <PageHeader title={session("greeting", { name: me.displayName })} description={t("subtitle")} />
+      <LearnOnboarding />
 
       {total < 0 && (
         <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
