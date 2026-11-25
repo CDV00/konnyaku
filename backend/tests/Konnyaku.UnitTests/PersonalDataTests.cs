@@ -73,3 +73,19 @@ public class CsvWriterTests
         csv.ToBytes()[..3].ShouldBe(new byte[] { 0xEF, 0xBB, 0xBF });
     }
 }
+
+public class TemporaryPasswordTests
+{
+    /// <summary>
+    /// Every generated temporary password passes the password policy. A plain draw from a mixed alphabet missed a digit
+    /// about one time in nine, which made provisioning a center fail at random (identity.bootstrap_invalid).
+    /// </summary>
+    [Fact]
+    public void Temporary_passwords_always_meet_the_policy()
+    {
+        for (var i = 0; i < 2000; i++)
+        {
+            Konnyaku.Identity.Domain.PasswordPolicy.Check(Konnyaku.Identity.Application.AccountAdminHandler.TemporaryPassword()).ShouldBeNull();
+        }
+    }
+}

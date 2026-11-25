@@ -782,7 +782,7 @@ public sealed class AccountAdminHandler(
                                      m.Roles.Any(r => r.Role == Roles.TenantAdmin && r.ScopeType == ScopeType.Tenant), ct);
 
     /// <summary>Ten characters, letters and at least two digits (meets the password policy if kept by mistake).</summary>
-    internal static string TemporaryPassword()
+    public static string TemporaryPassword()
     {
         var chars = (RandomNumberGenerator.GetString(PasswordAlphabet, 8) + RandomNumberGenerator.GetString(Digits, 2)).ToCharArray();
         RandomNumberGenerator.Shuffle(chars.AsSpan());
