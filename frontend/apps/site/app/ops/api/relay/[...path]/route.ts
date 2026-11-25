@@ -16,6 +16,7 @@ const allowed = [
   /^billing\/packages$/,
   /^billing\/orders$/,
   new RegExp(`^billing/orders/${id}/payments$`),
+  new RegExp(`^notification/messages/${id}/resend$`),
 ];
 
 type Context = { params: Promise<{ path: string[] }> };

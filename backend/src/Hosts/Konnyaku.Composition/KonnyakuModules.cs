@@ -6,6 +6,7 @@ using Konnyaku.Hr.Endpoints;
 using Konnyaku.Identity.Endpoints;
 using Konnyaku.Infrastructure.Modules;
 using Konnyaku.Learning.Endpoints;
+using Konnyaku.Notification.Endpoints;
 using Konnyaku.Organization.Endpoints;
 using Konnyaku.Platform.Endpoints;
 using Konnyaku.Scheduling.Endpoints;
@@ -29,5 +30,6 @@ public static class KonnyakuModules
         new WorkspaceModule(),
         new LearningModule(),
         new HrModule(),
+        new NotificationModule(),
     ];
 }

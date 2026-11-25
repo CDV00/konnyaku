@@ -70,7 +70,8 @@
       "staff": "Nhân sự",
       "branches": "Cơ sở",
       "payroll": "Kỳ lương",
-      "home": "Tổng quan"
+      "home": "Tổng quan",
+      "notifications": "Thông báo"
     },
     "hint": {
       "leads": "Gọi lại, chuyển trạng thái khách đăng ký",
@@ -80,7 +81,8 @@
       "programs": "Chương trình và cấp độ",
       "staff": "Tài khoản nhân sự, vai trò, đơn giá giáo viên",
       "branches": "Cơ sở và múi giờ",
-      "payroll": "Tạo và chốt kỳ lương"
+      "payroll": "Tạo và chốt kỳ lương",
+      "notifications": "Email đã gửi, lỗi và gửi lại"
     },
     "zone": "Vận hành",
     "subtitle": "Tình hình trung tâm hôm nay và lối tắt tới các việc thường làm.",
@@ -492,7 +494,10 @@
       "billing_class_unknown": "Lớp không tồn tại.",
       "hr_period_overlaps": "Kỳ lương bị chồng với một kỳ đã có.",
       "hr_period_range_invalid": "Khoảng ngày không hợp lệ.",
-      "hr_period_locked": "Kỳ này đã chốt."
+      "hr_period_locked": "Kỳ này đã chốt.",
+      "notification_message_not_found": "Không tìm thấy thông báo.",
+      "notification_already_pending": "Thông báo đang chờ gửi.",
+      "notification_resend_not_allowed": "Thông báo chứa dữ liệu bảo mật đã gửi, không gửi lại được."
     },
     "classStatus": {
       "Planned": "Dự kiến",
@@ -542,5 +547,40 @@
     "Teacher": "Giáo viên",
     "Student": "Học viên",
     "Parent": "Phụ huynh"
+  },
+  "notifications": {
+    "title": "Nhật ký thông báo",
+    "description": "Email hệ thống tự gửi cho học viên, giáo viên và nhân viên. Lỗi tạm thời được thử lại tự động; lỗi vĩnh viễn (địa chỉ sai, hộp thư không tồn tại) dừng lại để bạn kiểm tra và gửi lại.",
+    "filterLabel": "Lọc theo trạng thái",
+    "filter": {
+      "all": "Tất cả",
+      "Failed": "Lỗi",
+      "Pending": "Đang chờ",
+      "Sent": "Đã gửi"
+    },
+    "empty": "Chưa có thông báo nào.",
+    "colTime": "Thời gian",
+    "colRecipient": "Người nhận",
+    "colMessage": "Nội dung",
+    "colStatus": "Trạng thái",
+    "colActions": "Thao tác",
+    "meta": "{channel} · {locale}",
+    "attempts": "{count} lần gửi",
+    "resend": "Gửi lại",
+    "status": {
+      "Pending": "Đang chờ",
+      "Sent": "Đã gửi",
+      "Failed": "Lỗi"
+    },
+    "templates": {
+      "lead_created": "Lead mới",
+      "learner_welcome": "Chào mừng học viên",
+      "credit_low": "Sắp hết buổi",
+      "enrollment_activated": "Xác nhận vào lớp",
+      "session_rescheduled": "Đổi giờ buổi học",
+      "session_cancelled": "Hủy buổi học",
+      "session_reminder": "Nhắc lịch học",
+      "payroll_locked": "Chốt kỳ lương"
+    }
   }
 }

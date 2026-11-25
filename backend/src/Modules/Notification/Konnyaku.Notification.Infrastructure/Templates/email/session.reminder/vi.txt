@@ -1,0 +1,7 @@
+Chào {{recipientName}},
+
+Nhắc bạn buổi {{sequenceNo}} của lớp {{classCode}} sẽ diễn ra lúc:
+{{startsAt}} ({{timeZone}})
+Với lớp trực tuyến, nút vào lớp có trên trang của bạn trước giờ học.
+
+Mở lịch: {{siteUrl}}{{zonePath}}

@@ -11,6 +11,7 @@ import {
   Building2,
   Home,
   Layers,
+  Mail,
   LogOut,
   Menu,
   PhoneCall,
@@ -43,6 +44,7 @@ const icons = {
   staff: Users,
   branches: Building2,
   payroll: Wallet,
+  notifications: Mail,
   book: BookOpen,
   attendance: ClipboardList,
 } satisfies Record<string, LucideIcon>;

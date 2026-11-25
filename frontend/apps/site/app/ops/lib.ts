@@ -77,4 +77,7 @@ export const statusTone: Record<string, Tone> = {
   RefundRequired: "destructive",
   // payroll
   Locked: "success",
+  // notifications
+  Sent: "success",
+  Failed: "destructive",
 };

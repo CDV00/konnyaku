@@ -101,6 +101,30 @@ docker compose up -d
 
 `pg_dump` cho điểm khôi phục theo ngày. Khi có doanh thu, chuyển sang managed PostgreSQL hoặc pgBackRest để khôi phục tới từng thời điểm.
 
+## Email (SMTP)
+
+Worker gửi email (nhắc lịch, đổi giờ / hủy buổi, xác nhận vào lớp, sắp hết buổi, lead mới, chào mừng, chốt kỳ lương) qua một máy chủ SMTP. Dùng dịch vụ email giao dịch (Amazon SES, Postmark, Mailgun, SendGrid, Brevo…), không dùng hộp thư cá nhân.
+
+1. Tạo tên miền gửi trên nhà cung cấp, ví dụ `mail.konnyaku.example.com`, và địa chỉ gửi `no-reply@mail.konnyaku.example.com`.
+2. Thêm bản ghi DNS nhà cung cấp đưa ra:
+   - **SPF**: TXT trên tên miền gửi, ví dụ `v=spf1 include:<miền của nhà cung cấp> -all` (một bản ghi SPF duy nhất mỗi tên miền).
+   - **DKIM**: CNAME hoặc TXT `<selector>._domainkey…` để nhà cung cấp ký thư.
+   - **DMARC**: TXT `_dmarc.<miền>` = `v=DMARC1; p=none; rua=mailto:dmarc@<miền của bạn>`; khi báo cáo ổn định thì nâng `p=quarantine`.
+   - Return-Path / MAIL FROM riêng nếu nhà cung cấp hỗ trợ (căn chỉnh SPF với DMARC).
+3. Điền vào `.env`: `SMTP_HOST`, `SMTP_PORT` (587 + `SMTP_SECURITY=StartTls`, hoặc 465 + `SslOnConnect`), `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_ADDRESS`, rồi `docker compose up -d`. Tên người gửi hiển thị là tên trung tâm.
+4. Thử: đổi giờ một buổi của trung tâm thử nghiệm, xem `/ops/notifications`; kiểm tra tiêu đề `Authentication-Results` của thư nhận được có `spf=pass dkim=pass dmarc=pass`.
+
+Hành vi: mỗi thông báo một dòng trong `notification.notification_message` (khóa chống trùng theo tenant). Lỗi tạm thời (mạng, 4xx, chưa cấu hình SMTP) thử lại sau 1, 4, 16, 64, 256 phút (`Notification__MaxAttempts`, `Notification__RetryBaseDelaySeconds`); lỗi 5xx từ chối người nhận/nội dung dừng ngay và ghi lý do. Quản trị trung tâm xem và gửi lại ở `/ops/notifications`. Để trống `SMTP_HOST` thì email nằm chờ trong hàng đợi (và thành lỗi sau hết số lần thử).
+
+Server đang chạy từ trước khi có module Notification: tạo role bằng tay vì script init chỉ chạy trên volume rỗng (thay mật khẩu bằng `DB_PASSWORD_NOTIFICATION` đã thêm vào `.env`):
+
+```bash
+docker compose exec postgres psql -U konnyaku -c "CREATE ROLE kk_notification LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD '<mật khẩu>';" \
+  -c "CREATE SCHEMA IF NOT EXISTS notification AUTHORIZATION konnyaku;" -c "GRANT USAGE ON SCHEMA notification TO kk_notification;" \
+  -c "ALTER DEFAULT PRIVILEGES FOR ROLE konnyaku IN SCHEMA notification GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO kk_notification;" \
+  -c "ALTER DEFAULT PRIVILEGES FOR ROLE konnyaku IN SCHEMA notification GRANT USAGE, SELECT ON SEQUENCES TO kk_notification;"
+```
+
 ## Vận hành hằng ngày
 
 | Việc | Lệnh (trong `/opt/konnyaku`) |

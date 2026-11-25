@@ -20,6 +20,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const links: NavLink[] = [
     { href: "/ops", label: t("nav.home"), icon: "home", exact: true },
     ...sections.map((section) => ({ href: `/ops/${section}`, label: t(`nav.${section}`), icon: section })),
+    ...(me.roles.includes("TenantAdmin")
+      ? [{ href: "/ops/notifications", label: t("nav.notifications"), icon: "notifications" as const }]
+      : []),
   ];
   return (
     <html lang={locale} suppressHydrationWarning className={appFont.variable}>
