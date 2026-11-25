@@ -56,6 +56,23 @@ builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadReq
 
 var app = builder.Build();
 
+// Rolling deploys (infra/deploy/scripts/deploy.sh): on SIGTERM keep serving for Shutdown:DrainSeconds and answer
+// with "Connection: close", so callers drop their pooled keep-alive connections after a complete response instead of
+// having one closed under a request; only then does Kestrel stop listening (callers retry refused connections).
+var drainSeconds = app.Configuration.GetValue("Shutdown:DrainSeconds", 0);
+if (drainSeconds > 0)
+{
+    app.Lifetime.ApplicationStopping.Register(() => Thread.Sleep(TimeSpan.FromSeconds(drainSeconds)));
+}
+app.Use((context, next) =>
+{
+    if (app.Lifetime.ApplicationStopping.IsCancellationRequested)
+    {
+        context.Response.Headers.Connection = "close";
+    }
+    return next(context);
+});
+
 app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseAuthentication();

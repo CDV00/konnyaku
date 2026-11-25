@@ -48,6 +48,17 @@ echo "ok signaling healthcheck"
 sleep 5
 docker stats --no-stream --format 'memory {{.Name}} {{.MemUsage}}' kk-smoke-api kk-smoke-web
 
+# Rolling deploys need a graceful stop: web finishes requests in flight and exits 0 on SIGTERM (graceful-shutdown.cjs),
+# instead of Next.js' immediate exit 143.
+docker stop -t 30 kk-smoke-web > /dev/null
+web_exit=$(docker inspect -f '{{.State.ExitCode}}' kk-smoke-web)
+if [[ "$web_exit" != 0 ]]; then
+  docker logs --tail 20 kk-smoke-web || true
+  echo "web exited $web_exit on SIGTERM (expected 0)" >&2
+  exit 1
+fi
+echo "ok web graceful stop"
+
 # Worker and migrator need PostgreSQL to do anything; check the runtime starts and the app loads.
 for image in worker migrator; do
   docker run --rm --entrypoint dotnet "$prefix-$image:$tag" --list-runtimes | grep -q Microsoft.NETCore.App

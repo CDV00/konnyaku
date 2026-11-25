@@ -19,3 +19,6 @@ echo "CAPTCHA_KEY=$(secret 64)"
 # Built-in classroom: tickets between API and signaling (>= 32 bytes), and coturn's TURN REST shared secret.
 echo "SIGNALING_SECRET=$(secret 48)"
 echo "TURN_SECRET=$(secret 48)"
+# Encryption key of the pgBackRest repository (client-side, AES-256). Store it OUTSIDE this server as well (team
+# password manager): the backups cannot be read without it, and a lost server takes this .env with it.
+echo "BACKUP_CIPHER_PASS=$(secret 64)"

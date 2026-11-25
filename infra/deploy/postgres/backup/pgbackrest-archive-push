@@ -1,0 +1,9 @@
+#!/bin/bash
+# archive_command of PostgreSQL (compose.yaml; `pgbackrest check` wants "pgbackrest" in its name): hands each finished
+# WAL segment to pgBackRest, which pushes it to the object storage asynchronously (compressed, encrypted). PostgreSQL
+# keeps the segment until this returns 0.
+# Without object storage (BACKUP_S3_BUCKET empty) continuous backup is off: the segment is not kept.
+if [[ -z "${PGBACKREST_REPO1_S3_BUCKET:-}" ]]; then
+  exit 0
+fi
+exec pgbackrest archive-push "$1"

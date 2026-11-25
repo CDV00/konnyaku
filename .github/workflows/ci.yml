@@ -87,3 +87,10 @@ jobs:
             -t konnyaku-signaling:ci
       - name: Smoke test
         run: infra/deploy/scripts/smoke-test.sh konnyaku ci
+      # PostgreSQL + pgBackRest image the server builds itself (infra/deploy/postgres), deploy/backup scripts, compose file.
+      - name: Backup image and deploy scripts
+        run: |
+          docker build -t konnyaku-postgres:17 infra/deploy/postgres
+          docker run --rm konnyaku-postgres:17 pgbackrest version
+          for f in infra/deploy/scripts/*.sh infra/deploy/postgres/backup/*; do bash -n "$f"; done
+          cd infra/deploy && cp .env.example .env && ./scripts/gen-secrets.sh >> .env && docker compose config --quiet

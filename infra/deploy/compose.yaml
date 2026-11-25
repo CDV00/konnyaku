@@ -47,6 +47,43 @@ x-backend-env: &backend-env
   Rtc__TurnUrls__1: turn:${TURN_HOST:-${BASE_DOMAIN}}:3478?transport=tcp
   Rtc__TurnSecret: ${TURN_SECRET:?}
 
+# pgBackRest (continuous backup to S3-compatible object storage), shared by `postgres` (pushes WAL) and `backup`
+# (scheduled backups, drills, restores). docs/trien-khai.md#backup
+x-pgbackrest-env: &pgbackrest-env
+  PGBACKREST_STANZA: konnyaku
+  PGBACKREST_PG1_PATH: /var/lib/postgresql/data
+  PGBACKREST_PG1_SOCKET_PATH: /var/run/postgresql
+  PGBACKREST_PG1_USER: konnyaku
+  PGBACKREST_PG1_DATABASE: konnyaku
+  PGBACKREST_REPO1_TYPE: s3
+  PGBACKREST_REPO1_PATH: ${BACKUP_S3_PATH:-/konnyaku}
+  PGBACKREST_REPO1_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+  PGBACKREST_REPO1_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+  PGBACKREST_REPO1_S3_REGION: ${BACKUP_S3_REGION:-auto}
+  PGBACKREST_REPO1_S3_KEY: ${BACKUP_S3_KEY:-}
+  PGBACKREST_REPO1_S3_KEY_SECRET: ${BACKUP_S3_KEY_SECRET:-}
+  PGBACKREST_REPO1_S3_URI_STYLE: ${BACKUP_S3_URI_STYLE:-path}
+  PGBACKREST_REPO1_STORAGE_PORT: ${BACKUP_S3_PORT:-443}
+  PGBACKREST_REPO1_STORAGE_VERIFY_TLS: ${BACKUP_S3_VERIFY_TLS:-y}
+  # Client-side encryption: the object storage only ever sees ciphertext. Lose this key and the backups are useless.
+  PGBACKREST_REPO1_CIPHER_TYPE: aes-256-cbc
+  PGBACKREST_REPO1_CIPHER_PASS: ${BACKUP_CIPHER_PASS:?}
+  # Keep as many full backups as needed to restore to any moment of the last BACKUP_RETENTION_DAYS days (WAL included).
+  PGBACKREST_REPO1_RETENTION_FULL_TYPE: time
+  PGBACKREST_REPO1_RETENTION_FULL: ${BACKUP_RETENTION_DAYS:-30}
+  # Small files bundled, block-level incremental: fewer objects and less upload for diff backups.
+  PGBACKREST_REPO1_BUNDLE: "y"
+  PGBACKREST_REPO1_BLOCK: "y"
+  PGBACKREST_COMPRESS_TYPE: zst
+  PGBACKREST_PROCESS_MAX: ${BACKUP_PROCESS_MAX:-2}
+  PGBACKREST_START_FAST: "y"
+  # WAL is pushed in the background in batches; past this queue size (object storage unreachable for long) WAL is
+  # dropped instead of filling the disk: PITR then has a gap until the next full backup (alerted on, see docs).
+  PGBACKREST_ARCHIVE_ASYNC: "y"
+  PGBACKREST_SPOOL_PATH: /var/spool/pgbackrest
+  PGBACKREST_ARCHIVE_PUSH_QUEUE_MAX: ${BACKUP_WAL_QUEUE_MAX:-4GiB}
+  PGBACKREST_LOG_LEVEL_FILE: "off"
+
 x-logging: &logging
   driver: json-file
   options:
@@ -66,6 +103,8 @@ services:
       ACME_EMAIL: ${ACME_EMAIL:?}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Web upstreams, rewritten by scripts/deploy.sh during a rolling deploy.
+      - ./caddy:/etc/caddy/upstreams:ro
       - caddy-data:/data
       - caddy-config:/config
     networks: [edge]
@@ -80,8 +119,8 @@ services:
       # V8 heap cap: without it the heap keeps growing (~2x RAM at the same load); below ~256 MB Next.js runs out
       # of heap under load (docs/toi-uu-tai-nguyen.md).
       NODE_OPTIONS: --max-old-space-size=${WEB_HEAP_MB:-512}
-      # Keep idle sockets open longer than Caddy reuses them (2 min); with Node's 5 s default Caddy sometimes sends a
-      # request on a socket Node is closing and answers 502 (it cannot retry a POST).
+      # Keep idle sockets open longer than Caddy does (3 s, Caddyfile), so Caddy always closes first: with Node's 5 s
+      # default against Caddy's former 2 min, Caddy sometimes sent a request on a socket Node was closing (502 on POST).
       KEEP_ALIVE_TIMEOUT: "130000"
       KONNYAKU_ADMIN_HOST: admin.${BASE_DOMAIN:?}
       KONNYAKU_BASE_DOMAIN: ${BASE_DOMAIN:?}
@@ -90,6 +129,8 @@ services:
       resources:
         limits:
           memory: ${WEB_MEM_LIMIT:-768m}
+    # Rolling deploys (scripts/deploy.sh): on SIGTERM web drains 5 s, stops accepting and finishes in-flight requests.
+    stop_grace_period: 30s
     networks: [edge, app]
     depends_on: [api]
     healthcheck:
@@ -109,11 +150,15 @@ services:
       ForwardedHeaders__KnownNetworks__0: ${APP_SUBNET:-172.30.1.0/24}
       # 2 GB profile: dispatch the outbox here and run WORKER_REPLICAS=0.
       Worker__InProcess: ${API_RUNS_WORKER:-false}
+      # Rolling deploys: on SIGTERM serve 5 s more with "Connection: close" before Kestrel stops listening.
+      Shutdown__DrainSeconds: "5"
     deploy:
       replicas: ${API_REPLICAS:-2}
       resources:
         limits:
           memory: ${API_MEM_LIMIT:-512m}
+    # SIGTERM: 5 s drain, then Kestrel stops accepting and finishes in-flight requests before exiting.
+    stop_grace_period: 30s
     networks: [app, data]
     depends_on:
       migrator:
@@ -139,6 +184,7 @@ services:
       resources:
         limits:
           memory: ${WORKER_MEM_LIMIT:-256m}
+    stop_grace_period: 30s
     # app: outbound internet for providers (Google Meet, email); data: PostgreSQL.
     networks: [app, data]
     depends_on:
@@ -215,7 +261,9 @@ services:
     logging: *logging
 
   postgres:
-    image: postgres:17
+    # postgres:17 + pgBackRest, built on the server (postgres/Dockerfile); its own tag, so deploys never restart it.
+    image: konnyaku-postgres:17
+    build: ./postgres
     restart: unless-stopped
     shm_size: 256mb
     # Sized per machine in .env (docs/toi-uu-tai-nguyen.md). Each connection costs a few MB, so keep the pools small.
@@ -231,11 +279,23 @@ services:
       - work_mem=${PG_WORK_MEM:-8MB}
       - -c
       - maintenance_work_mem=${PG_MAINTENANCE_WORK_MEM:-128MB}
+      # Continuous archiving for point-in-time recovery: every finished WAL segment goes to pgBackRest, and a segment is
+      # closed at least every PG_ARCHIVE_TIMEOUT seconds while there are writes (the most a server loss can cost).
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=/opt/konnyaku/bin/pgbackrest-archive-push %p
+      - -c
+      - archive_timeout=${PG_ARCHIVE_TIMEOUT:-60}
     deploy:
       resources:
         limits:
           memory: ${PG_MEM_LIMIT:-2g}
     environment:
+      <<: *pgbackrest-env
+      # archive-push runs inside PostgreSQL: only warnings and errors reach its log.
+      PGBACKREST_LOG_LEVEL_CONSOLE: "off"
+      PGBACKREST_LOG_LEVEL_STDERR: warn
       POSTGRES_USER: konnyaku
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
       POSTGRES_DB: konnyaku
@@ -254,12 +314,48 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./postgres/backup:/opt/konnyaku/bin:ro
+      - postgres-run:/var/run/postgresql
       - ${BACKUP_DIR:-./backups}:/backups
-    networks: [data]
+    # backup: outbound only, to push WAL to the object storage (no port is published).
+    networks: [data, backup]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U konnyaku -d konnyaku"]
       interval: 5s
       retries: 10
+    logging: *logging
+
+  # Scheduled pgBackRest backups (weekly full, daily diff), monthly restore drill, status files for monitoring.
+  # Reaches PostgreSQL through its socket and reads its data directory (same volumes); restores go through this image.
+  backup:
+    image: konnyaku-postgres:17
+    build: ./postgres
+    restart: unless-stopped
+    entrypoint: ["/opt/konnyaku/bin/kk-backup"]
+    command: ["daemon"]
+    environment:
+      <<: *pgbackrest-env
+      PGBACKREST_LOG_LEVEL_CONSOLE: info
+      BACKUP_TIME_UTC: ${BACKUP_TIME_UTC:-19:30}
+      BACKUP_FULL_WEEKDAY: ${BACKUP_FULL_WEEKDAY:-7}
+      BACKUP_DRILL_DAY: ${BACKUP_DRILL_DAY:-1}
+      # Set by scripts/deploy.sh: the service is recreated when its scripts change.
+      BACKUP_SCRIPTS_VERSION: ${BACKUP_SCRIPTS_VERSION:-}
+    # Idle: a shell loop. Backup: pgBackRest (~20-60 MiB). Drill: plus a throw-away PostgreSQL with 32 MB of buffers.
+    deploy:
+      resources:
+        limits:
+          memory: ${BACKUP_MEM_LIMIT:-256m}
+    stop_grace_period: 60s
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - postgres-run:/var/run/postgresql
+      - ./postgres/backup:/opt/konnyaku/bin:ro
+      - ${BACKUP_DIR:-./backups}:/backups
+    networks: [backup]
+    depends_on:
+      postgres:
+        condition: service_healthy
     logging: *logging
 
 networks:
@@ -271,8 +367,12 @@ networks:
   # No route to the internet is needed by PostgreSQL; Api/Worker reach it here.
   data:
     internal: true
+  # Egress to the object storage for PostgreSQL (WAL) and the backup service.
+  backup: {}
 
 volumes:
   postgres-data:
+  # PostgreSQL's unix socket, shared with the backup service.
+  postgres-run:
   caddy-data:
   caddy-config:

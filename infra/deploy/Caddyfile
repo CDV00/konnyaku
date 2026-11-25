@@ -35,17 +35,21 @@
 		@internal path /api/internal/*
 		respond @internal 404
 
-		# One upstream per web replica (Docker DNS returns all of them). A replica that refuses connections
-		# (restarting during a deploy) is skipped for 30 s and the request is retried on another one.
+		# One upstream per web replica: Docker DNS returns all of them (caddy/web-upstreams.caddy). During a rolling
+		# deploy scripts/deploy.sh switches to a static list without the replica it is about to stop (graceful reload),
+		# so no request is sent to a replica that is going away. A replica that refuses connections anyway is retried
+		# on another one for up to 10 s, and skipped for 10 s after 3 failures (one failure does not take a healthy
+		# replica out). Idle upstream connections are closed by Caddy after 3 s, always before web closes them (it keeps
+		# them 130 s), so a request is never sent on a connection web is closing.
 		reverse_proxy {
-			dynamic a {
-				name web
-				port 3000
-				refresh 5s
-			}
+			import /etc/caddy/upstreams/web-upstreams.caddy
 			lb_policy round_robin
 			lb_try_duration 10s
-			fail_duration 30s
+			fail_duration 10s
+			max_fails 3
+			transport http {
+				keepalive 3s
+			}
 		}
 	}
 }
