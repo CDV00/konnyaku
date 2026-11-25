@@ -161,7 +161,7 @@ Cổng riêng, không trùng hệ thống dev: PostgreSQL 5450, Mailpit 1030/803
 
 Khi test lỗi: `frontend/e2e/playwright-report` (mở bằng `npx playwright show-report` trong `frontend/e2e`) có trace, video, ảnh chụp; log server ở `frontend/e2e/logs/{api,worker,web}.log`. Trên CI các thư mục này là artifact `e2e-results` của job.
 
-Viết test mới: mỗi test tự tạo dữ liệu nó thay đổi qua API (`support/api.ts`: lớp riêng có giáo viên riêng, học viên, đơn…), tên có hậu tố ngẫu nhiên, nên các test chạy song song và chạy lại được trên cùng database đã seed. Chữ trên giao diện lấy từ catalog i18n (`t("admin.billing.refund")` trong `support/i18n.ts`), không gõ cứng. Chờ theo điều kiện (`expect(...).toBeVisible()`, `expect.poll`, `toPass`), không `waitForTimeout`; việc của Worker (xếp lớp, trừ buổi, gửi email) thì poll đến khi thấy kết quả.
+Thêm hoặc sửa luồng (bắt buộc với PR đổi điều người dùng thấy): đọc [frontend/e2e/README.md](../frontend/e2e/README.md) — chỗ đặt spec và fixture, đăng nhập theo vai trò, tạo dữ liệu, chạy một spec.
 
 ## Phòng học có sẵn (WebRTC)
 

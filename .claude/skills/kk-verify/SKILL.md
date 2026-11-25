@@ -29,6 +29,8 @@ Build lỗi `require() of ES Module` → ai đó đã nâng Tailwind khỏi 4.1.
 
 Đổi giao diện, luồng đăng nhập, quyền, hoặc event giữa các module mà người dùng nhìn thấy (xếp lớp, trừ buổi, email): chạy bộ Playwright, giống job `e2e` của CI.
 
+**Bắt buộc**: PR có thay đổi người dùng nhìn thấy phải thêm hoặc sửa luồng trong `frontend/e2e/tests` (hướng dẫn `frontend/e2e/README.md`: chỗ đặt spec/fixture, đăng nhập theo vai trò, tạo dữ liệu, chạy một spec) và cập nhật tài liệu bị ảnh hưởng. Chưa có luồng cho thay đổi thì chưa coi là kiểm tra xong.
+
 ```bash
 npx -y pnpm@10.34.9 --dir frontend e2e                      # dựng stack riêng, seed, chạy hết (6–8 phút)
 node frontend/e2e/run.mjs --no-build -- --grep attendance   # chạy lại một luồng, giữ bản build
@@ -36,7 +38,7 @@ node frontend/e2e/run.mjs --no-build -- --grep attendance   # chạy lại một
 
 - Cần Docker, .NET 10, Python 3; lần đầu cài trình duyệt: `npx -y pnpm@10.34.9 --dir frontend/e2e exec playwright install chromium`. Cổng riêng (5450, 5190, 4950, Mailpit 8030) nên chạy song song với hệ thống dev được.
 - Lỗi: xem `frontend/e2e/playwright-report` (trace, video) và `frontend/e2e/logs/*.log`; trên CI là artifact `e2e-results`.
-- Thêm luồng mới hoặc sửa nhãn/chữ mà test dùng: test lấy chữ từ catalog i18n, đổi key thì sửa test theo. Chi tiết cách viết test: `docs/chay-local.md` mục "Test giao diện tự động".
+- Thêm luồng mới hoặc sửa nhãn/chữ mà test dùng: test lấy chữ từ catalog i18n, đổi key thì sửa test theo. Chi tiết cách viết test: `frontend/e2e/README.md`.
 - Một test vừa qua vừa lỗi là lỗi phải sửa (test hoặc ứng dụng), không thêm `waitForTimeout` hay tăng retry.
 
 ## Chạy thử trên trình duyệt

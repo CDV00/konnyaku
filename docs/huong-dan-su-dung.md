@@ -197,7 +197,7 @@ Ngăn kéo sửa có mục **Lịch sử thay đổi**: ai sửa, lúc nào, tr�
 | Điều phối | Lớp, lịch học, phòng, ngày nghỉ, ghi danh của các cơ sở mình phụ trách; hồ sơ học viên | Mọi lớp, danh sách học viên |
 | Kế toán | Gói học, đơn hàng, thanh toán, hoàn tiền, đơn giá giáo viên. Kế toán giao theo cơ sở chỉ thu tiền, hoàn tiền, điều chỉnh buổi và in phiếu cho đơn của cơ sở đó; không sửa gói học hay đơn giá | Mọi lớp, danh sách học viên (liên hệ chỉ dạng che, không có nút Hiện) |
 | Tư vấn | Lead, hồ sơ học viên | Mọi lớp |
-| Giáo viên | Không sửa gì trong `ops` | Chỉ các lớp mình dạy; không xem danh sách học viên, lead hay nhân sự (điểm danh trong `teach` vẫn có tên học viên của buổi) |
+| Giáo viên | Không vào `ops` (mở địa chỉ `/ops/...` sẽ được chuyển về `teach`) | Chỉ các lớp mình dạy; không xem danh sách học viên, lead hay nhân sự (điểm danh trong `teach` vẫn có tên học viên của buổi) |
 
 ### Lead
 
@@ -249,7 +249,7 @@ Các nút phía trên bảng đơn lọc theo trạng thái: **Tất cả**, **C
 | Nghỉ giữa khoá | Số buổi trả phí chưa dùng × đơn giá một buổi (giá đơn ÷ số buổi trả phí). Buổi tặng không hoàn. Buổi cộng thêm bằng điều chỉnh không hoàn |
 | Nghỉ khi chưa trả đủ | Số đã thu |
 
-Có thể sửa số tiền (ví dụ trừ phí), nhưng không quá số đã thu; **Lý do** luôn bắt buộc và được in trên phiếu chi. Chọn hình thức, mã giao dịch rồi **Xác nhận hoàn tiền**. Mỗi đơn chỉ hoàn một lần, không hoàn tác được: đơn chuyển sang **Đã hoàn tiền**, số buổi còn lại bị trừ hết bằng dòng **Hoàn** trong sổ buổi học, học viên được cho nghỉ lớp và chỗ trong lớp được nhả. Phần chênh giữa giá trị buổi chưa dùng và số hoàn (phí giữ lại) được tính vào doanh thu ghi nhận ngày hoàn, cho cơ sở thu tiền.
+Có thể sửa số tiền (ví dụ trừ phí), nhưng không quá số đã thu; **Lý do** luôn bắt buộc và được in trên phiếu chi. Chọn hình thức, mã giao dịch rồi **Xác nhận hoàn tiền**. Nếu báo **Số buổi của đơn vừa thay đổi**, chưa có gì được hoàn (thường do học viên vừa được xếp lớp hoặc vừa trừ buổi): mở lại ngăn kéo để xem số liệu mới rồi xác nhận lại. Mỗi đơn chỉ hoàn một lần, không hoàn tác được: đơn chuyển sang **Đã hoàn tiền**, số buổi còn lại bị trừ hết bằng dòng **Hoàn** trong sổ buổi học, học viên được cho nghỉ lớp và chỗ trong lớp được nhả. Phần chênh giữa giá trị buổi chưa dùng và số hoàn (phí giữ lại) được tính vào doanh thu ghi nhận ngày hoàn, cho cơ sở thu tiền.
 
 **Sổ buổi học.** Trong **Chi tiết** đơn đã trả có mục **Sổ buổi học**: mọi dòng Mua, Tặng, Học, Hoàn, Điều chỉnh theo thời gian. Sổ chỉ ghi thêm, không sửa: muốn cộng hoặc trừ buổi thì mở **Điều chỉnh buổi**, nhập số buổi (âm để trừ), loại buổi (tặng / trả phí) và lý do, bấm **Ghi bút toán**.
 
