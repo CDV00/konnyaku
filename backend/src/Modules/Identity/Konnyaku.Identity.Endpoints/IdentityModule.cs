@@ -37,6 +37,8 @@ public sealed class IdentityModule : IModule
         services.AddScoped<BootstrapTenantAdminHandler>();
         services.AddScoped<AddStaffMemberHandler>();
         services.AddScoped<StaffQueries>();
+        services.AddScoped<StaffList>();
+        services.AddScoped<Konnyaku.Application.Messaging.IIntegrationEventHandler<Konnyaku.Crm.Contracts.StudentAnonymizedV1>, StudentAnonymizedConsumer>();
         services.AddScoped<StaffAdminHandler>();
     }
 
@@ -74,7 +76,8 @@ public sealed class IdentityModule : IModule
 
         // Colleagues (names, emails, roles, branches) for members who change something: coordinators pick teachers,
         // accountants set rates, consultants hand over leads. A teacher-only member does not list staff.
-        group.MapGet("/staff", async (StaffQueries queries, CancellationToken ct) => Results.Ok(await queries.ListAsync(ct)))
+        group.MapGet("/staff", async ([AsParameters] StaffFilter filter, [AsParameters] ListParams list, StaffList staff, CancellationToken ct) =>
+                Results.Ok(await staff.ListAsync(filter, list.ToRequest(StaffList.Sorts), ct)))
             .RequirePermission([.. Permissions.All]);
 
         group.MapPut("/staff/{userId:guid}", async (Guid userId, UpdateStaffMemberCommand command, StaffAdminHandler handler, CancellationToken ct) =>

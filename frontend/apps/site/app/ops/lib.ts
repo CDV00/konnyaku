@@ -9,6 +9,38 @@ export async function getJson<T>(path: string, token: string, fallback: T): Prom
 
 export type Localized = Record<string, string>;
 
+/** One page of a list endpoint (the same shape in every module). */
+export type Page<T> = { items: T[]; total: number; pageNumber: number; pageSize: number };
+
+export const emptyPage = <T,>(): Page<T> => ({ items: [], total: 0, pageNumber: 1, pageSize: 25 });
+
+/** Query string of a page: the URL's `searchParams` as Next.js hands them to the page. */
+export type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+/**
+ * The list parameters of the page URL forwarded to the API (only the known keys: the URL is shareable, the API call
+ * stays exact). `defaults` apply when the URL does not set a key.
+ */
+export async function listQuery(searchParams: SearchParams, keys: readonly string[], defaults: Record<string, string> = {}) {
+  const params = await searchParams;
+  const query = new URLSearchParams();
+  for (const key of ["page", "pageSize", "sort", "dir", ...keys]) {
+    const raw = params[key];
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    if (value) query.set(key, value);
+    else if (defaults[key]) query.set(key, defaults[key]);
+  }
+  return query;
+}
+
+/** Name lookups of the ids on one page (students of a page of orders, a class roster): at most 200 ids per call. */
+export async function namesOf(path: string, ids: (string | null | undefined)[], token: string, name: (row: { id: string; fullName: string }) => string = (r) => r.fullName) {
+  const unique = [...new Set(ids.filter((id): id is string => !!id))].slice(0, 200);
+  if (unique.length === 0) return new Map<string, string>();
+  const page = await getJson<Page<{ id: string; fullName: string }>>(`${path}?ids=${unique.join(",")}&pageSize=200`, token, emptyPage());
+  return new Map(page.items.map((row) => [row.id, name(row)]));
+}
+
 /** Days off shown in ops: from a month ago to a year ahead (YYYY-MM-DD). */
 export function holidayWindow(): { from: string; to: string } {
   const day = 24 * 3600 * 1000;
@@ -61,14 +93,20 @@ export type ClassRow = {
   sessionMinutes: number;
   languageCode: string;
 };
+/** A row of the student list: birth year, guardian, phone and email arrive masked ("09xx xxx 567"). */
 export type Student = {
   id: string;
   fullName: string;
-  birthYear: number | null;
+  birthYear: string | null;
+  guardianName: string | null;
+  phone: string | null;
+  email: string | null;
   homeBranchId: string | null;
   userId: string | null;
   communicationLocale: string;
   isActive: boolean;
+  anonymized: boolean;
+  createdAt: string;
 };
 export type Package = {
   id: string;
@@ -99,7 +137,9 @@ export type Permission =
   | "billing.payments"
   | "crm.leads"
   | "crm.students"
-  | "crm.students.view";
+  | "crm.students.view"
+  | "crm.export"
+  | "crm.privacy";
 
 type PermissionScope = { permission: Permission; tenantWide: boolean; branchIds: string[] };
 

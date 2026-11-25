@@ -127,6 +127,17 @@ docker compose up -d
 
 `pg_dump` cho điểm khôi phục theo ngày. Khi có doanh thu, chuyển sang managed PostgreSQL hoặc pgBackRest để khôi phục tới từng thời điểm.
 
+## Xử lý dữ liệu cá nhân
+
+Quy tắc đầy đủ: [xu-ly-du-lieu-ca-nhan.md](xu-ly-du-lieu-ca-nhan.md). Việc của người triển khai:
+
+- Script init tạo extension `unaccent` và hàm `public.kk_unaccent` (tìm kiếm không dấu). Server đã chạy từ trước: migration Crm tự tạo khi deploy (role chủ schema `konnyaku` cần quyền tạo extension, là superuser của image postgres).
+- Tuỳ chỉnh (biến môi trường cho `api` và `worker` trong `compose.yaml`, mặc định trong ngoặc): `Privacy__ExportMaxRows` (2000), `Privacy__ExportsPerDay` (20), `Privacy__LeadRetentionMonths` (24, `0` để tắt ẩn danh lead tự động), `Privacy__RequestDueHours` (72).
+- Worker chạy job lưu giữ mỗi ngày; log chỉ ghi số lead đã ẩn danh theo trung tâm.
+- Không bật access log của Caddy hay request log của API (URL danh sách có từ khoá tìm kiếm: tên, số điện thoại). Không bật `Include Error Detail` trong chuỗi kết nối.
+- Backup (`scripts/backup.sh`) chứa dữ liệu cá nhân: giữ quyền truy cập thư mục backup như với database; dữ liệu đã ẩn danh hoá vẫn còn trong backup cũ đến khi backup đó hết hạn lưu.
+- Thoả thuận xử lý dữ liệu với nhà cung cấp VPS/backup và đánh giá tác động khi chuyển dữ liệu ra nước ngoài là việc của trung tâm/nhà vận hành, ngoài phạm vi code.
+
 ## Vận hành hằng ngày
 
 | Việc | Lệnh (trong `/opt/konnyaku`) |

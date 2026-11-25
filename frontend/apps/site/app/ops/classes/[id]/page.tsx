@@ -10,7 +10,7 @@ import { Field, NativeSelect } from "@konnyaku/ui/kk/field";
 import { ActionButton, ActionForm, FormSheet } from "../../action-form";
 import { ChangeHistory } from "../../history";
 import { mergeHistory, type HistoryEntry } from "../../history-entry";
-import { getAccess, getJson, localized, statusTone, type Branch, type ClassRow, type Program, type Room, type StaffMember, type Student } from "../../lib";
+import { emptyPage, getAccess, getJson, localized, namesOf, statusTone, type Branch, type ClassRow, type Page, type Program, type Room, type StaffMember } from "../../lib";
 
 type Session = { id: string; sequenceNo: number; startsAt: string; endsAt: string; teacherId: string | null; roomId: string | null; status: string };
 type RosterEntry = { enrollmentId: string; studentId: string; status: string };
@@ -25,12 +25,11 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
   const t = await getTranslations("admin");
   const format = await getFormatter();
   const locale = await getLocale();
-  const [classes, sessions, roster, students, staff, programs, branches, rooms, pattern, access, classHistory, scheduleHistory] = await Promise.all([
-    getJson<ClassRow[]>("/api/academic/classes", token, []),
+  const [cls, sessions, roster, staffPage, programs, branches, rooms, pattern, access, classHistory, scheduleHistory] = await Promise.all([
+    getJson<ClassRow | null>(`/api/academic/classes/${id}`, token, null),
     getJson<Session[]>(`/api/scheduling/classes/${id}/sessions`, token, []),
     getJson<RosterEntry[]>(`/api/academic/classes/${id}/roster`, token, []),
-    getJson<Student[]>("/api/crm/students", token, []),
-    getJson<StaffMember[]>("/api/identity/staff", token, []),
+    getJson<Page<StaffMember>>("/api/identity/staff?pageSize=200", token, emptyPage()),
     getJson<Program[]>("/api/academic/programs", token, []),
     getJson<Branch[]>("/api/organization/branches", token, []),
     getJson<Room[]>("/api/organization/rooms", token, []),
@@ -39,9 +38,10 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
     getJson<HistoryEntry[]>(`/api/academic/history/${id}`, token, []),
     getJson<HistoryEntry[]>(`/api/scheduling/history/${id}`, token, []),
   ]);
-  const cls = classes.find((c) => c.id === id);
   if (!cls) notFound();
-  const studentName = new Map(students.map((s) => [s.id, s.fullName]));
+  const staff = staffPage.items;
+  // Names of the students on the roster only (a center has thousands).
+  const studentName = await namesOf("/api/crm/students", roster.map((r) => r.studentId), token);
   const teachers = staff.filter((s) => s.roles.includes("Teacher") && s.status === "Active");
   const teacherName = new Map(staff.map((s) => [s.userId, s.displayName]));
   const levels = programs.flatMap((p) => p.levels.map((level) => ({ ...level, program: p })));

@@ -30,6 +30,7 @@ public sealed class BillingModule : IModule
         services.AddScoped<BillingAdminHandlers>();
         services.AddScoped<ConsumeCreditHandler>();
         services.AddScoped<AdjustCreditsHandler>();
+        services.AddScoped<Konnyaku.Application.Privacy.IPersonalDataSource, BillingPersonalData>();
         services.AddScoped<IIntegrationEventHandler<EnrollmentActivatedV1>, EnrollmentActivatedConsumer>();
         services.AddScoped<IIntegrationEventHandler<EnrollmentRejectedV1>, EnrollmentRejectedConsumer>();
         services.AddScoped<IIntegrationEventHandler<Konnyaku.Learning.Contracts.AttendanceConfirmedV1>, AttendanceConfirmedConsumer>();
@@ -74,8 +75,8 @@ public sealed class BillingModule : IModule
         sales.MapChangeHistory<BillingDbContext>();
         sales.MapPost("/orders", async (CreateOrderCommand command, OrderHandlers handlers, CancellationToken ct) =>
             ApiResults.From(await handlers.CreateOrderAsync(command, ct), o => Results.Created($"orders/{o.Id}", o)));
-        sales.MapGet("/orders", async (Guid? studentId, BillingQueries queries, CancellationToken ct) =>
-            Results.Ok(await queries.ListOrdersAsync(studentId, ct)));
+        sales.MapGet("/orders", async ([AsParameters] OrderFilter filter, [AsParameters] ListParams list, BillingQueries queries, CancellationToken ct) =>
+            Results.Ok(await queries.ListOrdersAsync(filter, list.ToRequest(BillingQueries.OrderSorts), ct)));
         payments.MapPost("/orders/{id:guid}/payments", async (Guid id, RecordPaymentCommand command, OrderHandlers handlers, CancellationToken ct) =>
             ApiResults.From(await handlers.RecordPaymentAsync(id, command, ct), Results.Ok));
         finance.MapPost("/accounts/{orderId:guid}/adjustments", async (Guid orderId, AdjustCreditsCommand command, AdjustCreditsHandler handler, CancellationToken ct) =>

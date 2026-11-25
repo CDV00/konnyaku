@@ -30,7 +30,17 @@ public sealed record PackageView(Guid Id, string Code, IReadOnlyDictionary<strin
 
 public sealed record CreateOrderCommand(Guid StudentId, Guid PackageId, Guid? ClassId, Guid? BranchId);
 
-public sealed record OrderView(Guid Id, Guid StudentId, Guid PackageId, Guid? ClassId, decimal Amount, decimal AmountReceived, string Currency, string Status, Guid? BranchId);
+public sealed record OrderView(
+    Guid Id, Guid StudentId, Guid PackageId, Guid? ClassId, decimal Amount, decimal AmountReceived, string Currency, string Status, Guid? BranchId,
+    DateTimeOffset CreatedAt);
+
+/// <summary>
+/// Filters of the order list (<c>GET /api/billing/orders</c>): <see cref="Q"/> finds the orders of students whose name,
+/// phone or email matches (accents ignored, through Crm); dates are the order's creation day (UTC).
+/// </summary>
+public sealed record OrderFilter(
+    Guid? StudentId = null, string? Q = null, string? Status = null, Guid? Branch = null, Guid? Package = null, Guid? Class = null,
+    DateOnly? CreatedFrom = null, DateOnly? CreatedTo = null);
 
 public sealed record RecordPaymentCommand(decimal Amount, string Method, string? Reference);
 
@@ -241,15 +251,64 @@ public sealed class BillingQueries(IBillingDbContext db, ICrmApi crm) : IBilling
             .Select(p => new PaymentView(p.Id, p.OrderId, p.Amount, p.Method, p.Reference, p.ReceivedAt, p.VoidedAt))
             .ToListAsync(ct);
 
-    public async Task<IReadOnlyList<OrderView>> ListOrdersAsync(Guid? studentId, CancellationToken ct)
+    public static readonly IReadOnlySet<string> OrderSorts = new HashSet<string> { "createdAt", "amount", "status" };
+
+    public async Task<Page<OrderView>> ListOrdersAsync(OrderFilter filter, PageRequest page, CancellationToken ct)
     {
         var query = db.Orders.AsNoTracking();
-        if (studentId is { } id)
+        if (filter.StudentId is { } id)
         {
             query = query.Where(o => o.StudentId == id);
         }
 
-        return (await query.OrderByDescending(o => o.CreatedAt).Take(500).ToListAsync(ct)).Select(o => o.ToView()).ToList();
+        if (!string.IsNullOrWhiteSpace(filter.Q))
+        {
+            // At most 1,000 matching students: a search that broad is refined by the person typing.
+            var students = (await crm.SearchStudentIdsAsync(filter.Q, 1000, ct)).ToArray();
+            query = query.Where(o => students.Contains(o.StudentId));
+        }
+
+        query = filter.Status switch
+        {
+            null or "" or "all" => query,
+            var s when Enum.TryParse<OrderStatus>(s, true, out var status) => query.Where(o => o.Status == status),
+            _ => query.Where(_ => false),
+        };
+        if (filter.Branch is { } branch)
+        {
+            query = query.Where(o => o.BranchId == branch);
+        }
+
+        if (filter.Package is { } package)
+        {
+            query = query.Where(o => o.PackageId == package);
+        }
+
+        if (filter.Class is { } classId)
+        {
+            query = query.Where(o => o.ClassId == classId);
+        }
+
+        if (filter.CreatedFrom is { } from)
+        {
+            var start = new DateTimeOffset(from.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+            query = query.Where(o => o.CreatedAt >= start);
+        }
+
+        if (filter.CreatedTo is { } to)
+        {
+            var end = new DateTimeOffset(to.AddDays(1).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+            query = query.Where(o => o.CreatedAt < end);
+        }
+
+        var ordered = (page.Sort, page.Descending) switch
+        {
+            ("amount", var desc) => desc ? query.OrderByDescending(o => o.Amount).ThenByDescending(o => o.Id) : query.OrderBy(o => o.Amount).ThenBy(o => o.Id),
+            ("status", var desc) => desc ? query.OrderByDescending(o => o.Status).ThenByDescending(o => o.CreatedAt).ThenBy(o => o.Id) : query.OrderBy(o => o.Status).ThenByDescending(o => o.CreatedAt).ThenBy(o => o.Id),
+            ("createdAt", false) => query.OrderBy(o => o.CreatedAt).ThenBy(o => o.Id),
+            _ => query.OrderByDescending(o => o.CreatedAt).ThenByDescending(o => o.Id),
+        };
+        return (await ordered.ToPageAsync(page, ct)).Map(o => o.ToView());
     }
 
     /// <summary>Revenue recognized when lessons are taught: per branch of the class, for sessions held in [from, to].</summary>
@@ -266,7 +325,7 @@ public static class BillingMapping
     public static PackageView ToView(this Package p) => new(p.Id, p.Code, p.Name.Values, p.PaidCredits, p.BonusCredits, p.Price, p.Currency, p.IsActive);
 
     public static OrderView ToView(this Order o) =>
-        new(o.Id, o.StudentId, o.PackageId, o.ClassId, o.Amount, o.AmountReceived, o.Currency, o.Status.ToString(), o.BranchId);
+        new(o.Id, o.StudentId, o.PackageId, o.ClassId, o.Amount, o.AmountReceived, o.Currency, o.Status.ToString(), o.BranchId, o.CreatedAt);
 
     public static CreditAccountDto ToDto(this CreditBalance b) =>
         new(b.OrderId, b.StudentId, b.EnrollmentId, b.PaidCredits, b.BonusCredits, b.Total, b.Currency);

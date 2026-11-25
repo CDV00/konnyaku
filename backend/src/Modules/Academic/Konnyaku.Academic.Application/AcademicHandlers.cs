@@ -294,17 +294,6 @@ public sealed class AcademicQueries(IAcademicDbContext db) : IAcademicApi
         return (await query.OrderBy(p => p.Code).ToListAsync(ct)).Select(p => p.ToView()).ToList();
     }
 
-    public async Task<IReadOnlyList<ClassDto>> ListClassesAsync(CancellationToken ct)
-    {
-        var ids = await db.Classes.AsNoTracking().OrderBy(c => c.StartsOn).Select(c => c.Id).Take(500).ToListAsync(ct);
-        var result = new List<ClassDto>();
-        foreach (var id in ids)
-        {
-            result.Add((await GetClassAsync(id, ct))!);
-        }
-
-        return result;
-    }
 
     public async Task<ClassDto?> GetClassAsync(Guid classId, CancellationToken cancellationToken) =>
         await (from c in db.Classes.AsNoTracking()

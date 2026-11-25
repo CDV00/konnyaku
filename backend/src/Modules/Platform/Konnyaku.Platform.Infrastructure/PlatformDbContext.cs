@@ -70,6 +70,9 @@ internal sealed class InProcessPlatformApi(PlatformDbContext db, IMemoryCache ca
             return await LoadAsync(tenantId, cancellationToken);
         });
 
+    public async Task<IReadOnlyList<Guid>> ListTenantIdsAsync(CancellationToken cancellationToken) =>
+        await db.Tenants.AsNoTracking().OrderBy(t => t.Id).Select(t => t.Id).ToListAsync(cancellationToken);
+
     private async Task<TenantInfo?> LoadAsync(Guid tenantId, CancellationToken cancellationToken)
     {
         var tenant = await db.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);

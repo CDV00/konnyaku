@@ -26,6 +26,7 @@ public sealed class LearningModule : IModule
         services.AddLearningInfrastructure(configuration, Name);
         services.AddScoped<AttendanceHandlers>();
         services.AddScoped<RecordingQueries>();
+        services.AddScoped<Konnyaku.Application.Privacy.IPersonalDataSource, LearningPersonalData>();
         services.AddScoped<IIntegrationEventHandler<ParticipantsCollectedV1>, ParticipantsCollectedConsumer>();
         services.AddScoped<IIntegrationEventHandler<RecordingAvailableV1>, RecordingAvailableConsumer>();
         services.AddScoped<IIntegrationEventHandler<RecordingPublishedV1>, RecordingPublishedConsumer>();

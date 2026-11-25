@@ -35,6 +35,7 @@ public sealed class WorkspaceModule : IModule
         services.AddScoped<RoomTicketHandler>();
         services.AddScoped<RoomEventsHandler>();
         services.AddScoped<IIntegrationEventHandler<SessionScheduledV1>, SessionScheduledConsumer>();
+        services.AddScoped<IIntegrationEventHandler<Konnyaku.Crm.Contracts.StudentAnonymizedV1>, StudentAnonymizedConsumer>();
         services.AddScoped<IIntegrationEventHandler<SessionRescheduledV1>, SessionRescheduledConsumer>();
         services.AddScoped<IIntegrationEventHandler<SessionCancelledV1>, SessionCancelledConsumer>();
         services.AddScoped<IIntegrationEventHandler<Konnyaku.Learning.Contracts.RecordingAccessGrantedV1>, RecordingAccessGrantedConsumer>();

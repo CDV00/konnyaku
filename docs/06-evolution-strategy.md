@@ -88,6 +88,7 @@ Luật phụ thuộc:
 | `ClassDeliveryModeChangedV1` / `ClassClosedV1` | Academic | Scheduling (đổi hình thức / huỷ các buổi còn lại → `SessionRescheduledV1` / `SessionCancelledV1` cho Workspace) |
 | `CreditBalanceChangedV1` / `CreditLowV1` | Billing | Academic (hiển thị), Notification, Crm (churn) |
 | `LeadCreatedV1` | Crm | Notification |
+| `StudentAnonymizedV1` | Crm | Identity (xoá tên/email, tên đăng nhập của tài khoản học viên), Workspace (tên trong lịch sử vào phòng) — yêu cầu xoá dữ liệu, xem [xu-ly-du-lieu-ca-nhan.md](xu-ly-du-lieu-ca-nhan.md) |
 | `BranchCreatedV1`, `SettingChangedV1` | Organization, Platform | Mọi module giữ bản sao cục bộ |
 
 Mọi event có envelope chung: `event_id`, `tenant_id`, `occurred_at`, `correlation_id`, `actor_id`, `schema_version`.

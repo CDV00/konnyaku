@@ -1,13 +1,16 @@
 import { getFormatter, getLocale, getTranslations } from "next-intl/server";
-import { Package as PackageIcon, Receipt } from "lucide-react";
+import { Package as PackageIcon, Receipt, SearchX } from "lucide-react";
 import { requireMe } from "@konnyaku/session";
 import { Input } from "@konnyaku/ui/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@konnyaku/ui/components/ui/table";
 import { EmptyState, PageHeader, Panel, StatusBadge } from "@konnyaku/ui/kk/blocks";
 import { Field, NativeSelect } from "@konnyaku/ui/kk/field";
 import { ActionButton, ActionForm, FormSheet } from "../action-form";
+import { orderFilters } from "../filters";
 import { ChangeHistory } from "../history";
-import { getAccess, getJson, localized, statusTone, type ClassRow, type Package, type Student } from "../lib";
+import { emptyPage, getAccess, getJson, listQuery, localized, namesOf, statusTone, type ClassRow, type Package, type Page, type SearchParams } from "../lib";
+import { FilterDate, FilterSelect, ListBody, ListFrame, ListToolbar, Pagination, SortHeader } from "../list";
+import { RecordPicker } from "../personal-data";
 import { PaymentList } from "./payments";
 
 type Order = {
@@ -19,11 +22,13 @@ type Order = {
   amountReceived: number;
   currency: string;
   status: string;
+  createdAt: string;
 };
 
 const paymentMethods = ["cash", "bank_transfer", "card"] as const;
+const orderStatuses = ["PendingPayment", "Paid", "Cancelled", "RefundRequired"] as const;
 
-export default async function BillingPage() {
+export default async function BillingPage({ searchParams }: { searchParams: SearchParams }) {
   const { token } = await requireMe("staff");
   const t = await getTranslations("admin");
   const locale = await getLocale();
@@ -33,22 +38,32 @@ export default async function BillingPage() {
   const canOrders = access.can("billing.orders");
   const canPayments = access.can("billing.payments");
   const canSell = canOrders || access.any("crm.students");
-  const [packages, orders, students, classes] = await Promise.all([
+  const query = await listQuery(searchParams, orderFilters);
+  const [packages, page, open] = await Promise.all([
     getJson<Package[]>(`/api/billing/packages${canPackages ? "?includeInactive=true" : ""}`, token, []),
-    getJson<Order[]>("/api/billing/orders", token, []),
-    getJson<Student[]>("/api/crm/students", token, []),
-    getJson<ClassRow[]>("/api/academic/classes", token, []),
+    getJson<Page<Order>>(`/api/billing/orders?${query.toString()}`, token, emptyPage()),
+    getJson<Page<ClassRow>>("/api/academic/classes?status=Open&pageSize=200", token, emptyPage()),
   ]);
+  const orders = page.items;
+  // Names of the students and classes on this page only.
+  const classIds = [...new Set(orders.map((o) => o.classId).filter((id): id is string => !!id))];
+  const [studentName, pageClasses] = await Promise.all([
+    namesOf("/api/crm/students", orders.map((o) => o.studentId), token),
+    classIds.length > 0
+      ? getJson<Page<ClassRow>>(`/api/academic/classes?status=all&pageSize=200&ids=${classIds.join(",")}`, token, emptyPage())
+      : Promise.resolve(emptyPage<ClassRow>()),
+  ]);
+  const classes = [...open.items, ...pageClasses.items.filter((c) => !open.items.some((o) => o.id === c.id))];
   const money = (amount: number, currency: string) => format.number(amount, { style: "currency", currency });
-  const studentName = new Map(students.map((s) => [s.id, s.fullName]));
   const packageName = new Map(packages.map((p) => [p.id, localized(p.name, locale)]));
   const className = new Map(classes.map((c) => [c.id, c.code]));
-  const openClasses = classes.filter((c) => c.status === "Open");
+  const openClasses = open.items;
   const names: Record<string, string> = Object.fromEntries([
     ...classes.map((c) => [c.id, c.code]),
-    ...students.map((s) => [s.id, s.fullName]),
+    ...studentName.entries(),
     ...packages.map((p) => [p.id, p.code]),
   ]);
+  const filtered = orderFilters.some((key) => query.has(key));
   const packageFields = (p?: Package) => (
     <>
       <Field label={t("fields.code")}><Input name="code" required defaultValue={p?.code} /></Field>
@@ -89,9 +104,7 @@ export default async function BillingPage() {
               <FormSheet triggerLabel={t("billing.createOrder")} title={t("billing.createOrder")} description={t("billing.orderHint")}>
                 <ActionForm api="billing/orders" submitLabel={t("save")}>
                   <Field label={t("billing.student")}>
-                    <NativeSelect name="studentId" required>
-                      {students.filter((s) => s.isActive).map((s) => <option key={s.id} value={s.id}>{s.fullName}</option>)}
-                    </NativeSelect>
+                    <RecordPicker name="studentId" source="crm/students" filter="status=active" placeholder={t("billing.findStudent")} required />
                   </Field>
                   <Field label={t("billing.package")}>
                     <NativeSelect name="packageId" required>
@@ -110,18 +123,28 @@ export default async function BillingPage() {
         }
       />
 
-      <Panel title={t("billing.orders")} bodyClassName="p-0">
+      <ListFrame>
+      <h2 className="font-semibold tracking-tight">{t("billing.orders")}</h2>
+      <ListToolbar placeholder={t("billing.search")}>
+        <FilterSelect name="status" label={t("fields.status")} allLabel={t("list.allStatuses")} options={orderStatuses.map((s) => ({ value: s, label: t(`orderStatus.${s}`) }))} />
+        <FilterSelect name="package" label={t("billing.package")} allLabel={t("list.allPackages")} options={packages.map((p) => ({ value: p.id, label: p.code }))} />
+        <FilterDate name="createdFrom" label={t("list.from")} />
+        <FilterDate name="createdTo" label={t("list.to")} />
+      </ListToolbar>
+      <ListBody>
+      <Panel bodyClassName="p-0">
         {orders.length === 0 ? (
-          <div className="p-5"><EmptyState icon={Receipt} title={t("billing.noOrders")} /></div>
+          <div className="p-5">{filtered ? <EmptyState icon={SearchX} title={t("list.noResults")} /> : <EmptyState icon={Receipt} title={t("billing.noOrders")} />}</div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="pl-5">{t("billing.student")}</TableHead>
                 <TableHead className="hidden md:table-cell">{t("billing.package")}</TableHead>
-                <TableHead className="text-right">{t("billing.amount")}</TableHead>
+                <TableHead className="text-right"><SortHeader field="amount" label={t("billing.amount")} defaultField="createdAt" defaultDesc /></TableHead>
                 <TableHead className="hidden text-right sm:table-cell">{t("billing.received")}</TableHead>
-                <TableHead>{t("fields.status")}</TableHead>
+                <TableHead className="hidden lg:table-cell"><SortHeader field="createdAt" label={t("billing.createdAt")} defaultField="createdAt" defaultDesc /></TableHead>
+                <TableHead><SortHeader field="status" label={t("fields.status")} defaultField="createdAt" defaultDesc /></TableHead>
                 <TableHead className="pr-5 text-right" />
               </TableRow>
             </TableHeader>
@@ -137,6 +160,7 @@ export default async function BillingPage() {
                     <TableCell className="hidden md:table-cell">{packageName.get(o.packageId)}</TableCell>
                     <TableCell className="text-right tabular-nums">{money(o.amount, o.currency)}</TableCell>
                     <TableCell className="hidden text-right tabular-nums sm:table-cell">{money(o.amountReceived, o.currency)}</TableCell>
+                    <TableCell className="hidden text-muted-foreground tabular-nums lg:table-cell">{format.dateTime(new Date(o.createdAt), { dateStyle: "short" })}</TableCell>
                     <TableCell><StatusBadge tone={statusTone[o.status]}>{t(`orderStatus.${o.status}`)}</StatusBadge></TableCell>
                     <TableCell className="pr-5 text-right">
                       <span className="inline-flex flex-wrap items-start justify-end gap-2">
@@ -194,6 +218,9 @@ export default async function BillingPage() {
           </Table>
         )}
       </Panel>
+      </ListBody>
+      <Pagination total={page.total} page={page.pageNumber} pageSize={page.pageSize} />
+      </ListFrame>
 
       <div className="space-y-3">
         <h2 className="font-semibold tracking-tight">{t("billing.packages")}</h2>

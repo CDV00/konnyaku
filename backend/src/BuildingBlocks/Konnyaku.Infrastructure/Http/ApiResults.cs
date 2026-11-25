@@ -23,3 +23,15 @@ public static class ApiResults
 }
 
 public sealed record ErrorBody(string Code, IReadOnlyDictionary<string, object?> Params);
+
+/// <summary>
+/// Paging and sorting query parameters shared by every list endpoint (<c>[AsParameters] ListParams list</c>):
+/// <c>page</c>, <c>pageSize</c>, <c>sort</c>, <c>dir=asc|desc</c>. The response is a <see cref="Konnyaku.SharedKernel.Page{T}"/>:
+/// <c>{ items, total, pageNumber, pageSize }</c>.
+/// </summary>
+public sealed record ListParams(int? Page = null, int? PageSize = null, string? Sort = null, string? Dir = null)
+{
+    /// <summary>The page to read; a sort key outside <paramref name="sorts"/> falls back to the list's default order.</summary>
+    public Konnyaku.SharedKernel.PageRequest ToRequest(IReadOnlySet<string>? sorts = null) =>
+        Konnyaku.SharedKernel.PageRequest.Of(Page, PageSize, sorts is not null && Sort is not null && !sorts.Contains(Sort) ? null : Sort, Dir);
+}

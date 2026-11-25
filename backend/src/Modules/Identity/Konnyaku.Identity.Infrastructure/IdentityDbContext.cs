@@ -19,7 +19,7 @@ namespace Konnyaku.Identity.Infrastructure;
 /// and roles are tenant-owned and protected by RLS.
 /// </summary>
 public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> options, ITenantContext tenant)
-    : ModuleDbContext(options, tenant), IIdentityDbContext
+    : ModuleDbContext(options, tenant), IIdentityDbContext, IIdentityPrivacyStore
 {
     public const string SchemaName = "identity";
 
@@ -81,6 +81,8 @@ public static class IdentityInfrastructure
     {
         services.AddModuleDbContext<IdentityDbContext>(configuration, connectionName, IdentityDbContext.SchemaName);
         services.AddScoped<IIdentityDbContext>(sp => sp.GetRequiredService<IdentityDbContext>());
+        services.AddScoped<IIdentityPrivacyStore>(sp => sp.GetRequiredService<IdentityDbContext>());
+        services.AddScoped<Konnyaku.Application.Privacy.IPersonalDataSource, IdentityPersonalData>();
         services.AddScoped<IIdentityApi, IdentityQueries>();
         services.AddHttpContextAccessor();
         services.AddScoped<IAccessControl, AccessControl>();

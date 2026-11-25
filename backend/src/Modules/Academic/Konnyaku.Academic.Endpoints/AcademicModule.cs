@@ -33,6 +33,7 @@ public sealed class AcademicModule : IModule
         services.AddScoped<ProgramAdminHandler>();
         services.AddScoped<ClassAdminHandler>();
         services.AddScoped<ClassAccess>();
+        services.AddScoped<Konnyaku.Application.Privacy.IPersonalDataSource, AcademicPersonalData>();
         services.AddScoped<Konnyaku.Application.Messaging.IIntegrationEventHandler<Konnyaku.Billing.Contracts.OrderPaidV1>, OrderPaidConsumer>();
     }
 
@@ -48,8 +49,13 @@ public sealed class AcademicModule : IModule
         staff.MapGet("/programs", async (string? language, AcademicQueries queries, CancellationToken ct) =>
             Results.Ok(await queries.ListProgramsAsync(publicOnly: false, language, ct)));
         // Every class for members who run or sell them; a teacher sees the classes they teach.
-        staff.MapGet("/classes", async (ClaimsPrincipal user, ClassAccess classes, CancellationToken ct) =>
-            Results.Ok(await classes.VisibleClassesAsync(user.UserId()!.Value, ct)));
+        staff.MapGet("/classes", async ([AsParameters] ClassFilter filter, [AsParameters] ListParams list, ClaimsPrincipal user, ClassAccess classes,
+                CancellationToken ct) =>
+            Results.Ok(await classes.VisibleClassesAsync(user.UserId()!.Value, filter, list.ToRequest(ClassAccess.Sorts), ct)));
+        staff.MapGet("/classes/{id:guid}", async (Guid id, ClaimsPrincipal user, ClassAccess classes, AcademicQueries queries, CancellationToken ct) =>
+            await classes.CanSeeAsync(id, user.UserId()!.Value, ct) && await queries.GetClassAsync(id, ct) is { } cls
+                ? Results.Ok(cls)
+                : ApiResults.Error(Error.NotFound("academic.class_not_found")));
         staff.MapGet("/classes/{id:guid}/roster", async (Guid id, ClaimsPrincipal user, ClassAccess classes, AcademicQueries queries, CancellationToken ct) =>
             await classes.CanSeeAsync(id, user.UserId()!.Value, ct)
                 ? Results.Ok(await queries.GetRosterAsync(id, ct))

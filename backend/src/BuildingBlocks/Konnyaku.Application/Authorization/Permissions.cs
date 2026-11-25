@@ -26,10 +26,16 @@ public static class Permissions
     /// <summary>The student list (names, branch, account; contact details need <see cref="Students"/>).</summary>
     public const string StudentsView = "crm.students.view";
 
+    /// <summary>CSV export and printing of the student and lead lists (personal data leaving the system: logged, limited).</summary>
+    public const string PersonalDataExport = "crm.export";
+
+    /// <summary>Data subject requests (access, correction, erasure, consent withdrawal) and the personal data access log.</summary>
+    public const string Privacy = "crm.privacy";
+
     public static readonly IReadOnlyList<string> All =
     [
         Programs, Classes, ClassesView, Schedules, Branches, Rooms, Holidays, Staff, PayRates, Packages, Orders, Payments, Leads,
-        Students, StudentsView,
+        Students, StudentsView, PersonalDataExport, Privacy,
     ];
 }
 
@@ -52,6 +58,9 @@ public static class StaffRoles
 /// rooms and days off of their branches and keep student records (branch managers also follow up the leads of their
 /// branches); accountants handle packages, orders, payments and pay rates and read the student list; consultants handle
 /// leads and student records; teachers change nothing and see only the classes they teach.
+/// Personal data: lists show contact details masked; members who keep the records (<see cref="Permissions.Students"/>,
+/// <see cref="Permissions.Leads"/>) reveal one record at a time (logged); only the tenant admin and branch managers export
+/// or print lists; only the tenant admin handles data subject requests and reads the access log.
 /// </summary>
 public static class RolePermissions
 {
@@ -61,7 +70,7 @@ public static class RolePermissions
         [StaffRoles.BranchManager] = new HashSet<string>
         {
             Permissions.Classes, Permissions.ClassesView, Permissions.Schedules, Permissions.Rooms, Permissions.Holidays, Permissions.Leads,
-            Permissions.Students, Permissions.StudentsView,
+            Permissions.Students, Permissions.StudentsView, Permissions.PersonalDataExport,
         },
         [StaffRoles.Coordinator] = new HashSet<string>
         {

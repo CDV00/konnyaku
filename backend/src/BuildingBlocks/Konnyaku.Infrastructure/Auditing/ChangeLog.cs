@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Reflection;
 using System.Security.Claims;
 using System.Text.Json;
 using Konnyaku.Infrastructure.Auth;
@@ -189,12 +190,21 @@ internal sealed class AuditInterceptor(ICurrentActor actor, TimeProvider clock) 
                 continue;
             }
 
+            // Personal data is logged masked: the history shows that a phone number changed, not the number.
             var before = Format(property.OriginalValue);
             var after = Format(property.CurrentValue);
-            if (before != after)
+            if (before == after)
             {
-                changes.Add(new FieldChange(JsonNamingPolicy.CamelCase.ConvertName(property.Metadata.Name), before, after));
+                continue;
             }
+
+            if (property.Metadata.PropertyInfo?.GetCustomAttribute<PersonalDataAttribute>() is { } personal)
+            {
+                before = PersonalDataMask.Mask(personal.Kind, property.OriginalValue);
+                after = PersonalDataMask.Mask(personal.Kind, property.CurrentValue);
+            }
+
+            changes.Add(new FieldChange(JsonNamingPolicy.CamelCase.ConvertName(property.Metadata.Name), before, after));
         }
 
         return changes;

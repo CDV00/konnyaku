@@ -5,6 +5,11 @@
 
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS unaccent;
+-- unaccent() is only STABLE; search columns and indexes need an IMMUTABLE wrapper ("Ân" -> "An").
+CREATE OR REPLACE FUNCTION public.kk_unaccent(text) RETURNS text
+LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
+AS $fn$ SELECT public.unaccent('public.unaccent'::regdictionary, $1) $fn$;
 
 DO $$
 DECLARE

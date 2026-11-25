@@ -23,6 +23,10 @@ const writes: Record<"POST" | "PUT" | "DELETE", RegExp[]> = {
     route("scheduling/classes/{id}/schedule"),
     route("crm/leads/{id}/status"),
     route("crm/students/{id}/(deactivate|activate)"),
+    route("crm/(students|leads)/{id}/reveal"),
+    route("crm/privacy/requests"),
+    route("crm/privacy/requests/{id}/resolve"),
+    route("crm/privacy/(students|leads)/{id}/anonymize"),
     route("billing/packages"),
     route("billing/packages/{id}/(deactivate|activate)"),
     route("billing/orders"),
@@ -50,8 +54,12 @@ const writes: Record<"POST" | "PUT" | "DELETE", RegExp[]> = {
   DELETE: [route("organization/holidays/{id}"), route("hr/rates/{id}")],
 };
 
-/** Reads made from the browser (change history and payments shown inside a drawer). */
-const reads = [route("(academic|scheduling|organization|identity|hr|crm|billing)/history/{id}"), route("billing/orders/{id}/payments")];
+/** Reads made from the browser (change history and payments inside a drawer, record pickers searching a list). */
+const reads = [
+  route("(academic|scheduling|organization|identity|hr|crm|billing)/history/{id}"),
+  route("billing/orders/{id}/payments"),
+  route("crm/(students|leads)"),
+];
 
 type Context = { params: Promise<{ path: string[] }> };
 
@@ -62,7 +70,9 @@ async function relay(request: NextRequest, { params }: Context, method: "GET" | 
   const token = await sessionToken("staff");
   if (!token) return NextResponse.json({ code: "unauthorized" }, { status: 401 });
   const body = method === "GET" || method === "DELETE" ? undefined : await request.text();
-  const response = await apiFetch(`/api/${path}`, { method, token, body });
+  // A list read keeps its query (search term, page): pickers search the list endpoints.
+  const query = method === "GET" ? request.nextUrl.search : "";
+  const response = await apiFetch(`/api/${path}${query}`, { method, token, body });
   const text = await response.text();
   if (response.ok) {
     return new NextResponse(text || "{}", { status: 200, headers: { "Content-Type": "application/json" } });

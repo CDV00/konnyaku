@@ -1,26 +1,34 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { CalendarDays, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronRight, SearchX } from "lucide-react";
 import { requireMe } from "@konnyaku/session";
 import { Input } from "@konnyaku/ui/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@konnyaku/ui/components/ui/table";
 import { EmptyState, PageHeader, Panel, StatusBadge } from "@konnyaku/ui/kk/blocks";
 import { Field, NativeSelect } from "@konnyaku/ui/kk/field";
 import { ActionForm, FormSheet } from "../action-form";
-import { getAccess, getJson, localized, statusTone, type Branch, type ClassRow, type Program } from "../lib";
+import { classFilters } from "../filters";
+import { emptyPage, getAccess, getJson, listQuery, localized, statusTone, type Branch, type ClassRow, type Localized, type Page, type Program, type SearchParams } from "../lib";
+import { FilterDate, FilterSelect, ListBody, ListFrame, ListToolbar, Pagination, SortHeader } from "../list";
 
 const deliveryModes = ["Online", "Offline", "Hybrid"] as const;
+const classStatuses = ["Planned", "Open", "Running", "Completed", "Cancelled"] as const;
 
-export default async function ClassesPage() {
+export default async function ClassesPage({ searchParams }: { searchParams: SearchParams }) {
   const { token } = await requireMe("staff");
   const t = await getTranslations("admin");
   const locale = await getLocale();
-  const [classes, programs, branches, access] = await Promise.all([
-    getJson<ClassRow[]>("/api/academic/classes", token, []),
+  // Default: the classes still going (planned, open, running); "all" shows finished ones too.
+  const query = await listQuery(searchParams, classFilters, { status: "current" });
+  const [page, programs, branches, languages, access] = await Promise.all([
+    getJson<Page<ClassRow>>(`/api/academic/classes?${query.toString()}`, token, emptyPage()),
     getJson<Program[]>("/api/academic/programs", token, []),
     getJson<Branch[]>("/api/organization/branches", token, []),
+    getJson<{ code: string; name: Localized }[]>("/api/catalog/languages", token, []),
     getAccess(token),
   ]);
+  const classes = page.items;
+  const filtered = classFilters.some((key) => key !== "status" && query.has(key)) || query.get("status") !== "current";
   const levels = programs.flatMap((p) => p.levels.map((level) => ({ ...level, program: p })));
   // New classes: active levels of active programs, in active branches the member runs.
   const openLevels = levels.filter((l) => l.isActive && l.program.isActive);
@@ -62,19 +70,38 @@ export default async function ClassesPage() {
           )
         }
       />
+      <ListFrame>
+      <ListToolbar placeholder={t("classes.search")}>
+        <FilterSelect
+          name="status"
+          label={t("fields.status")}
+          fallback="current"
+          options={[
+            { value: "current", label: t("classes.current") },
+            ...classStatuses.map((s) => ({ value: s, label: t(`classStatus.${s}`) })),
+            { value: "all", label: t("list.allStatuses") },
+          ]}
+        />
+        <FilterSelect name="branch" label={t("classes.branch")} allLabel={t("list.allBranches")} options={branches.map((b) => ({ value: b.id, label: localized(b.name, locale) }))} />
+        <FilterSelect name="language" label={t("programs.language")} allLabel={t("list.allLanguages")} options={languages.map((l) => ({ value: l.code, label: localized(l.name, locale) }))} />
+        <FilterSelect name="mode" label={t("classes.mode")} allLabel={t("list.allModes")} options={deliveryModes.map((m) => ({ value: m, label: t(`modes.${m}`) }))} />
+        <FilterDate name="startsFrom" label={t("list.startsFrom")} />
+        <FilterDate name="startsTo" label={t("list.to")} />
+      </ListToolbar>
+      <ListBody>
       <Panel bodyClassName="p-0">
         {classes.length === 0 ? (
-          <div className="p-5"><EmptyState icon={CalendarDays} title={t("classes.empty")} /></div>
+          <div className="p-5">{filtered ? <EmptyState icon={SearchX} title={t("list.noResults")} /> : <EmptyState icon={CalendarDays} title={t("classes.empty")} />}</div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-5">{t("fields.code")}</TableHead>
+                <TableHead className="pl-5"><SortHeader field="code" label={t("fields.code")} defaultField="startsOn" /></TableHead>
                 <TableHead>{t("classes.level")}</TableHead>
                 <TableHead className="hidden xl:table-cell">{t("classes.branch")}</TableHead>
-                <TableHead className="w-44">{t("classes.seats")}</TableHead>
-                <TableHead className="hidden lg:table-cell">{t("classes.startsOn")}</TableHead>
-                <TableHead>{t("fields.status")}</TableHead>
+                <TableHead className="w-44"><SortHeader field="enrolled" label={t("classes.seats")} defaultField="startsOn" /></TableHead>
+                <TableHead className="hidden lg:table-cell"><SortHeader field="startsOn" label={t("classes.startsOn")} defaultField="startsOn" /></TableHead>
+                <TableHead><SortHeader field="status" label={t("fields.status")} defaultField="startsOn" /></TableHead>
                 <TableHead className="pr-5" />
               </TableRow>
             </TableHeader>
@@ -110,6 +137,9 @@ export default async function ClassesPage() {
           </Table>
         )}
       </Panel>
+      </ListBody>
+      <Pagination total={page.total} page={page.pageNumber} pageSize={page.pageSize} />
+      </ListFrame>
     </div>
   );
 }

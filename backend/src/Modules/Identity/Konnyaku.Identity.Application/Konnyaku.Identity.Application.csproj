@@ -6,6 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\BuildingBlocks\Konnyaku.Application\Konnyaku.Application.csproj" />
     <ProjectReference Include="..\..\Organization\Konnyaku.Organization.Contracts\Konnyaku.Organization.Contracts.csproj" />
+    <ProjectReference Include="..\..\Crm\Konnyaku.Crm.Contracts\Konnyaku.Crm.Contracts.csproj" />
     <ProjectReference Include="..\Konnyaku.Identity.Domain\Konnyaku.Identity.Domain.csproj" />
     <ProjectReference Include="..\Konnyaku.Identity.Contracts\Konnyaku.Identity.Contracts.csproj" />
   </ItemGroup>

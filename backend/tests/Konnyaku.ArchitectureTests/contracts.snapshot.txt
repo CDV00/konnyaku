@@ -98,12 +98,16 @@ Konnyaku.Catalog.Contracts.SkillDto
 Konnyaku.Crm.Contracts.ICrmApi
   Task`1 GetStudentAsync(Guid, CancellationToken)
   Task`1 ListStudentsOfUserAsync(Guid, CancellationToken)
+  Task`1 SearchStudentIdsAsync(String, Int32, CancellationToken)
 Konnyaku.Crm.Contracts.LeadCreatedV1
   Guid LeadId
   Nullable`1 AssignedConsultantId
   Nullable`1 FollowUpDueAt
   String LanguageCode
   String Locale
+Konnyaku.Crm.Contracts.StudentAnonymizedV1
+  Guid StudentId
+  Nullable`1 UserId
 Konnyaku.Crm.Contracts.StudentDto
   Boolean IsActive
   Guid Id
@@ -180,6 +184,7 @@ Konnyaku.Organization.Contracts.RoomDto
   String Code
 Konnyaku.Platform.Contracts.IPlatformApi
   Task`1 GetTenantAsync(Guid, CancellationToken)
+  Task`1 ListTenantIdsAsync(CancellationToken)
   Task`1 ResolveHostAsync(String, CancellationToken)
 Konnyaku.Platform.Contracts.TenantCreatedV1
   Guid TenantId

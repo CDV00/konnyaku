@@ -127,12 +127,12 @@ public sealed class PermissionMatrixTests(PostgresFixture db) : IAsyncDisposable
         (await consultant.PutAsJsonAsync($"/api/academic/classes/{classA}", classEdit, Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         // Teacher: sees only the classes they teach, no student list, no leads, changes nothing.
-        (await teacher.GetFromJsonAsync<IdView[]>("/api/academic/classes", Ct))!.Select(x => x.Id).ShouldBe([classA]);
+        (await teacher.GetItemsAsync<IdView>("/api/academic/classes", Ct))!.Select(x => x.Id).ShouldBe([classA]);
         (await teacher.GetAsync($"/api/academic/classes/{classA}/roster", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
         (await teacher.GetAsync($"/api/academic/classes/{classB}/roster", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         (await teacher.GetAsync("/api/crm/students", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         (await teacher.GetAsync("/api/crm/leads", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-        (await c.Admin.GetFromJsonAsync<IdView[]>("/api/academic/classes", Ct))!.Length.ShouldBe(2);
+        (await c.Admin.GetItemsAsync<IdView>("/api/academic/classes", Ct))!.Length.ShouldBe(2);
         (await teacher.GetAsync($"/api/academic/history/{classA}", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
         (await teacher.GetAsync("/api/identity/staff", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         (await accountant.GetAsync("/api/identity/staff", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -184,9 +184,9 @@ public sealed class PermissionMatrixTests(PostgresFixture db) : IAsyncDisposable
             }, Ct)).StatusCode.ShouldBe(HttpStatusCode.Accepted);
         }
 
-        var all = (await c.Admin.GetFromJsonAsync<LeadView[]>("/api/crm/leads", Ct))!;
+        var all = (await c.Admin.GetItemsAsync<LeadView>("/api/crm/leads", Ct))!;
         all.Length.ShouldBe(2);
-        var mine = (await manager.GetFromJsonAsync<LeadView[]>("/api/crm/leads", Ct))!;
+        var mine = (await manager.GetItemsAsync<LeadView>("/api/crm/leads", Ct))!;
         mine.Select(l => l.PreferredBranchId).ShouldBe([c.BranchA]);
 
         var leadA = all.Single(l => l.PreferredBranchId == c.BranchA).Id;

@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { requireMe } from "@konnyaku/session";
 import { Onboarding, type OnboardingStep } from "@konnyaku/ui/kk/onboarding";
-import { getJson } from "./lib";
+import { emptyPage, getJson, type Page } from "./lib";
 
 const allSteps = ["branches", "staff", "programs", "classes", "students", "billing", "payroll", "leads"] as const;
 type Step = (typeof allSteps)[number];
@@ -22,22 +22,23 @@ export async function OpsOnboarding() {
   if (mine.length === 0) return null;
 
   const t = await getTranslations("onboarding");
+  const total = (path: string) => getJson<Page<unknown>>(path, token, emptyPage()).then((page) => page.total);
   const [branches, staff, programs, classes, students, orders, periods] = await Promise.all([
     getJson<unknown[]>("/api/organization/branches", token, []),
-    getJson<unknown[]>("/api/identity/staff", token, []),
+    total("/api/identity/staff?pageSize=2"),
     getJson<unknown[]>("/api/academic/programs", token, []),
-    getJson<unknown[]>("/api/academic/classes", token, []),
-    getJson<unknown[]>("/api/crm/students", token, []),
-    getJson<unknown[]>("/api/billing/orders", token, []),
+    total("/api/academic/classes?status=all&pageSize=1"),
+    total("/api/crm/students?pageSize=1"),
+    total("/api/billing/orders?pageSize=1"),
     getJson<unknown[]>("/api/hr/payroll-periods", token, []),
   ]);
   const done: Record<Step, boolean | undefined> = {
     branches: branches.length > 0,
-    staff: staff.length > 1,
+    staff: staff > 1,
     programs: programs.length > 0,
-    classes: classes.length > 0,
-    students: students.length > 0,
-    billing: orders.length > 0,
+    classes: classes > 0,
+    students: students > 0,
+    billing: orders > 0,
     payroll: periods.length > 0,
     leads: undefined,
   };

@@ -15,6 +15,9 @@ public sealed class KonnyakuApiFactory(PostgresFixture db) : WebApplicationFacto
     public const string BaseDomain = "test.local";
     public const string RtcSecret = "test-rtc-secret-0123456789abcdef-0123456789";
 
+    /// <summary>Extra configuration for one test class (e.g. <c>Privacy:ExportMaxRows</c>).</summary>
+    public Dictionary<string, string?> Settings { get; init; } = [];
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
@@ -31,6 +34,11 @@ public sealed class KonnyakuApiFactory(PostgresFixture db) : WebApplicationFacto
         builder.UseSetting("Rtc:StunUrls:0", "stun:turn.test.local:3478");
         builder.UseSetting("Rtc:TurnUrls:0", "turn:turn.test.local:3478?transport=udp");
         builder.UseSetting("Rtc:TurnSecret", "test-turn-secret");
+        foreach (var (key, value) in Settings)
+        {
+            builder.UseSetting(key, value);
+        }
+
         builder.ConfigureServices(services =>
         {
             foreach (var contextType in OutboxContexts)
@@ -121,3 +129,16 @@ public sealed record TenantDto(Guid Id, string Slug, string Name, string Default
 public sealed record SignInDto(string AccessToken, string Audience, DateTimeOffset ExpiresAt, string DisplayName, string[] Roles, bool MustChangePassword);
 
 public sealed record ErrorDto(string Code);
+
+/// <summary>The page shape every list endpoint returns.</summary>
+public sealed record PageDto<T>(T[] Items, int Total, int PageNumber, int PageSize);
+
+public static class PageClientExtensions
+{
+    /// <summary>The rows of one page of a list endpoint (<c>{ items, total, pageNumber, pageSize }</c>).</summary>
+    public static async Task<T[]> GetItemsAsync<T>(this HttpClient client, string url, CancellationToken ct = default) =>
+        (await client.GetFromJsonAsync<PageDto<T>>(url, ct))!.Items;
+
+    public static async Task<PageDto<T>> GetPageAsync<T>(this HttpClient client, string url, CancellationToken ct = default) =>
+        (await client.GetFromJsonAsync<PageDto<T>>(url, ct))!;
+}
