@@ -172,6 +172,27 @@ namespace Konnyaku.Billing.Infrastructure.Migrations
                     b.ToTable("credit_ledger_entry", "billing");
                 });
 
+            modelBuilder.Entity("Konnyaku.Billing.Domain.DocumentSequence", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Kind")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<long>("LastValue")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_value");
+
+                    b.HasKey("TenantId", "Kind")
+                        .HasName("pk_document_sequence");
+
+                    b.ToTable("document_sequence", "billing");
+                });
+
             modelBuilder.Entity("Konnyaku.Billing.Domain.Order", b =>
                 {
                     b.Property<Guid>("Id")
@@ -188,6 +209,11 @@ namespace Konnyaku.Billing.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("amount_received");
+
+                    b.Property<decimal>("AmountRefunded")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount_refunded");
 
                     b.Property<decimal>("BonusCredits")
                         .HasPrecision(8, 2)
@@ -224,6 +250,10 @@ namespace Konnyaku.Billing.Infrastructure.Migrations
                         .HasPrecision(8, 2)
                         .HasColumnType("numeric(8,2)")
                         .HasColumnName("paid_credits");
+
+                    b.Property<DateTimeOffset?>("RefundedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("refunded_at");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -327,9 +357,22 @@ namespace Konnyaku.Billing.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("order_id");
 
+                    b.Property<long>("ReceiptNo")
+                        .HasColumnType("bigint")
+                        .HasColumnName("receipt_no");
+
                     b.Property<DateTimeOffset>("ReceivedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("received_at");
+
+                    b.Property<Guid?>("ReceivedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("received_by_id");
+
+                    b.Property<string>("ReceivedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("received_by_name");
 
                     b.Property<string>("Reference")
                         .HasMaxLength(100)
@@ -350,7 +393,195 @@ namespace Konnyaku.Billing.Infrastructure.Migrations
                     b.HasIndex("TenantId", "OrderId")
                         .HasDatabaseName("ix_payment_tenant_id_order_id");
 
+                    b.HasIndex("TenantId", "ReceiptNo")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payment_tenant_id_receipt_no");
+
                     b.ToTable("payment", "billing");
+                });
+
+            modelBuilder.Entity("Konnyaku.Billing.Domain.ReceiptPrintLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("action");
+
+                    b.Property<Guid?>("ActorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_id");
+
+                    b.Property<string>("ActorName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("actor_name");
+
+                    b.Property<string>("Audience")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("audience");
+
+                    b.Property<string>("ClientIp")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("client_ip");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<string>("DocumentKind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("document_kind");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<long>("ReceiptNo")
+                        .HasColumnType("bigint")
+                        .HasColumnName("receipt_no");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_receipt_print_log");
+
+                    b.HasIndex("TenantId", "DocumentId", "OccurredAt")
+                        .HasDatabaseName("ix_receipt_print_log_tenant_id_document_id_occurred_at");
+
+                    b.ToTable("receipt_print_log", "billing");
+                });
+
+            modelBuilder.Entity("Konnyaku.Billing.Domain.Refund", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<Guid?>("ApprovedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("approved_by_id");
+
+                    b.Property<string>("ApprovedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("approved_by_name");
+
+                    b.Property<decimal>("BonusCreditsForfeited")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)")
+                        .HasColumnName("bonus_credits_forfeited");
+
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("branch_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<DateOnly>("LocalDate")
+                        .HasColumnType("date")
+                        .HasColumnName("local_date");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("method");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_id");
+
+                    b.Property<decimal>("PaidCreditsReturned")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)")
+                        .HasColumnName("paid_credits_returned");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("reason");
+
+                    b.Property<long>("ReceiptNo")
+                        .HasColumnType("bigint")
+                        .HasColumnName("receipt_no");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("reference");
+
+                    b.Property<DateTimeOffset>("RefundedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("refunded_at");
+
+                    b.Property<decimal>("RetainedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("retained_amount");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("student_id");
+
+                    b.Property<decimal>("SuggestedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("suggested_amount");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<decimal>("UnusedValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("unused_value");
+
+                    b.HasKey("Id")
+                        .HasName("pk_refund");
+
+                    b.HasIndex("TenantId", "LocalDate")
+                        .HasDatabaseName("ix_refund_tenant_id_local_date");
+
+                    b.HasIndex("TenantId", "OrderId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_refund_tenant_id_order_id");
+
+                    b.HasIndex("TenantId", "ReceiptNo")
+                        .IsUnique()
+                        .HasDatabaseName("ix_refund_tenant_id_receipt_no");
+
+                    b.ToTable("refund", "billing");
                 });
 
             modelBuilder.Entity("Konnyaku.Infrastructure.Auditing.ChangeLogEntry", b =>

@@ -36,9 +36,10 @@ public sealed class HrModule : IModule
 
     public void MapEndpoints(RouteGroupBuilder group)
     {
-        var payroll = group.MapGroup("").RequirePermission(Permissions.Payroll);
+        // Every teacher's timesheets and pay: center-wide, like pay rates (a branch accountant does not run payroll).
+        var payroll = group.MapGroup("").RequireCenterPermission(Permissions.Payroll);
 
-        var rates = group.MapGroup("").RequirePermission(Permissions.PayRates);
+        var rates = group.MapGroup("").RequireCenterPermission(Permissions.PayRates);
         rates.MapPut("/teachers/{teacherId:guid}/rate", async (Guid teacherId, SetRateCommand command, PayrollHandlers handlers, CancellationToken ct) =>
             ApiResults.From(await handlers.SetRateAsync(teacherId, command, ct), Results.Ok));
         rates.MapPut("/rates/{id:guid}", async (Guid id, SetRateCommand command, PayrollHandlers handlers, CancellationToken ct) =>

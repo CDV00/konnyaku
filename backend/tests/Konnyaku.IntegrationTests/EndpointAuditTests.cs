@@ -90,6 +90,13 @@ public sealed class EndpointAuditTests(PostgresFixture db) : IAsyncDisposable
         await (await teacher.GetAsync("/api/hr/timesheets?from=2027-01-01&to=2027-01-31", Ct)).ShouldFailWith(HttpStatusCode.Forbidden, "access.forbidden");
         (await teacher.GetAsync("/api/hr/my/timesheets?from=2027-01-01&to=2027-01-31", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
         await (await teacher.GetAsync($"/api/billing/history/{Guid.NewGuid()}", Ct)).ShouldFailWith(HttpStatusCode.Forbidden, "access.forbidden");
+
+        // An accountant limited to a branch handles that branch's money, not the center's payroll or revenue.
+        var (_, branchAccountant) = await c.AddStaffAsync("Accountant", c.BranchA);
+        (await branchAccountant.GetAsync("/api/billing/orders", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        await (await branchAccountant.GetAsync("/api/hr/payroll-periods", Ct)).ShouldFailWith(HttpStatusCode.Forbidden, "access.forbidden");
+        await (await branchAccountant.GetAsync("/api/billing/reports/recognized-revenue?from=2027-01-01&to=2027-01-31", Ct))
+            .ShouldFailWith(HttpStatusCode.Forbidden, "access.forbidden");
         await (await teacher.GetAsync($"/api/hr/history/{c.TeacherId}", Ct)).ShouldFailWith(HttpStatusCode.Forbidden, "access.forbidden");
     }
 

@@ -1,5 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <PackageReference Include="PDFsharp" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Be Vietnam Pro (SIL Open Font License 1.1, see Receipts/Fonts/OFL.txt): Vietnamese glyphs on any server, no system fonts needed. -->
+    <EmbeddedResource Include="Receipts\Fonts\*.ttf" LogicalName="Konnyaku.Billing.Fonts.%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\..\BuildingBlocks\Konnyaku.Infrastructure\Konnyaku.Infrastructure.csproj" />
     <ProjectReference Include="..\Konnyaku.Billing.Application\Konnyaku.Billing.Application.csproj" />
   </ItemGroup>

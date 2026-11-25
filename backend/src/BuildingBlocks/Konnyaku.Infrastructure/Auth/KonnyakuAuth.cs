@@ -98,15 +98,27 @@ public static class KonnyakuAuthExtensions
     /// Staff endpoint that changes data: the member must hold <paramref name="permission"/> (in any scope, read live from
     /// their role assignments). Handlers then check the branch of the record with <see cref="IAccessControl"/>.
     /// </summary>
-    public static TBuilder RequirePermission<TBuilder>(this TBuilder builder, params string[] anyOf) where TBuilder : IEndpointConventionBuilder
+    public static TBuilder RequirePermission<TBuilder>(this TBuilder builder, params string[] anyOf) where TBuilder : IEndpointConventionBuilder =>
+        builder.RequirePermissionCore(centerWide: false, anyOf);
+
+    /// <summary>
+    /// Staff endpoint about center-wide records (packages, pay rates): the member must hold <paramref name="permission"/>
+    /// for the whole center — a grant limited to some branches is not enough.
+    /// </summary>
+    public static TBuilder RequireCenterPermission<TBuilder>(this TBuilder builder, string permission) where TBuilder : IEndpointConventionBuilder =>
+        builder.RequirePermissionCore(centerWide: true, permission);
+
+    private static TBuilder RequirePermissionCore<TBuilder>(this TBuilder builder, bool centerWide, params string[] anyOf)
+        where TBuilder : IEndpointConventionBuilder
     {
         builder.RequireAuthorization(Policies.Staff);
         builder.AddEndpointFilter(async (context, next) =>
         {
             var access = context.HttpContext.RequestServices.GetRequiredService<IAccessControl>();
+            var ct = context.HttpContext.RequestAborted;
             foreach (var permission in anyOf)
             {
-                if (await access.HasAsync(permission, context.HttpContext.RequestAborted))
+                if (centerWide ? await access.CanAsync(permission, null, ct) : await access.HasAsync(permission, ct))
                 {
                     return await next(context);
                 }
