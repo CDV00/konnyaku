@@ -38,7 +38,7 @@ Bảng dưới là **danh sách module chuẩn** của Konnyaku; các chương k
 | `Learning` | `learning` | Điểm danh, feedback, homework, skill score, chính sách quyền xem recording | `ILearningApi` |
 | `Billing` | `billing` | Bảng giá, gói học, đơn hàng, hóa đơn, thanh toán, **credit ledger & số dư buổi** | `IBillingApi` (số dư) |
 | `Hr` | `hr` | Hồ sơ GV, năng lực, availability, đơn giá, timesheet, kỳ lương | `IHrApi` (năng lực, availability) |
-| `Notification` | `notify` | Template theo kênh + locale, gửi & theo dõi | — (chỉ nghe event) |
+| `Notification` | `notification` | Hàng đợi thông báo (chống trùng, retry), template theo kênh + locale, gửi email (SMTP), nhắc lịch, nhật ký | `INotificationApi` (yêu cầu gửi) + event `NotificationRequestedV1` |
 | `Reporting` | `reporting` | Read model báo cáo, đọc replica | — |
 | `Ai` *(V3)* | `ai` | Pipeline tóm tắt, chấm điểm | — (chỉ qua event) |
 
@@ -67,7 +67,7 @@ flowchart TD
 
 Luật phụ thuộc:
 1. **Đồ thị gọi đồng bộ (Contracts) không có chu trình** và chỉ dùng để **đọc** dữ liệu cần ngay. Mọi thay đổi trạng thái sang module khác đi bằng **event**. Ví dụ `Billing` không gọi `Learning`; `Learning` phát `AttendanceConfirmedV1` → `Billing` ghi bút toán `Consume`.
-2. `Notification` **không phụ thuộc ai** — chỉ nghe event. Đây là ứng viên tách dễ nhất.
+2. `Notification` **không module nào phụ thuộc** (trừ khi gọi `INotificationApi` / phát `NotificationRequestedV1` để nhờ gửi); nó nghe event và chỉ **đọc** Contracts của module khác để lấy người nhận (`IIdentityApi`, `ICrmContactsApi`, `IAcademicApi`, `ISchedulingApi`, `IPlatformApi`, `ICatalogApi`). Đây là ứng viên tách dễ nhất.
 3. `Workspace` chỉ **đọc** `ISchedulingApi` (buổi học) và `IAcademicApi` (roster); mọi kết quả trả về bằng event (bảng 6.2.1). Quyết định *ai được xem recording* thuộc `Learning`, `Workspace` chỉ thực thi cấp quyền.
 4. `Reporting` là ngoại lệ có kiểm soát: chỉ đọc, qua view/read replica, không bao giờ ghi (đọc nhiều schema, không chỉ Academic như sơ đồ rút gọn).
 5. Các module nền tảng (`Platform`, `Organization`, `Catalog`, `Identity`) thay đổi chậm → module khác đọc qua Contracts có cache, hoặc giữ **bản sao cục bộ cập nhật bằng event** (`BranchCreatedV1`, `SettingChangedV1`) để khi tách service không phải gọi mạng cho mỗi request.
@@ -76,7 +76,7 @@ Luật phụ thuộc:
 
 | Event | Phát bởi | Nghe bởi |
 |---|---|---|
-| `SessionScheduledV1` / `SessionRescheduledV1` / `SessionCancelledV1` | Scheduling | Workspace, Learning, Hr, Notification, Academic (chỗ học bù) |
+| `SessionScheduledV1` / `SessionRescheduledV1` / `SessionCancelledV1` | Scheduling | Workspace, Learning, Hr, Notification (nhắc lịch 24 giờ, báo đổi giờ / hủy), Academic (chỗ học bù) |
 | `MeetingProvisionedV1` | Workspace | Scheduling (trạng thái `Provisioned`), Notification |
 | `ParticipantsCollectedV1` | Workspace | Learning (điểm danh), Hr (giờ có mặt của GV) |
 | `RecordingAvailableV1` | Workspace | Learning (áp chính sách quyền xem) |
@@ -88,6 +88,9 @@ Luật phụ thuộc:
 | `ClassDeliveryModeChangedV1` / `ClassClosedV1` | Academic | Scheduling (đổi hình thức / huỷ các buổi còn lại → `SessionRescheduledV1` / `SessionCancelledV1` cho Workspace) |
 | `CreditBalanceChangedV1` / `CreditLowV1` | Billing | Academic (hiển thị), Notification, Crm (churn) |
 | `LeadCreatedV1` | Crm | Notification |
+| `LearnerAccountCreatedV1` | Identity | Notification (chào mừng) |
+| `PayrollPeriodLockedV1` | Hr | Notification (báo giáo viên) |
+| `NotificationRequestedV1` | mọi module | Notification (gửi theo yêu cầu, ví dụ email đặt lại mật khẩu) |
 | `BranchCreatedV1`, `SettingChangedV1` | Organization, Platform | Mọi module giữ bản sao cục bộ |
 
 Mọi event có envelope chung: `event_id`, `tenant_id`, `occurred_at`, `correlation_id`, `actor_id`, `schema_version`.

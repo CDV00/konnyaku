@@ -5,6 +5,7 @@ using Konnyaku.Infrastructure.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 
 namespace Konnyaku.IntegrationTests;
 
@@ -38,7 +39,19 @@ public sealed class KonnyakuApiFactory(PostgresFixture db) : WebApplicationFacto
                 services.AddSingleton(typeof(OutboxProcessor<>).MakeGenericType(contextType));
             }
         });
+        foreach (var (key, value) in Settings)
+        {
+            builder.UseSetting(key, value);
+        }
+
+        builder.ConfigureTestServices(services => TestServices?.Invoke(services));
     }
+
+    /// <summary>Extra configuration for one test class (e.g. faster retries).</summary>
+    public IReadOnlyDictionary<string, string> Settings { get; init; } = new Dictionary<string, string>();
+
+    /// <summary>Replaces services after the modules registered theirs (e.g. a fake email sender).</summary>
+    public Action<IServiceCollection>? TestServices { get; init; }
 
     private static IEnumerable<Type> OutboxContexts => KonnyakuModules.All.SelectMany(m => m.DbContextTypes);
 

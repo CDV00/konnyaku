@@ -7,7 +7,7 @@ secret() { openssl rand -base64 48 | tr -d '\n/+=' | cut -c1-"${1:-40}"; }
 
 echo "# --- generated $(date -u +%Y-%m-%dT%H:%M:%SZ) ---"
 echo "POSTGRES_PASSWORD=$(secret)"
-for module in PLATFORM CATALOG IDENTITY ORGANIZATION ACADEMIC CRM SCHEDULING BILLING WORKSPACE LEARNING HR; do
+for module in PLATFORM CATALOG IDENTITY ORGANIZATION ACADEMIC CRM SCHEDULING BILLING WORKSPACE LEARNING HR NOTIFICATION; do
   echo "DB_PASSWORD_${module}=$(secret)"
 done
 # JWT signing key shared by every API replica (>= 32 bytes). Rotating it signs everybody out.

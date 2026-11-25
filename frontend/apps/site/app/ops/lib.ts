@@ -162,4 +162,7 @@ export const statusTone: Record<string, Tone> = {
   Locked: "success",
   // staff
   Suspended: "destructive",
+  // notifications
+  Sent: "success",
+  Failed: "destructive",
 };

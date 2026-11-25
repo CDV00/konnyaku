@@ -70,7 +70,8 @@
       "staff": "Staff",
       "branches": "Branches",
       "payroll": "Payroll",
-      "home": "Overview"
+      "home": "Overview",
+      "notifications": "Notifications"
     },
     "hint": {
       "leads": "Follow up and move leads along",
@@ -80,7 +81,8 @@
       "programs": "Programs and levels",
       "staff": "Staff accounts, roles, teacher rates",
       "branches": "Branches and time zones",
-      "payroll": "Create and lock pay periods"
+      "payroll": "Create and lock pay periods",
+      "notifications": "Sent emails, failures and resending"
     },
     "zone": "Operations",
     "subtitle": "How the center is doing today, with shortcuts to everyday tasks.",
@@ -611,7 +613,10 @@
       "billing_payment_not_found": "Payment not found.",
       "billing_payment_voided": "The payment was voided.",
       "billing_student_inactive": "The student record is inactive.",
-      "billing_student_unknown": "Unknown student."
+      "billing_student_unknown": "Unknown student.",
+      "notification_message_not_found": "Notification not found.",
+      "notification_already_pending": "This notification is already waiting to be sent.",
+      "notification_resend_not_allowed": "This notification held confidential data and was already sent; it cannot be resent."
     },
     "classStatus": {
       "Planned": "Planned",
@@ -862,6 +867,41 @@
       "session_expired": "Your sign-in has expired. Sign in again, then press Join class.",
       "unknown": "Something went wrong connecting to the room. Please try again.",
       "media": "Could not open the camera, microphone or screen. Check the browser's permissions and try again."
+    }
+  },
+  "notifications": {
+    "title": "Notification log",
+    "description": "Emails the system sends to students, teachers and staff. Temporary failures are retried automatically; permanent ones (wrong address, unknown mailbox) stop so you can check and resend.",
+    "filterLabel": "Filter by status",
+    "filter": {
+      "all": "All",
+      "Failed": "Failed",
+      "Pending": "Pending",
+      "Sent": "Sent"
+    },
+    "empty": "No notifications yet.",
+    "colTime": "Time",
+    "colRecipient": "Recipient",
+    "colMessage": "Message",
+    "colStatus": "Status",
+    "colActions": "Actions",
+    "meta": "{channel} · {locale}",
+    "attempts": "{count, plural, one {# attempt} other {# attempts}}",
+    "resend": "Resend",
+    "status": {
+      "Pending": "Pending",
+      "Sent": "Sent",
+      "Failed": "Failed"
+    },
+    "templates": {
+      "lead_created": "New lead",
+      "learner_welcome": "Student welcome",
+      "credit_low": "Lessons running out",
+      "enrollment_activated": "Enrollment confirmed",
+      "session_rescheduled": "Session moved",
+      "session_cancelled": "Session cancelled",
+      "session_reminder": "Session reminder",
+      "payroll_locked": "Pay period closed"
     }
   }
 }
