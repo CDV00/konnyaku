@@ -86,7 +86,8 @@
       "payroll": "Kỳ lương",
       "home": "Tổng quan",
       "notifications": "Thông báo",
-      "security": "Bảo mật"
+      "security": "Bảo mật",
+      "privacy": "Quyền riêng tư"
     },
     "hint": {
       "leads": "Gọi lại, chuyển trạng thái khách đăng ký",
@@ -98,7 +99,8 @@
       "branches": "Cơ sở và múi giờ",
       "payroll": "Tạo và chốt kỳ lương",
       "notifications": "Email đã gửi, lỗi và gửi lại",
-      "security": "Khoá tài khoản, đặt lại mật khẩu, nhật ký đăng nhập"
+      "security": "Khoá tài khoản, đặt lại mật khẩu, nhật ký đăng nhập",
+      "privacy": "Yêu cầu về dữ liệu cá nhân, nhật ký truy cập"
     },
     "zone": "Vận hành",
     "subtitle": "Tình hình trung tâm hôm nay và lối tắt tới các việc thường làm.",
@@ -455,7 +457,8 @@
       "rateDeleteConfirm": "Xoá đơn giá này? Công nháp sẽ được tính lại.",
       "edit": "Sửa {name}",
       "deactivateConfirm": "Khoá tài khoản? Người này không đăng nhập được nữa; lịch sử và phân công giữ nguyên.",
-      "branchScopeHint": "Không chọn cơ sở nào = toàn trung tâm."
+      "branchScopeHint": "Không chọn cơ sở nào = toàn trung tâm.",
+      "search": "Tìm theo tên, email"
     },
     "programs": {
       "title": "Chương trình học",
@@ -533,7 +536,9 @@
       "effectiveFromHint": "Để trống: từ hôm nay.",
       "notScheduledReadOnly": "Lớp chưa có lịch.",
       "room": "Phòng",
-      "noRoom": "Không chọn phòng"
+      "noRoom": "Không chọn phòng",
+      "search": "Tìm theo mã lớp",
+      "current": "Đang diễn ra"
     },
     "students": {
       "title": "Học viên",
@@ -549,7 +554,11 @@
       "createHint": "Nếu cấp tài khoản, tên đăng nhập và mật khẩu tạm chỉ hiện một lần — hãy gửi cho học viên.",
       "edit": "Sửa hồ sơ {name}",
       "locale": "Ngôn ngữ liên lạc",
-      "deactivateConfirm": "Ngừng dùng hồ sơ? Học viên không mua gói hay vào lớp mới được; lịch sử giữ nguyên."
+      "deactivateConfirm": "Ngừng dùng hồ sơ? Học viên không mua gói hay vào lớp mới được; lịch sử giữ nguyên.",
+      "search": "Tìm theo tên, SĐT, email (có dấu hoặc không)",
+      "withAccount": "Có tài khoản",
+      "withoutAccount": "Chưa có tài khoản",
+      "createdAt": "Ngày tạo"
     },
     "billing": {
       "title": "Thu phí",
@@ -655,7 +664,10 @@
       "adjustCredits": "Số buổi (+ cộng, − trừ)",
       "adjustKind": "Loại buổi",
       "adjustReason": "Lý do",
-      "adjustSubmit": "Ghi bút toán"
+      "adjustSubmit": "Ghi bút toán",
+      "findStudent": "Gõ tên hoặc SĐT học viên…",
+      "search": "Tìm theo tên, SĐT học viên",
+      "createdAt": "Ngày tạo"
     },
     "errors": {
       "unknown": "Không thực hiện được ({code}).",
@@ -767,7 +779,18 @@
       "identity_two_factor_not_enabled": "Người này chưa bật xác thực 2 bước.",
       "identity_account_not_found": "Không tìm thấy tài khoản.",
       "identity_password_too_weak": "Mật khẩu cần có cả chữ và số, và không phải mật khẩu phổ biến.",
-      "identity_password_too_long": "Mật khẩu quá dài."
+      "identity_password_too_long": "Mật khẩu quá dài.",
+      "crm_export_too_large": "Danh sách có {total} dòng, vượt giới hạn {limit} dòng mỗi lần xuất. Hãy lọc bớt rồi xuất lại.",
+      "crm_export_limit_reached": "Bạn đã xuất/in {limit} lần trong 24 giờ qua. Liên hệ quản trị viên nếu cần thêm.",
+      "crm_student_active": "Học viên còn đang học: ngừng hồ sơ trước khi ẩn danh hóa.",
+      "crm_student_anonymized": "Hồ sơ đã được ẩn danh hóa, không sửa hay kích hoạt lại được.",
+      "crm_subject_not_found": "Không tìm thấy học viên hoặc lead này.",
+      "crm_request_not_found": "Không tìm thấy yêu cầu.",
+      "crm_request_closed": "Yêu cầu đã đóng.",
+      "crm_request_status_invalid": "Trạng thái không hợp lệ.",
+      "crm_request_reason_required": "Từ chối cần ghi lý do.",
+      "crm_subject_type_invalid": "Loại đối tượng không hợp lệ.",
+      "crm_received_in_future": "Thời điểm nhận không thể ở tương lai."
     },
     "classStatus": {
       "Planned": "Dự kiến",
@@ -838,7 +861,8 @@
         "Lead": "Lead",
         "Package": "Gói học",
         "Order": "Đơn hàng",
-        "Payment": "Thanh toán"
+        "Payment": "Thanh toán",
+        "DataSubjectRequest": "Yêu cầu dữ liệu"
       },
       "fields": {
         "code": "Mã",
@@ -922,7 +946,9 @@
       "preferredBranch": "Cơ sở mong muốn",
       "preferredSchedule": "Lịch mong muốn",
       "consultant": "Tư vấn viên",
-      "noConsultant": "Chưa phân công"
+      "noConsultant": "Chưa phân công",
+      "search": "Tìm theo tên, SĐT, email, phụ huynh",
+      "open": "Đang mở"
     },
     "receipts": {
       "receiptTitle": "Phiếu thu {code}",
@@ -1022,6 +1048,115 @@
         "staff": "nhân viên",
         "learn": "học viên"
       }
+    },
+    "list": {
+      "loading": "Đang tải…",
+      "reset": "Bỏ lọc",
+      "pages": "Phân trang",
+      "range": "{from}–{to} / {total}",
+      "pageSize": "Mỗi trang",
+      "previous": "Trang trước",
+      "next": "Trang sau",
+      "page": "Trang {page}/{pages}",
+      "change": "Đổi",
+      "noMatch": "Không tìm thấy.",
+      "noResults": "Không có kết quả phù hợp bộ lọc.",
+      "allStatuses": "Mọi trạng thái",
+      "allBranches": "Mọi cơ sở",
+      "anyAccount": "Tài khoản: tất cả",
+      "from": "Từ",
+      "to": "Đến",
+      "allLanguages": "Mọi ngôn ngữ",
+      "allConsultants": "Mọi tư vấn viên",
+      "allModes": "Mọi hình thức",
+      "startsFrom": "Khai giảng từ",
+      "allPackages": "Mọi gói học",
+      "allRoles": "Mọi vai trò"
+    },
+    "privacy": {
+      "guardian": "Phụ huynh: {name}",
+      "reveal": "Hiện",
+      "hide": "Ẩn",
+      "revealHint": "Hiện đầy đủ (được ghi vào nhật ký truy cập)",
+      "exportCsv": "Xuất CSV",
+      "print": "In",
+      "anonymizedName": "Đã ẩn danh ({id})",
+      "birthYear": "Năm sinh {year}",
+      "editLogged": "Mở form sửa sẽ hiện đầy đủ liên hệ và được ghi vào nhật ký truy cập dữ liệu cá nhân.",
+      "printStamp": "In bởi {name} lúc {when} · {count} dòng · Dữ liệu cá nhân: chỉ dùng cho công việc, không chia sẻ",
+      "printStudents": "Danh sách học viên",
+      "printLeads": "Danh sách lead",
+      "printCount": "{count, plural, other {# dòng}}",
+      "title": "Quyền riêng tư",
+      "description": "Yêu cầu của học viên, phụ huynh, lead về dữ liệu cá nhân (xem, sửa, xóa, rút đồng ý) và nhật ký mọi lần xem đầy đủ, xuất, in, ẩn danh hóa.",
+      "createRequest": "Ghi nhận yêu cầu",
+      "createHint": "Ghi ngay khi nhận (email, điện thoại, tại quầy): hạn xử lý tính từ lúc ghi, mặc định 72 giờ.",
+      "requestType": "Loại yêu cầu",
+      "types": {
+        "Access": "Xem / nhận bản sao dữ liệu",
+        "Rectification": "Sửa dữ liệu",
+        "Erasure": "Xóa dữ liệu",
+        "ConsentWithdrawal": "Rút lại đồng ý"
+      },
+      "note": "Ghi chú",
+      "noteHint": "Kênh nhận và nội dung yêu cầu. Không cần ghi lại số điện thoại hay email.",
+      "tabs": {
+        "requests": "Yêu cầu",
+        "log": "Nhật ký truy cập"
+      },
+      "statuses": {
+        "Open": "Đang xử lý",
+        "Completed": "Đã xong",
+        "Rejected": "Từ chối"
+      },
+      "allTypes": "Mọi loại",
+      "noRequests": "Chưa có yêu cầu nào.",
+      "noRequestsHint": "Khi học viên hay phụ huynh yêu cầu xem, sửa hoặc xóa dữ liệu, ghi nhận ở đây để theo dõi hạn xử lý.",
+      "subject": "Đối tượng",
+      "received": "Nhận lúc",
+      "due": "Hạn xử lý",
+      "overdue": "Quá hạn",
+      "exportData": "Xuất dữ liệu",
+      "anonymize": "Ẩn danh hóa",
+      "anonymizeConfirm": "Ẩn danh hóa? Họ tên, năm sinh, phụ huynh, SĐT, email bị xóa vĩnh viễn, tài khoản học viên bị khóa. Sổ buổi học, đơn hàng, điểm danh giữ nguyên (không còn tên). Không hoàn tác được.",
+      "resolve": "Đóng yêu cầu",
+      "resolveHint": "Ghi đã làm gì (đã gửi bản sao, đã sửa, đã ẩn danh hóa) hoặc lý do từ chối.",
+      "resolution": "Kết quả",
+      "resolutionHint": "Bắt buộc khi từ chối.",
+      "subjects": {
+        "student": "Học viên",
+        "lead": "Lead"
+      },
+      "subjectType": "Đối tượng là",
+      "findSubject": "Gõ tên hoặc SĐT…",
+      "action": "Hành động",
+      "allActions": "Mọi hành động",
+      "actions": {
+        "Reveal": "Xem đầy đủ",
+        "Export": "Xuất CSV",
+        "Print": "In",
+        "SubjectExport": "Xuất dữ liệu cá nhân",
+        "Anonymize": "Ẩn danh hóa",
+        "RetentionAnonymize": "Ẩn danh hóa tự động"
+      },
+      "noAccess": "Chưa có lượt truy cập nào.",
+      "when": "Thời điểm",
+      "actor": "Người thực hiện",
+      "details": "Chi tiết",
+      "ip": "IP",
+      "lists": {
+        "students": "Danh sách học viên",
+        "leads": "Danh sách lead",
+        "student": "Học viên",
+        "lead": "Lead"
+      },
+      "purposes": {
+        "view": "xem",
+        "edit": "mở form sửa",
+        "contact": "liên hệ"
+      },
+      "retention": "quá hạn lưu giữ {period}",
+      "rows": "{count, plural, other {# dòng}}"
     }
   },
   "shell": {

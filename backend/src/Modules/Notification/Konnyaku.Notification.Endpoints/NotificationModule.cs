@@ -35,6 +35,7 @@ public sealed class NotificationModule : IModule
         services.AddScoped<SessionReminderPlanner>();
         services.AddScoped<LearnerWelcome>();
         services.AddScoped<IIntegrationEventHandler<LeadCreatedV1>, LeadCreatedNotifier>();
+        services.AddScoped<IIntegrationEventHandler<StudentAnonymizedV1>, StudentAnonymizedEraser>();
         services.AddScoped<IIntegrationEventHandler<LearnerAccountCreatedV1>>(sp => sp.GetRequiredService<LearnerWelcome>());
         services.AddScoped<IIntegrationEventHandler<CreditLowV1>, CreditLowNotifier>();
         services.AddScoped<IIntegrationEventHandler<EnrollmentActivatedV1>, EnrollmentActivatedNotifier>();

@@ -103,6 +103,8 @@ internal sealed class InProcessPlatformApi(PlatformDbContext db, IMemoryCache ca
             return await LoadAsync(tenantId, cancellationToken);
         });
 
+    public async Task<IReadOnlyList<Guid>> ListTenantIdsAsync(CancellationToken cancellationToken) =>
+        await db.Tenants.AsNoTracking().OrderBy(t => t.Id).Select(t => t.Id).ToListAsync(cancellationToken);
     /// <summary>
     /// Drops this API instance's cache. Other instances (several API replicas) see the change within
     /// <see cref="CacheDuration"/>; a suspension therefore takes effect everywhere within a minute.

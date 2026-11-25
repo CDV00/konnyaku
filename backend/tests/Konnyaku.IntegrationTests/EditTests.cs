@@ -192,7 +192,7 @@ public sealed class EditTests(PostgresFixture db) : IAsyncDisposable
         (await manager.GetAsync("/api/identity/me", Ct)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         manager = await c.SignInAsync(managerId);
 
-        var staff = (await c.Admin.GetFromJsonAsync<StaffView[]>("/api/identity/staff", Ct))!;
+        var staff = (await c.Admin.GetItemsAsync<StaffView>("/api/identity/staff", Ct))!;
         var edited = staff.Single(s => s.UserId == managerId);
         edited.DisplayName.ShouldBe("Quản lý CS-A");
         edited.Grants.ShouldBe([new GrantView("BranchManager", c.BranchA)]);
@@ -213,7 +213,7 @@ public sealed class EditTests(PostgresFixture db) : IAsyncDisposable
 
         var history = await c.HistoryAsync("identity", managerId);
         history.ShouldContain(h => h.Changes.Any(f => f.Field == "roles" && f.Old!.Contains("Coordinator") && f.New!.Contains("BranchManager")));
-        history.ShouldContain(h => h.Changes.Any(f => f.Field == "displayName" && f.New == "Quản lý CS-A"));
+        history.ShouldContain(h => h.Changes.Any(f => f.Field == "displayName" && f.New == "Quản l** C**"));
         history.ShouldContain(h => h.Changes.Any(f => f.Field == "status" && f.New == "Suspended"));
     }
 
@@ -241,29 +241,33 @@ public sealed class EditTests(PostgresFixture db) : IAsyncDisposable
         var studentId = await c.PostIdAsync("/api/crm/students", new { fullName = "Nguyen Van A" });
         await (await c.Admin.PutAsJsonAsync($"/api/crm/students/{studentId}",
             new { fullName = "Nguyễn Văn A", birthYear = 2010, guardianName = "Phụ huynh A", phone = "+84 901 000 111", homeBranchId = c.BranchA }, Ct)).ShouldSucceed();
-        var students = (await c.Admin.GetFromJsonAsync<StudentView[]>("/api/crm/students", Ct))!;
-        students.Single().ShouldBe(new StudentView(studentId, "Nguyễn Văn A", 2010, c.BranchA, true));
-        var details = (await c.Admin.GetFromJsonAsync<StudentDetail[]>("/api/crm/students/details", Ct))!;
-        details.Single().ShouldBe(new StudentDetail(studentId, "Phụ huynh A", "0901000111"));
+        var students = (await c.Admin.GetItemsAsync<StudentView>("/api/crm/students", Ct))!;
+        // Lists carry contact details masked; the full ones come one record at a time through the logged "show" action.
+        students.Single().ShouldBe(new StudentView(studentId, "Nguyễn Văn A", "201*", "Phụ h** A**", "09xx xxx 111", c.BranchA, true));
+        var details = (await (await c.Admin.PostAsJsonAsync($"/api/crm/students/{studentId}/reveal", new { purpose = "edit" }, Ct)).Content
+            .ReadFromJsonAsync<StudentDetail>(Ct))!;
+        details.ShouldBe(new StudentDetail(studentId, "Phụ huynh A", "0901000111"));
         var (_, teacher) = await c.AddStaffAsync("Teacher");
-        (await teacher.GetAsync("/api/crm/students/details", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await teacher.PostAsJsonAsync($"/api/crm/students/{studentId}/reveal", new { }, Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         (await teacher.GetAsync($"/api/crm/history/{studentId}", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         var package = await c.PostIdAsync("/api/billing/packages", new { code = "P8", name = new { vi = "8 buổi" }, paidCredits = 8, bonusCredits = 0, price = 1600000, currency = "VND" });
         await (await c.Admin.PostAsJsonAsync($"/api/crm/students/{studentId}/deactivate", new { }, Ct)).ShouldSucceed();
         await (await c.Admin.PostAsJsonAsync("/api/billing/orders", new { studentId, packageId = package }, Ct))
             .ShouldFailWith(HttpStatusCode.Conflict, "billing.student_inactive");
-        (await c.HistoryAsync("crm", studentId)).ShouldContain(h => h.Changes.Any(f => f.Field == "fullName" && f.Old == "Nguyen Van A"));
+        // Personal data is logged masked in the change history.
+        (await c.HistoryAsync("crm", studentId)).ShouldContain(h => h.Changes.Any(f => f.Field == "fullName" && f.Old == "Nguyen V** A**"));
+        (await c.HistoryAsync("crm", studentId)).ShouldContain(h => h.Changes.Any(f => f.Field == "phone" && f.New == "09xx xxx 111"));
 
         var visitor = _api.ClientFor(c.Slug);
         (await visitor.PostAsJsonAsync("/api/crm/public/leads", new
         {
             studentName = "Lead A", phone = "0912345678", languageCode = "en", consentVersion = "v1", consentGiven = true,
         }, Ct)).StatusCode.ShouldBe(HttpStatusCode.Accepted);
-        var lead = (await c.Admin.GetFromJsonAsync<LeadView[]>("/api/crm/leads", Ct))!.Single();
+        var lead = (await c.Admin.GetItemsAsync<LeadView>("/api/crm/leads", Ct))!.Single();
         await (await c.Admin.PutAsJsonAsync($"/api/crm/leads/{lead.Id}",
             new { studentName = "Lead A", phone = "0912345678", languageCode = "ja", goal = "JLPT N5", preferredBranchId = c.BranchB }, Ct)).ShouldSucceed();
-        (await c.Admin.GetFromJsonAsync<LeadView[]>("/api/crm/leads", Ct))!.Single().ShouldSatisfyAllConditions(
+        (await c.Admin.GetItemsAsync<LeadView>("/api/crm/leads", Ct))!.Single().ShouldSatisfyAllConditions(
             l => l.LanguageCode.ShouldBe("ja"), l => l.Goal.ShouldBe("JLPT N5"), l => l.PreferredBranchId.ShouldBe(c.BranchB));
         await (await c.Admin.PostAsJsonAsync($"/api/crm/leads/{lead.Id}/status", new { status = "Lost" }, Ct)).ShouldSucceed();
         await (await c.Admin.PutAsJsonAsync($"/api/crm/leads/{lead.Id}", new { studentName = "Lead A", phone = "0912345678", languageCode = "en" }, Ct))
@@ -294,7 +298,7 @@ public sealed class EditTests(PostgresFixture db) : IAsyncDisposable
 
         await (await c.Admin.PostAsJsonAsync($"/api/billing/payments/{payment.Id}/void", new { }, Ct)).ShouldSucceed();
         await (await c.Admin.PostAsJsonAsync($"/api/billing/orders/{order}/cancel", new { }, Ct)).ShouldSucceed();
-        var orders = (await c.Admin.GetFromJsonAsync<OrderView[]>("/api/billing/orders", Ct))!;
+        var orders = (await c.Admin.GetItemsAsync<OrderView>("/api/billing/orders", Ct))!;
         orders.Single().ShouldBe(new OrderView(order, 2000000m, 0m, "Cancelled"));
 
         await (await c.Admin.PostAsJsonAsync($"/api/billing/packages/{package}/deactivate", new { }, Ct)).ShouldSucceed();
@@ -314,7 +318,7 @@ public sealed class EditTests(PostgresFixture db) : IAsyncDisposable
 
     private sealed record RateView(Guid Id, Guid TeacherId, decimal HourlyRate, string Currency, string EffectiveFrom);
 
-    private sealed record StudentView(Guid Id, string FullName, int? BirthYear, Guid? HomeBranchId, bool IsActive);
+    private sealed record StudentView(Guid Id, string FullName, string? BirthYear, string? GuardianName, string? Phone, Guid? HomeBranchId, bool IsActive);
 
     private sealed record StudentDetail(Guid Id, string? GuardianName, string? Phone);
 

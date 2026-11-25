@@ -87,7 +87,7 @@ internal sealed class EditCenter
     }
 
     public async Task<ClassView> ClassAsync(Guid classId) =>
-        (await Admin.GetFromJsonAsync<ClassView[]>("/api/academic/classes", Ct))!.Single(c => c.Id == classId);
+        (await Admin.GetFromJsonAsync<ClassView>($"/api/academic/classes/{classId}", Ct))!;
 
     public async Task<SessionView[]> SessionsAsync(Guid classId) =>
         (await Admin.GetFromJsonAsync<SessionView[]>($"/api/scheduling/classes/{classId}/sessions", Ct))!;

@@ -41,6 +41,16 @@ public abstract class ModuleDbContext(DbContextOptions options, ITenantContext t
         Set<ChangeLogEntry>().Add(new ChangeLogEntry(entityType, entityId, subjectId, action,
             changes.Select(c => new FieldChange(c.Field, c.Old, c.New)).ToList()));
 
+    /// <summary>
+    /// Blanks the logged values of one record's history (erasure request). Needs the module migration to have called
+    /// <c>CreateChangeLogRedaction</c>.
+    /// </summary>
+    public Task<int> RedactChangeLogAsync(Guid subjectId, CancellationToken cancellationToken) =>
+        // The schema name is the module's constant, not input; the subject id is a parameter.
+#pragma warning disable EF1002
+        Database.ExecuteSqlRawAsync($"SELECT \"{Schema}\".redact_change_log({{0}})", [subjectId], cancellationToken);
+#pragma warning restore EF1002
+
     /// <summary>Records that <paramref name="consumer"/> handled <paramref name="eventId"/>; false if it already did.</summary>
     public async Task<bool> TryAcceptAsync(Guid eventId, string consumer, CancellationToken cancellationToken)
     {

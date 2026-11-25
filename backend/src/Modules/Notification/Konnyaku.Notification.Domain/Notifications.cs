@@ -73,6 +73,23 @@ public sealed class NotificationMessage : Entity, ITenantOwned
         };
     }
 
+    /// <summary>
+    /// Erasure of the recipient (a student's data subject request): address, name, template data and rendered subject
+    /// go; the row stays as a trace that a message of this kind was sent. A pending one is given up.
+    /// </summary>
+    public void ErasePersonalData()
+    {
+        RecipientAddress = string.Empty;
+        RecipientName = null;
+        Data = [];
+        Subject = null;
+        if (Status == NotificationStatus.Pending)
+        {
+            Status = NotificationStatus.Failed;
+            LastError = "recipient erased";
+        }
+    }
+
     public void MarkSent(string? subject, DateTimeOffset now)
     {
         Attempts++;

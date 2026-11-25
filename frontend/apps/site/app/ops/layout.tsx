@@ -27,6 +27,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const links: NavLink[] = [
     { href: "/ops", label: t("nav.home"), icon: "home", exact: true },
     ...sections.map((section) => ({ href: `/ops/${section}`, label: t(`nav.${section}`), icon: section })),
+    // Data subject requests and the personal data access log: the tenant admin only.
+    ...(access.can("crm.privacy") ? [{ href: "/ops/privacy", label: t("nav.privacy"), icon: "privacy" as const }] : []),
     ...(access.can("identity.accounts") ? [{ href: "/ops/security", label: t("nav.security"), icon: "security" as const }] : []),
     ...(access.any("notification.messages")
       ? [{ href: "/ops/notifications", label: t("nav.notifications"), icon: "notifications" as const }]
