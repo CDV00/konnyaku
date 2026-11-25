@@ -9,7 +9,13 @@ public static class Providers
 
     public const string Google = "Google";
 
-    public static readonly IReadOnlySet<string> All = new HashSet<string> { Fake, Google };
+    /// <summary>
+    /// Built-in WebRTC classroom (peer-to-peer mesh, rooms served by the web app and the signaling service).
+    /// Needs no organizer account, so sessions do not take a host from the pool.
+    /// </summary>
+    public const string Konnyaku = "Konnyaku";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string> { Fake, Google, Konnyaku };
 }
 
 /// <summary>How a tenant connects its own video-meeting platform (its own Google Workspace domain, or the fake one).</summary>
@@ -30,6 +36,13 @@ public sealed class WorkspaceConnection : Entity, ITenantOwned
     public string Provider { get; private set; } = string.Empty;
     public string? Domain { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
+
+    /// <summary>Switches platform; rooms already created keep their links, new sessions use the new provider.</summary>
+    public void Change(string provider, string? domain)
+    {
+        Provider = provider;
+        Domain = domain;
+    }
 }
 
 public enum HostStatus
@@ -70,6 +83,7 @@ public enum LeaseStatus
 /// <summary>
 /// A host account rented for one session, padded before and after. PostgreSQL forbids two live leases of the same
 /// host that overlap, so the pool can never double-book an organizer, even when provisioning runs in parallel.
+/// Providers without organizer accounts (<see cref="Providers.Konnyaku"/>) lease no host: <see cref="HostAccountId"/> is null.
 /// </summary>
 public sealed class HostLease : Entity, ITenantOwned
 {
@@ -79,7 +93,7 @@ public sealed class HostLease : Entity, ITenantOwned
     {
     }
 
-    public HostLease(Guid hostAccountId, Guid sessionId, DateTimeOffset sessionStartsAt, DateTimeOffset sessionEndsAt)
+    public HostLease(Guid? hostAccountId, Guid sessionId, DateTimeOffset sessionStartsAt, DateTimeOffset sessionEndsAt)
     {
         HostAccountId = hostAccountId;
         SessionId = sessionId;
@@ -89,7 +103,7 @@ public sealed class HostLease : Entity, ITenantOwned
     }
 
     public Guid TenantId { get; private set; }
-    public Guid HostAccountId { get; private set; }
+    public Guid? HostAccountId { get; private set; }
     public Guid SessionId { get; private set; }
     public DateTimeOffset StartsAt { get; private set; }
     public DateTimeOffset EndsAt { get; private set; }
@@ -143,5 +157,43 @@ public sealed class Recording : Entity, ITenantOwned
     {
         ViewerUserIds = viewers.Distinct().ToList();
         Status = RecordingStatus.Published;
+    }
+}
+
+/// <summary>
+/// One connection of a person to a built-in classroom, reported by the signaling service: joined, then left.
+/// A reconnect is a new row. When the room ends these become the participant log of the meeting.
+/// </summary>
+public sealed class RoomPresence : Entity, ITenantOwned
+{
+    private RoomPresence()
+    {
+    }
+
+    public RoomPresence(Guid sessionId, Guid connectionId, Guid userId, string displayName, string role, DateTimeOffset joinedAt)
+    {
+        SessionId = sessionId;
+        ConnectionId = connectionId;
+        UserId = userId;
+        DisplayName = displayName.Length > 200 ? displayName[..200] : displayName;
+        Role = role;
+        JoinedAt = joinedAt;
+    }
+
+    public Guid TenantId { get; private set; }
+    public Guid SessionId { get; private set; }
+    public Guid ConnectionId { get; private set; }
+    public Guid UserId { get; private set; }
+    public string DisplayName { get; private set; } = string.Empty;
+    public string Role { get; private set; } = string.Empty;
+    public DateTimeOffset JoinedAt { get; private set; }
+    public DateTimeOffset? LeftAt { get; private set; }
+
+    public void Leave(DateTimeOffset at)
+    {
+        if (LeftAt is null)
+        {
+            LeftAt = at < JoinedAt ? JoinedAt : at;
+        }
     }
 }
