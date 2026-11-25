@@ -148,7 +148,7 @@
     "language": "Ngôn ngữ muốn học",
     "goal": "Mục tiêu",
     "schedule": "Khung giờ mong muốn",
-    "consent": "Tôi đồng ý cho trung tâm xử lý thông tin trên để tư vấn khóa học.",
+    "consent": "Tôi đồng ý cho {center} xử lý thông tin trên để tư vấn khóa học, theo <privacy>Chính sách quyền riêng tư</privacy> (phiên bản {version}).",
     "submit": "Gửi đăng ký",
     "sent": "Đã nhận đăng ký. Trung tâm sẽ liên hệ với bạn sớm.",
     "errors": {
@@ -158,7 +158,12 @@
       "crm_consent_required": "Vui lòng đồng ý để trung tâm liên hệ.",
       "crm_birth_year_invalid": "Năm sinh không hợp lệ.",
       "crm_language_required": "Vui lòng chọn ngôn ngữ.",
-      "unknown": "Không gửi được đăng ký, vui lòng thử lại."
+      "unknown": "Không gửi được đăng ký, vui lòng thử lại.",
+      "crm_captcha_required": "Chưa hoàn tất bước chống spam. Vui lòng đợi vài giây rồi gửi lại.",
+      "crm_captcha_invalid": "Bước chống spam không hợp lệ. Vui lòng gửi lại.",
+      "crm_captcha_expired": "Phiên xác minh đã hết hạn. Vui lòng gửi lại.",
+      "crm_captcha_used": "Phiên xác minh đã được dùng. Vui lòng gửi lại.",
+      "crm_rate_limited": "Bạn gửi quá nhiều lần. Vui lòng thử lại sau một phút."
     },
     "perks": {
       "callback": "Tư vấn viên gọi lại trong 15 phút (giờ làm việc)",
@@ -167,7 +172,12 @@
     },
     "languagePlaceholder": "Chọn ngôn ngữ",
     "sending": "Đang gửi…",
-    "sentTitle": "Cảm ơn bạn!"
+    "sentTitle": "Cảm ơn bạn!",
+    "captcha": {
+      "solving": "Đang xác minh chống spam ngay trên trình duyệt…",
+      "ready": "Đã xác minh, không gửi dữ liệu ra bên ngoài",
+      "failed": "Không tải được bước xác minh. Bấm gửi để thử lại."
+    }
   },
   "schedule": {
     "teaching": "Lịch dạy sắp tới",
@@ -786,7 +796,10 @@
     "register": "Đăng ký tư vấn",
     "login": "Đăng nhập",
     "switchLocale": "Chuyển ngôn ngữ",
-    "footer": "© {name} · Vận hành bởi Konnyaku"
+    "footer": "© {name} · Vận hành bởi Konnyaku",
+    "privacy": "Chính sách quyền riêng tư",
+    "terms": "Điều khoản sử dụng",
+    "legal": "Pháp lý"
   },
   "roles": {
     "TenantAdmin": "Quản trị",

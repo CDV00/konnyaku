@@ -10,10 +10,12 @@ using Microsoft.AspNetCore.TestHost;
 namespace Konnyaku.IntegrationTests;
 
 /// <summary>The real API host (auth, tenant resolution, all modules) against the test database.</summary>
-public sealed class KonnyakuApiFactory(PostgresFixture db) : WebApplicationFactory<Program>
+/// <remarks>The public-form captcha is off unless <c>captcha</c> is true (only <c>CaptchaTests</c> need it).</remarks>
+public sealed class KonnyakuApiFactory(PostgresFixture db, bool captcha = false) : WebApplicationFactory<Program>
 {
     public const string PlatformKey = "test-platform-key";
     public const string BaseDomain = "test.local";
+    public const string CaptchaKey = "test-captcha-key-0123456789abcdef-0123456789";
     public const string RtcSecret = "test-rtc-secret-0123456789abcdef-0123456789";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -28,6 +30,8 @@ public sealed class KonnyakuApiFactory(PostgresFixture db) : WebApplicationFacto
         builder.UseSetting("Platform:AdminKey", PlatformKey);
         builder.UseSetting("Platform:BaseDomain", BaseDomain);
         builder.UseSetting("RateLimits:PublicFormsPerMinute", "1000");
+        builder.UseSetting("Captcha:Enabled", captcha ? "true" : "false");
+        builder.UseSetting("Captcha:Key", CaptchaKey);
         builder.UseSetting("Rtc:SignalingSecret", RtcSecret);
         builder.UseSetting("Rtc:StunUrls:0", "stun:turn.test.local:3478");
         builder.UseSetting("Rtc:TurnUrls:0", "turn:turn.test.local:3478?transport=udp");

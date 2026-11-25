@@ -10,6 +10,7 @@ export async function POST(request: NextRequest) {
     headers: forwardedFor ? { "X-Forwarded-For": forwardedFor } : {},
   });
   if (response.ok) return new NextResponse(null, { status: 202 });
+  if (response.status === 429) return NextResponse.json({ code: "crm.rate_limited" }, { status: 429 });
   const body = await response.json().catch(() => ({ code: "unknown" }));
-  return NextResponse.json({ code: body.code ?? "unknown" }, { status: response.status === 429 ? 429 : 400 });
+  return NextResponse.json({ code: body.code ?? "unknown" }, { status: response.status === 409 ? 409 : 400 });
 }

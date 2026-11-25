@@ -74,7 +74,7 @@ Thay cho Google Meet khi trung tâm chưa có Google Workspace. Trung tâm chọ
    cp .env.example .env && ./scripts/gen-secrets.sh >> .env && chmod 600 .env
    ```
 
-   Sửa trong `.env`: `BASE_DOMAIN`, `ACME_EMAIL`, `IMAGE_*` (thay `OWNER` bằng tên GitHub org/user viết **chữ thường**, ví dụ `ghcr.io/cdv00/konnyaku-web`). Server đã chạy từ trước bản có phòng học: thêm `SIGNALING_SECRET` và `TURN_SECRET` (chạy lại `gen-secrets.sh` rồi chỉ chép hai dòng đó) và `IMAGE_SIGNALING`. Lưu một bản `.env` vào trình quản lý mật khẩu của nhóm: mất file này là mất mật khẩu DB và khóa ký JWT.
+   Sửa trong `.env`: `BASE_DOMAIN`, `ACME_EMAIL`, `IMAGE_*` (thay `OWNER` bằng tên GitHub org/user viết **chữ thường**, ví dụ `ghcr.io/cdv00/konnyaku-web`). Server đã chạy từ trước bản có phòng học: thêm `SIGNALING_SECRET` và `TURN_SECRET` (chạy lại `gen-secrets.sh` rồi chỉ chép hai dòng đó) và `IMAGE_SIGNALING`. Lưu một bản `.env` vào trình quản lý mật khẩu của nhóm: mất file này là mất mật khẩu DB và khóa ký JWT. `gen-secrets.sh` cũng sinh `CAPTCHA_KEY` (xem mục [Captcha của form công khai](#captcha-của-form-công-khai)); `.env` có sẵn từ trước thì thêm tay một dòng `CAPTCHA_KEY=$(openssl rand -hex 32)`, nếu không `docker compose up` báo thiếu biến.
 
 5. **GitHub**: Settings → Environments, tạo `staging` và `production`. Mỗi environment có secrets `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` (khóa riêng của một user chỉ dùng để deploy, thuộc nhóm `docker`), `DEPLOY_KNOWN_HOSTS` (kết quả `ssh-keyscan -H <host>`), và biến `DEPLOY_PATH` nếu khác `/opt/konnyaku`. Nên bật *Required reviewers* cho `production`.
 
@@ -87,6 +87,24 @@ Thay cho Google Meet khi trung tâm chưa có Google Workspace. Trung tâm chọ
 - **Quay lại bản trước**: trên server sửa `IMAGE_TAG` trong `.env` về SHA cũ rồi chạy `docker compose up -d`. Migration không tự đảo ngược, nên mọi migration phải tương thích ngược với bản code trước đó (thêm cột/bảng trước, xoá ở bản sau).
 
 `docker compose up -d` tạo lại mọi bản sao cùng lúc, nên mỗi lần deploy có vài giây gián đoạn. Đủ cho pilot; khi cần không gián đoạn thì chuyển sang deploy cuốn chiếu (rolling).
+
+## Captcha của form công khai
+
+Form đăng ký tư vấn dùng captcha **proof-of-work tự host** (cơ chế giống ALTCHA, không gọi Google/Cloudflare, không gửi dữ liệu người dùng ra ngoài):
+
+1. Trình duyệt gọi `GET /api/captcha` (Next.js chuyển tiếp tới `GET /api/crm/public/captcha` kèm host của trung tâm). API trả `salt` (ngẫu nhiên + thời điểm hết hạn), `challenge` = SHA-256(`salt` + số bí mật trong `[0, maxNumber]`) và `signature` = HMAC-SHA256(`CAPTCHA_KEY`, tenant + salt + challenge). API không lưu gì ở bước này.
+2. Trình duyệt thử lần lượt các số tới khi ra đúng `challenge` (trung bình ~0,2–1 giây), rồi gửi số đó cùng form.
+3. `POST /api/crm/public/leads` kiểm tra chữ ký (đúng trung tâm, không bị sửa), hạn dùng, lời giải; lời giải chỉ dùng được **một lần**: bảng `crm.captcha_redemption` (unique theo tenant + challenge) được ghi trong cùng transaction với lead, nên form bị từ chối vì lỗi nhập liệu không làm mất lời giải. Bản ghi hết hạn tự xóa khi có lead mới.
+4. Honeypot `website` và giới hạn `RateLimits:PublicFormsPerMinute` (mặc định 10 lần/phút/IP) vẫn giữ.
+
+| Biến (`.env`) | Cấu hình API | Mặc định | Ý nghĩa |
+|---|---|---|---|
+| `CAPTCHA_KEY` | `Captcha__Key` | — (bắt buộc) | Khóa HMAC ≥ 32 byte, chung cho mọi bản sao API. Đổi khóa chỉ làm hỏng các thử thách đang mở (khách bấm gửi lại là được) |
+| `CAPTCHA_ENABLED` | `Captcha__Enabled` | `true` | `false` chỉ dùng cho môi trường test kín; khi tắt, `GET /api/crm/public/captcha` trả 204 và form gửi không cần lời giải |
+| — | `Captcha__MaxNumber` | `100000` | Độ khó: tăng gấp đôi thì thời gian giải trên máy khách tăng gấp đôi |
+| — | `Captcha__ExpiresMinutes` | `30` | Thời hạn của một thử thách |
+
+Ở dev (`appsettings.Development.json`) captcha bật với khóa dev; test tích hợp tắt captcha trừ `CaptchaTests`; `infra/scripts/seed_review.py` tự giải thử thách như trình duyệt.
 
 ## Tạo trung tâm (tenant)
 

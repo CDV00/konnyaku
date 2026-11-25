@@ -148,7 +148,7 @@
     "language": "Language to learn",
     "goal": "Goal",
     "schedule": "Preferred schedule",
-    "consent": "I agree that the center processes these details to advise me on courses.",
+    "consent": "I agree that {center} processes these details to advise me on courses, under the <privacy>privacy policy</privacy> (version {version}).",
     "submit": "Send",
     "sent": "Thank you — the center will contact you shortly.",
     "errors": {
@@ -158,7 +158,12 @@
       "crm_consent_required": "Please give your consent so the center can contact you.",
       "crm_birth_year_invalid": "The year of birth is not valid.",
       "crm_language_required": "Please choose a language.",
-      "unknown": "The request could not be sent. Please try again."
+      "unknown": "The request could not be sent. Please try again.",
+      "crm_captcha_required": "The anti-spam check is not finished yet. Wait a few seconds and send again.",
+      "crm_captcha_invalid": "The anti-spam check failed. Please send again.",
+      "crm_captcha_expired": "The anti-spam check expired. Please send again.",
+      "crm_captcha_used": "The anti-spam check was already used. Please send again.",
+      "crm_rate_limited": "Too many attempts. Please try again in a minute."
     },
     "perks": {
       "callback": "An advisor calls you back within 15 minutes (office hours)",
@@ -167,7 +172,12 @@
     },
     "languagePlaceholder": "Choose a language",
     "sending": "Sending…",
-    "sentTitle": "Thank you!"
+    "sentTitle": "Thank you!",
+    "captcha": {
+      "solving": "Running the anti-spam check in your browser…",
+      "ready": "Verified, nothing sent to third parties",
+      "failed": "The anti-spam check could not load. Press send to retry."
+    }
   },
   "schedule": {
     "teaching": "Upcoming teaching",
@@ -786,7 +796,10 @@
     "register": "Get advice",
     "login": "Sign in",
     "switchLocale": "Switch language",
-    "footer": "© {name} · Powered by Konnyaku"
+    "footer": "© {name} · Powered by Konnyaku",
+    "privacy": "Privacy policy",
+    "terms": "Terms of use",
+    "legal": "Legal"
   },
   "roles": {
     "TenantAdmin": "Admin",

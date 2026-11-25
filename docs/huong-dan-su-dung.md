@@ -51,8 +51,23 @@ Trang chủ của trung tâm liệt kê các chương trình đang tuyển sinh.
     - **Số điện thoại** hoặc **Email**: cần ít nhất một.
     - **Năm sinh**: nếu học viên dưới 18 tuổi thì phải điền **Họ tên phụ huynh**.
     - **Mục tiêu**, **Khung giờ mong muốn**: không bắt buộc, giúp tư vấn viên xếp lớp.
-4. Đánh dấu ô đồng ý cho trung tâm xử lý thông tin, rồi bấm **Gửi đăng ký**.
-5. Màn hình **Cảm ơn bạn!** xác nhận đã gửi. Tư vấn viên gọi lại trong giờ làm việc.
+4. Đánh dấu ô đồng ý cho trung tâm xử lý thông tin. Liên kết **Chính sách quyền riêng tư** trong câu đồng ý mở chính sách ở tab mới; phiên bản ghi trong câu là phiên bản được lưu cùng đăng ký.
+5. Bấm **Gửi đăng ký**. Ngay khi bạn bắt đầu điền, trình duyệt tự giải một bài kiểm tra chống spam (vài phần mười giây, không cần bấm chọn hình); dòng nhỏ phía trên nút cho biết **Đã xác minh**. Bài kiểm tra chạy trên máy bạn, không gửi dữ liệu cho dịch vụ bên ngoài.
+6. Màn hình **Cảm ơn bạn!** xác nhận đã gửi. Tư vấn viên gọi lại trong giờ làm việc.
+
+Nếu thấy báo lỗi xác minh (ví dụ để form mở quá 30 phút), bấm **Gửi đăng ký** lại: trang đã tự chuẩn bị lượt xác minh mới. Gửi quá nhiều lần trong một phút sẽ bị chặn tạm thời.
+
+### Chính sách quyền riêng tư và điều khoản
+
+Chân trang có liên kết **Chính sách quyền riêng tư** và **Điều khoản sử dụng** (tiếng Việt: `/vi/chinh-sach-quyen-rieng-tu`, `/vi/dieu-khoan-su-dung`; tiếng Anh: `/en/privacy`, `/en/terms`). Chính sách nêu dữ liệu thu thập, mục đích, thời gian lưu, quyền xem / sửa / xóa / rút đồng ý, quy định riêng cho dữ liệu trẻ em và cách liên hệ, kèm phiên bản và ngày hiệu lực.
+
+> Đây là **bản mẫu** do nền tảng soạn, đã điền sẵn tên trung tâm. Trung tâm cần nhờ pháp chế rà lại và bổ sung tên pháp nhân, địa chỉ, email và người phụ trách bảo vệ dữ liệu trước khi dùng chính thức. Khi đổi nội dung, đội kỹ thuật tăng phiên bản trong `frontend/apps/site/app/[locale]/legal.ts` để các đăng ký mới ghi đúng phiên bản.
+
+### Trang lỗi
+
+- Đường dẫn sai: trang **Không tìm thấy trang** (mã 404) theo ngôn ngữ đang xem, có nút về trang chủ và đăng ký tư vấn. Trong `learn` / `teach` / `ops` trang này nằm trong khung của khu vực, có nút về trang chính.
+- Sự cố hệ thống: trang **Đã có lỗi xảy ra** với nút **Thử lại** và **mã tham chiếu**; gửi mã này cho bộ phận kỹ thuật để tra log.
+- Địa chỉ trung tâm sai (tên miền không thuộc trung tâm nào): trang **Không tìm thấy trung tâm**.
 
 ## Học viên và phụ huynh (`learn`)
 
