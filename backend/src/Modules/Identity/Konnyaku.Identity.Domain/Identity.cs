@@ -110,10 +110,12 @@ public sealed class PasswordCredential : LockableCredential
     {
     }
 
-    public PasswordCredential(Guid userId, string passwordHash)
+    /// <param name="temporary">Chosen by someone else (a generated first password): the owner must change it at first sign-in.</param>
+    public PasswordCredential(Guid userId, string passwordHash, bool temporary = false)
     {
         UserId = userId;
         PasswordHash = passwordHash;
+        MustChangePassword = temporary;
     }
 
     public Guid UserId { get; private set; }

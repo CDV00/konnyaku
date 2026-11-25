@@ -145,7 +145,10 @@ public sealed class PlatformConsoleTests(PostgresFixture db) : IAsyncDisposable
         provisioned.TemporaryPassword.ShouldNotBeNullOrEmpty();
 
         // The new admin signs in on the center's host; the list shows the center and its size.
-        var staffToken = (await _api.StaffLoginAsync(slug, adminEmail, provisioned.TemporaryPassword!)).AccessToken;
+        var firstSignIn = await _api.StaffLoginAsync(slug, adminEmail, provisioned.TemporaryPassword!);
+        // The operator saw the generated password: the admin must replace it at the first sign-in.
+        firstSignIn.MustChangePassword.ShouldBeTrue();
+        var staffToken = firstSignIn.AccessToken;
         var list = (await console.GetFromJsonAsync<TenantSummaryDto[]>("/api/platform/console/tenants", Ct))!;
         var row = list.Single(t => t.Id == provisioned.TenantId);
         row.Status.ShouldBe("Active");

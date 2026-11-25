@@ -16,6 +16,8 @@ COPY apps/site/package.json apps/site/
 COPY packages/i18n/package.json packages/i18n/
 COPY packages/session/package.json packages/session/
 COPY packages/ui/package.json packages/ui/
+# Workspace member of the end-to-end tests: only its manifest, so the frozen lockfile matches (no browsers are installed).
+COPY e2e/package.json e2e/
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 COPY . .
 # Standalone output: a minimal server.js with only the traced node_modules (see apps/site/next.config.ts).
