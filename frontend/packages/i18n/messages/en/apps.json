@@ -1416,6 +1416,7 @@
     "title": "Files",
     "description": "Storage used by the center, every uploaded file and quarantined files. Files go straight to storage and open through a 5-minute link.",
     "upload": "Upload material",
+    "chooseFile": "Choose a material file",
     "uploading": "Uploading…",
     "uploaded": "{name} uploaded.",
     "uploadFailed": "The file could not be sent to storage. Try again in a few minutes.",

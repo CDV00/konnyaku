@@ -1416,6 +1416,7 @@
     "title": "Tệp",
     "description": "Dung lượng đã dùng của trung tâm, mọi tệp đã tải lên và tệp bị cách ly. Tệp đi thẳng tới kho lưu trữ, có link tạm 5 phút khi mở.",
     "upload": "Tải tài liệu lên",
+    "chooseFile": "Chọn tệp tài liệu",
     "uploading": "Đang tải lên…",
     "uploaded": "Đã tải lên {name}.",
     "uploadFailed": "Không gửi được tệp tới kho lưu trữ. Thử lại sau ít phút.",

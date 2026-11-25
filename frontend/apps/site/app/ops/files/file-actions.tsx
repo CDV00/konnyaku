@@ -90,7 +90,7 @@ export function UploadButton() {
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <input ref={input} type="file" className="sr-only" accept={accept} onChange={onChange} aria-label={t("upload")} tabIndex={-1} />
+      <input ref={input} type="file" className="sr-only" accept={accept} onChange={onChange} aria-label={t("chooseFile")} tabIndex={-1} />
       <Button type="button" disabled={busy} onClick={() => input.current?.click()}>
         <Upload className="size-4" />
         {busy ? t("uploading") : t("upload")}

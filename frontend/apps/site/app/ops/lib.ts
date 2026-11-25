@@ -224,4 +224,8 @@ export const statusTone: Record<string, Tone> = {
   // notifications
   Sent: "success",
   Failed: "destructive",
+  // files
+  Ready: "success",
+  Quarantined: "destructive",
+  Deleted: "muted",
 };

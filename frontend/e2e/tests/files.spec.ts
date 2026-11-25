@@ -14,7 +14,7 @@ type Ticket = { fileId: string; url: string; method: string; headers: Record<str
 /** The three steps a browser does: signed URL from the API, body straight to storage, completion check. */
 async function upload(api: Api, fileName: string, contentType: string, body: Buffer, purpose: string): Promise<string> {
   const ticket = await api.post<Ticket>("/api/content/uploads", { fileName, contentType, size: body.length, purpose });
-  const sent = await fetch(ticket.url, { method: ticket.method, headers: ticket.headers, body });
+  const sent = await fetch(ticket.url, { method: ticket.method, headers: ticket.headers, body: new Uint8Array(body) });
   expect(sent.status).toBe(200);
   await api.post(`/api/content/uploads/${ticket.fileId}/complete`);
   return ticket.fileId;
@@ -52,12 +52,12 @@ test("center admin uploads material on the Files page, opens it through a short 
   await expect(page.getByText(t("files.used"), { exact: true })).toBeVisible();
 
   await test.step("upload: the file goes straight to storage, then shows as Ready", async () => {
-    await hydrated(page.getByRole("button", { name: t("files.upload") }));
-    await page.getByLabel(t("files.upload")).setInputFiles({ name, mimeType: "image/png", buffer: png });
+    await hydrated(page.getByRole("button", { name: t("files.upload"), exact: true }));
+    await page.getByLabel(t("files.chooseFile")).setInputFiles({ name, mimeType: "image/png", buffer: png });
     await expect(page.getByText(t("files.uploaded", { name }))).toBeVisible();
     const row = page.locator(`tr[data-file="${name}"]`);
     await expect(row.getByText(t("files.status.Ready"))).toBeVisible();
-    await expect(row.getByText(t("files.purpose.Material"))).toBeVisible();
+    await expect(row.getByRole("cell", { name: t("files.purpose.Material"), exact: true })).toBeVisible();
   });
 
   await test.step("open: a signed URL of a few minutes, the same bytes back", async () => {
