@@ -139,7 +139,8 @@ export type Permission =
   | "crm.students"
   | "crm.students.view"
   | "crm.export"
-  | "crm.privacy";
+  | "crm.privacy"
+  | "notification.messages";
 
 type PermissionScope = { permission: Permission; tenantWide: boolean; branchIds: string[] };
 
@@ -202,4 +203,7 @@ export const statusTone: Record<string, Tone> = {
   Locked: "success",
   // staff
   Suspended: "destructive",
+  // notifications
+  Sent: "success",
+  Failed: "destructive",
 };

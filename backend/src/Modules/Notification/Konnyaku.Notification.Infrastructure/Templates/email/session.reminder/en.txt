@@ -1,0 +1,7 @@
+Hi {{recipientName}},
+
+A reminder that session {{sequenceNo}} of class {{classCode}} takes place on:
+{{startsAt}} ({{timeZone}})
+For online classes, the join button appears on your page shortly before the start.
+
+Open the schedule: {{siteUrl}}{{zonePath}}

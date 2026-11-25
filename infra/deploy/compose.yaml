@@ -19,9 +19,23 @@ x-backend-env: &backend-env
   ConnectionStrings__workspace: Host=postgres;Database=konnyaku;Username=kk_workspace;Password=${DB_PASSWORD_WORKSPACE:?}
   ConnectionStrings__learning: Host=postgres;Database=konnyaku;Username=kk_learning;Password=${DB_PASSWORD_LEARNING:?}
   ConnectionStrings__hr: Host=postgres;Database=konnyaku;Username=kk_hr;Password=${DB_PASSWORD_HR:?}
+  ConnectionStrings__notification: Host=postgres;Database=konnyaku;Username=kk_notification;Password=${DB_PASSWORD_NOTIFICATION:?}
   Auth__SigningKey: ${AUTH_SIGNING_KEY:?}
   Platform__AdminKey: ${PLATFORM_ADMIN_KEY:?}
   Platform__BaseDomain: ${BASE_DOMAIN:?}
+  # Only host serving the platform console (/platform); must equal KONNYAKU_ADMIN_HOST of the web service.
+  Platform__AdminHost: admin.${BASE_DOMAIN:?}
+  # HMAC key of the public-form captcha (proof of work); CAPTCHA_ENABLED=false only for a private test stack.
+  Captcha__Key: ${CAPTCHA_KEY:?}
+  Captcha__Enabled: ${CAPTCHA_ENABLED:-true}
+  # Email (Notification module); see docs/trien-khai.md.
+  Notification__Smtp__Host: ${SMTP_HOST:-}
+  Notification__Smtp__Port: ${SMTP_PORT:-587}
+  Notification__Smtp__Username: ${SMTP_USERNAME:-}
+  Notification__Smtp__Password: ${SMTP_PASSWORD:-}
+  Notification__Smtp__Security: ${SMTP_SECURITY:-Auto}
+  Notification__Smtp__FromAddress: ${SMTP_FROM_ADDRESS:-}
+  Notification__Smtp__FromName: ${SMTP_FROM_NAME:-Konnyaku}
   # Built-in classroom (WebRTC mesh): tickets for the signaling service, STUN/TURN with short-lived credentials.
   Rtc__SignalingSecret: ${SIGNALING_SECRET:?}
   Rtc__StunUrls__0: stun:${TURN_HOST:-${BASE_DOMAIN}}:3478
@@ -59,6 +73,8 @@ services:
     restart: unless-stopped
     environment:
       KONNYAKU_API_URL: http://api:8080
+      KONNYAKU_ADMIN_HOST: admin.${BASE_DOMAIN:?}
+      KONNYAKU_BASE_DOMAIN: ${BASE_DOMAIN:?}
     deploy:
       replicas: ${WEB_REPLICAS:-2}
     networks: [edge, app]
@@ -184,6 +200,7 @@ services:
       DB_PASSWORD_WORKSPACE: ${DB_PASSWORD_WORKSPACE:?}
       DB_PASSWORD_LEARNING: ${DB_PASSWORD_LEARNING:?}
       DB_PASSWORD_HR: ${DB_PASSWORD_HR:?}
+      DB_PASSWORD_NOTIFICATION: ${DB_PASSWORD_NOTIFICATION:?}
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro

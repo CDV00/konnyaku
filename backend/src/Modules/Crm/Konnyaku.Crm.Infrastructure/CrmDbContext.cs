@@ -41,6 +41,7 @@ public sealed class CrmDbContext(DbContextOptions<CrmDbContext> options, ITenant
 
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);
+    public DbSet<CaptchaRedemption> CaptchaRedemptions => Set<CaptchaRedemption>();
 
     protected override void ConfigureModel(ModelBuilder modelBuilder)
     {
@@ -112,6 +113,14 @@ public sealed class CrmDbContext(DbContextOptions<CrmDbContext> options, ITenant
             b.HasIndex(x => new { x.TenantId, x.Status, x.DueAt });
             b.HasIndex(x => new { x.TenantId, x.SubjectId });
         });
+        modelBuilder.Entity<CaptchaRedemption>(b =>
+        {
+            b.ToTable("captcha_redemption");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Challenge).HasMaxLength(64);
+            b.HasIndex(x => new { x.TenantId, x.Challenge }).IsUnique();
+            b.HasIndex(x => new { x.TenantId, x.ExpiresAt });
+        });
         modelBuilder.AddChangeLog();
     }
 }
@@ -132,6 +141,8 @@ public static class CrmInfrastructure
         services.AddScoped<LeadRetention>();
         services.AddScoped<IPersonalDataSource, CrmPersonalData>();
         services.AddSingleton(configuration.GetSection("Privacy").Get<PrivacySettings>() ?? new PrivacySettings());
+        services.AddScoped<ICrmUsageApi, CrmUsageQueries>();
+        services.AddScoped<ICrmContactsApi, CrmContacts>();
         services.AddSingleton(TimeProvider.System);
         return services;
     }

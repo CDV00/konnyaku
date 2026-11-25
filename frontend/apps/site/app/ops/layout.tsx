@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -10,6 +11,9 @@ import { getAccess } from "./lib";
 import "../globals.css";
 
 const sections = ["leads", "students", "billing", "classes", "programs", "staff", "branches", "payroll"] as const;
+
+/** Signed-in and utility pages stay out of search results (robots.txt also disallows them). */
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale();
@@ -24,6 +28,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     ...sections.map((section) => ({ href: `/ops/${section}`, label: t(`nav.${section}`), icon: section })),
     // Data subject requests and the personal data access log: the tenant admin only.
     ...(access.can("crm.privacy") ? [{ href: "/ops/privacy", label: t("nav.privacy"), icon: "privacy" as const }] : []),
+    ...(access.any("notification.messages")
+      ? [{ href: "/ops/notifications", label: t("nav.notifications"), icon: "notifications" as const }]
+      : []),
   ];
   return (
     <html lang={locale} suppressHydrationWarning className={appFont.variable}>

@@ -82,6 +82,8 @@ export type TenantInfo = {
   defaultLocale: string;
   enabledLocales: string[];
   timeZone: string;
+  /** Suspended by the platform: sign-in and API calls are refused; the public site shows a notice. */
+  status: "Active" | "Suspended";
 };
 
 /** Tenant of the current host (name, locales, time zone); once per request. */

@@ -1,0 +1,1 @@
+Hủy buổi {{sequenceNo}} lớp {{classCode}}

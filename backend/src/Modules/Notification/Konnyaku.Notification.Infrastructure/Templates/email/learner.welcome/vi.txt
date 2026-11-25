@@ -1,0 +1,7 @@
+Chào {{studentName}},
+
+Tài khoản học tập của bạn tại {{tenantName}} đã sẵn sàng.
+{{#username}}Tên đăng nhập: {{username}}. Mật khẩu tạm do trung tâm cung cấp; bạn sẽ được yêu cầu đổi mật khẩu ở lần đăng nhập đầu tiên.{{/username}}
+Trên trang học viên bạn xem được lịch học, số buổi còn lại và vào lớp trực tuyến.
+
+Đăng nhập: {{siteUrl}}/login

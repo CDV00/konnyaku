@@ -23,6 +23,40 @@ namespace Konnyaku.Crm.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Konnyaku.Crm.Domain.CaptchaRedemption", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Challenge")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("challenge");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_captcha_redemption");
+
+                    b.HasIndex("TenantId", "Challenge")
+                        .IsUnique()
+                        .HasDatabaseName("ix_captcha_redemption_tenant_id_challenge");
+
+                    b.HasIndex("TenantId", "ExpiresAt")
+                        .HasDatabaseName("ix_captcha_redemption_tenant_id_expires_at");
+
+                    b.ToTable("captcha_redemption", "crm");
+                });
+
             modelBuilder.Entity("Konnyaku.Crm.Domain.DataSubjectRequest", b =>
                 {
                     b.Property<Guid>("Id")

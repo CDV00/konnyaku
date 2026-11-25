@@ -1,4 +1,5 @@
 using Konnyaku.Application.Authorization;
+using Konnyaku.Application.Persistence;
 using Konnyaku.Application.Tenancy;
 using Konnyaku.Crm.Contracts;
 using Konnyaku.Crm.Domain;
@@ -16,6 +17,8 @@ public interface ICrmDbContext
     DbSet<PersonalDataAccess> PersonalDataAccesses { get; }
     DbSet<DataSubjectRequest> DataSubjectRequests { get; }
 
+    DbSet<CaptchaRedemption> CaptchaRedemptions { get; }
+
     void Publish(IIntegrationEvent integrationEvent, string? correlationId = null);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
@@ -26,15 +29,19 @@ public interface ICrmDbContext
     Task<int> RedactChangeLogAsync(Guid subjectId, CancellationToken cancellationToken);
 }
 
-/// <summary>Public registration form. <see cref="Website"/> is a honeypot: humans never fill it.</summary>
+/// <summary>
+/// Public registration form. <see cref="Website"/> is a honeypot: humans never fill it. <see cref="Captcha"/> is the
+/// solved proof-of-work challenge, required while <see cref="CaptchaOptions.Enabled"/>.
+/// </summary>
 public sealed record SubmitLeadCommand(
     string StudentName, int? BirthYear, string? GuardianName, string? Phone, string? Email, string LanguageCode,
     string? Goal, Guid? PreferredBranchId, string? PreferredSchedule, string? ConsentVersion, bool ConsentGiven,
-    IReadOnlyDictionary<string, string>? Utm, string? Locale, string? Website);
+    IReadOnlyDictionary<string, string>? Utm, string? Locale, string? Website, CaptchaSolution? Captcha = null);
 
 public sealed record LeadAccepted(Guid? LeadId);
 
-public sealed class SubmitLeadHandler(ICrmDbContext db, ITenantContext tenant, IIdentityApi identity, TimeProvider clock)
+public sealed class SubmitLeadHandler(
+    ICrmDbContext db, ITenantContext tenant, IIdentityApi identity, CaptchaService captcha, IDbErrorClassifier errors, TimeProvider clock)
 {
     public const string ConsultantRole = "Consultant";
 
@@ -49,6 +56,18 @@ public sealed class SubmitLeadHandler(ICrmDbContext db, ITenantContext tenant, I
         {
             // Bot: answer like a success so it cannot learn the rule, store nothing.
             return new LeadAccepted(null);
+        }
+
+        CaptchaTicket? ticket = null;
+        if (captcha.Enabled)
+        {
+            var verified = captcha.Verify(command.Captcha);
+            if (!verified.IsSuccess)
+            {
+                return verified.Error!;
+            }
+
+            ticket = verified.Value;
         }
 
         if (!command.ConsentGiven)
@@ -74,8 +93,7 @@ public sealed class SubmitLeadHandler(ICrmDbContext db, ITenantContext tenant, I
                 return updated.Error!;
             }
 
-            await db.SaveChangesAsync(cancellationToken);
-            return new LeadAccepted(existing.Id);
+            return await SaveAsync(ticket, now, cancellationToken) is { } resubmitError ? resubmitError : new LeadAccepted(existing.Id);
         }
 
         var created = Lead.Create(details, "web", command.ConsentVersion ?? string.Empty, now);
@@ -88,8 +106,32 @@ public sealed class SubmitLeadHandler(ICrmDbContext db, ITenantContext tenant, I
         lead.AssignTo(await PickConsultantAsync(cancellationToken), now);
         db.Leads.Add(lead);
         db.Publish(new LeadCreatedV1(lead.Id, lead.LanguageCode, lead.AssignedConsultantId, lead.FollowUpDueAt, lead.Locale));
-        await db.SaveChangesAsync(cancellationToken);
-        return new LeadAccepted(lead.Id);
+        return await SaveAsync(ticket, now, cancellationToken) is { } error ? error : new LeadAccepted(lead.Id);
+    }
+
+    /// <summary>
+    /// Saves the form together with the captcha redemption, so a challenge is spent only when a form is accepted
+    /// (validation errors keep it usable) and two submissions with the same solution cannot both pass.
+    /// </summary>
+    private async Task<Error?> SaveAsync(CaptchaTicket? ticket, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        if (ticket is null)
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            return null;
+        }
+
+        await db.CaptchaRedemptions.Where(r => r.ExpiresAt < now).ExecuteDeleteAsync(cancellationToken);
+        db.CaptchaRedemptions.Add(new CaptchaRedemption(ticket.Challenge, ticket.ExpiresAt));
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            return null;
+        }
+        catch (DbUpdateException exception) when (errors.IsUniqueViolation(exception))
+        {
+            return Error.Conflict("crm.captcha_used");
+        }
     }
 
     /// <summary>The consultant with the fewest open leads (round-robin by load).</summary>

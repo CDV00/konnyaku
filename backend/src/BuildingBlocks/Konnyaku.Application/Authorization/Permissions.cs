@@ -32,10 +32,13 @@ public static class Permissions
     /// <summary>Data subject requests (access, correction, erasure, consent withdrawal) and the personal data access log.</summary>
     public const string Privacy = "crm.privacy";
 
+    /// <summary>The notification log of the center: read who was emailed, resend (center-wide; TenantAdmin only).</summary>
+    public const string Notifications = "notification.messages";
+
     public static readonly IReadOnlyList<string> All =
     [
         Programs, Classes, ClassesView, Schedules, Branches, Rooms, Holidays, Staff, PayRates, Packages, Orders, Payments, Leads,
-        Students, StudentsView, PersonalDataExport, Privacy,
+        Students, StudentsView, PersonalDataExport, Privacy, Notifications,
     ];
 }
 

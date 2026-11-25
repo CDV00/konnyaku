@@ -84,6 +84,7 @@ public static class IdentityInfrastructure
         services.AddScoped<IIdentityPrivacyStore>(sp => sp.GetRequiredService<IdentityDbContext>());
         services.AddScoped<Konnyaku.Application.Privacy.IPersonalDataSource, IdentityPersonalData>();
         services.AddScoped<IIdentityApi, IdentityQueries>();
+        services.AddScoped<IIdentityPlatformApi, IdentityPlatformApi>();
         services.AddHttpContextAccessor();
         services.AddScoped<IAccessControl, AccessControl>();
         services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();

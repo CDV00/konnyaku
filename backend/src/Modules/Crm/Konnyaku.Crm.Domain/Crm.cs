@@ -363,3 +363,24 @@ public sealed class StudentProfile : Entity, ITenantOwned, IAuditable
 
     public void LinkAccount(Guid userId) => UserId = userId;
 }
+
+/// <summary>
+/// A captcha challenge already used to accept a public form. The unique (tenant, challenge) index makes every
+/// solved challenge single-use; rows past <see cref="ExpiresAt"/> are useless and get purged.
+/// </summary>
+public sealed class CaptchaRedemption : Entity, ITenantOwned
+{
+    private CaptchaRedemption()
+    {
+    }
+
+    public CaptchaRedemption(string challenge, DateTimeOffset expiresAt)
+    {
+        Challenge = challenge;
+        ExpiresAt = expiresAt;
+    }
+
+    public Guid TenantId { get; private set; }
+    public string Challenge { get; private set; } = string.Empty;
+    public DateTimeOffset ExpiresAt { get; private set; }
+}

@@ -6,7 +6,7 @@ Hệ thống local gồm 3 phần: hạ tầng trong Docker, backend .NET (API +
 
 | Thành phần | Cổng | Ghi chú |
 | --- | --- | --- |
-| Web (`frontend/apps/site`: trang công khai, đăng nhập, `/learn`, `/teach`, `/ops`) | **4000** | Mở trình duyệt ở đây |
+| Web (`frontend/apps/site`: trang công khai, đăng nhập, `/learn`, `/teach`, `/ops`) | **4000** | Mở trình duyệt ở đây. Bảng điều khiển nền tảng: `http://admin.localhost:4000/platform` |
 | API | 5080 | Tài liệu API: `http://localhost:5080/scalar` |
 | Worker | 5090 | Xử lý outbox (ghi danh sau thanh toán, tạo phòng học, trừ buổi, công) |
 | PostgreSQL | 5433 | User `konnyaku` / `konnyaku_dev`, DB `konnyaku` |
@@ -99,7 +99,25 @@ Thử danh sách lớn (phân trang, tìm kiếm không dấu, giới hạn xu�
 python infra/scripts/seed_students.py --count 1000
 ```
 
+### Người vận hành nền tảng (super-admin)
+
+`seed_review.py` cũng tạo người vận hành nền tảng đầu tiên (nếu database chưa có ai). Bảng điều khiển chỉ mở trên host quản trị `http://admin.localhost:4000/platform` (trên host trung tâm `/platform` trả 404):
+
+| Mục | Giá trị (chỉ dùng cho dev) |
+| --- | --- |
+| Email | `superadmin@platform.example.com` |
+| Mật khẩu | `Platform-Pass-123` |
+| Secret TOTP (base32) | `KONNYAKUDEVPLATFORMTOTP234567ABC` — thêm vào ứng dụng xác thực (nhập khoá thủ công), hoặc in mã hiện tại: `python infra/scripts/seed_review.py --totp` |
+
+Mỗi mã TOTP chỉ dùng được một lần (chờ 30 giây để có mã mới khi đăng nhập lại). Sai 5 lần thì khóa 15 phút; reset nhanh trên database dev: `UPDATE platform.operator SET failed_attempts = 0, locked_until = NULL;`. Host quản trị đổi được bằng `Platform:AdminHost` (API) và `KONNYAKU_ADMIN_HOST` (web), mặc định `admin.<BaseDomain>` và `admin.localhost`.
+
 Biến môi trường `KONNYAKU_API` và `KONNYAKU_PLATFORM_KEY` cho phép chạy script vào API khác (ví dụ stack staging); tham số `--base-domain` khớp với `Platform:BaseDomain` của API đó.
+
+### Xem email gửi đi (Mailpit)
+
+Worker gửi email qua SMTP của Mailpit (`localhost:1025`, có sẵn trong `docker-compose.yml`, cấu hình ở `Notification:Smtp` trong `backend/src/Hosts/Konnyaku.Worker/appsettings.Development.json`). Mở `http://localhost:8025` để đọc. Ví dụ: trong `/ops/classes` đổi giờ một buổi → vài giây sau học viên (có email liên lạc) và giáo viên của buổi nhận email "Đổi giờ buổi …", mỗi người theo ngôn ngữ của mình. Nhật ký và nút gửi lại: `/ops/notifications` (chỉ TenantAdmin).
+
+Link trong email dùng `Notification:SiteUrlTemplate` (dev: `http://{host}:4000`). Đổi Worker sang cổng/SMTP khác bằng biến môi trường, ví dụ `Notification__Smtp__Port=1026`, `Notification__SiteUrlTemplate=http://{host}:4300`. Nhắc lịch học chạy 24 giờ trước mỗi buổi; muốn thử ngay thì đổi giờ một buổi sang khoảng 20 giờ tới.
 
 Dùng Claude Code: các dịch vụ trên đã khai báo trong `.claude/launch.json` (`api`, `worker`, `site`); bảo Claude "chạy dev server" là đủ. Hạ tầng Docker và migration vẫn phải chạy trước.
 
@@ -150,3 +168,5 @@ for p in 4000 5080 5090; do lsof -ti tcp:$p | xargs -r kill; done
 | Trang báo không xác định được trung tâm | Đang mở `localhost:4000` thay vì `demo.localhost:4000`, hoặc chưa chạy seed |
 | Build frontend lỗi `require() of ES Module` | Tailwind bị nâng khỏi 4.1.18; trả về đúng bản đó |
 | Seed báo tenant đã tồn tại | Database đã có dữ liệu demo; dùng tài khoản cũ hoặc `down -v` để làm lại |
+| Bảng điều khiển nền tảng báo mã không đúng | Mã vừa dùng rồi (chờ mã mới sau 30 giây) hoặc đồng hồ máy lệch quá 30 giây |
+| Trang trung tâm báo "tạm ngừng hoạt động" | Trung tâm bị tạm khóa trong bảng điều khiển nền tảng; mở lại ở `/platform` |

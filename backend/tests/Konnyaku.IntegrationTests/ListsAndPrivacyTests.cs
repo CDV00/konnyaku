@@ -18,7 +18,7 @@ public sealed class ListsAndPrivacyTests(PostgresFixture db) : IAsyncDisposable
 {
     private readonly KonnyakuApiFactory _api = new(db)
     {
-        Settings = { ["Privacy:ExportMaxRows"] = "5", ["Privacy:ExportsPerDay"] = "2" },
+        Settings = new Dictionary<string, string> { ["Privacy:ExportMaxRows"] = "5", ["Privacy:ExportsPerDay"] = "2" },
     };
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

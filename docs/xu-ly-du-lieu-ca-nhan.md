@@ -9,6 +9,7 @@ Cách Konnyaku giữ dữ liệu cá nhân của học viên (nhiều em là tr�
 | Crm — hồ sơ học viên, lead | Họ tên, năm sinh, tên phụ huynh/người giám hộ, điện thoại, email; với lead thêm mục tiêu, lịch mong muốn (chữ tự do) | Dữ liệu cá nhân cơ bản (trẻ em: cần đồng ý của người giám hộ) |
 | Identity — tài khoản | Tên hiển thị, email, tên đăng nhập | Cơ bản |
 | Workspace — vào phòng học | Tên hiển thị lúc vào phòng | Cơ bản |
+| Notification — thư đã gửi | Địa chỉ, tên người nhận, dữ liệu mẫu (có thể có tên học viên/lead) | Cơ bản |
 | Billing, Academic, Learning | Chỉ giữ `studentId` (không tên, không liên hệ); mã giao dịch thanh toán do nhân viên nhập | Gián tiếp |
 
 Không lưu số CCCD, tài khoản ngân hàng hay dữ liệu sức khoẻ. Thuộc tính `[PersonalData]` (SharedKernel) đánh dấu các trường trên trong code; bộ che dùng chung là `PersonalDataMask`.
@@ -64,7 +65,7 @@ Xoá = ghi đè dữ liệu cá nhân, không xoá dòng:
 
 1. Crm: họ tên thành `#<8 ký tự cuối của id>`, năm sinh, phụ huynh, điện thoại, email bị xoá; lead gốc cũng vậy (thêm mục tiêu, lịch mong muốn, UTM). Cột tìm kiếm sinh tự động nên cũng hết dữ liệu.
 2. Giá trị cũ/mới trong lịch sử thay đổi của bản ghi bị xoá bằng hàm `crm.redact_change_log` / `identity.redact_change_log` (SECURITY DEFINER, chỉ xoá giá trị, chỉ trong trung tâm hiện tại; bảng vẫn chỉ-thêm với role của module).
-3. Event `StudentAnonymizedV1(studentId, userId)`: Identity xoá tên/email tài khoản học viên, xoá tên đăng nhập và khoá thành viên (người đồng thời là nhân viên thì chỉ mất tài khoản học viên); Workspace thay tên trong lịch sử vào phòng.
+3. Event `StudentAnonymizedV1(studentId, userId)`: Identity xoá tên/email tài khoản học viên, xoá tên đăng nhập và khoá thành viên (người đồng thời là nhân viên thì chỉ mất tài khoản học viên); Workspace thay tên trong lịch sử vào phòng; Notification xoá địa chỉ, tên, dữ liệu mẫu và tiêu đề của các thư gửi tới tài khoản đó (thư chưa gửi bị bỏ).
 4. **Không đụng** sổ buổi học (`billing.credit_ledger_entry`, chỉ-thêm), đơn hàng, thanh toán, ghi danh, điểm danh: các dòng này chỉ có `studentId`, vẫn đúng cho kế toán và đối soát (Luật Kế toán yêu cầu lưu chứng từ), nhưng không còn chỉ tới ai.
 5. Ghi nhật ký "Ẩn danh hoá" và tự đóng yêu cầu đi kèm.
 
