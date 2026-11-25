@@ -1,6 +1,8 @@
 import enApps from "../../packages/i18n/messages/en/apps.json" with { type: "json" };
+import enBooking from "../../packages/i18n/messages/en/booking.json" with { type: "json" };
 import enPlatform from "../../packages/i18n/messages/en/platform.json" with { type: "json" };
 import viApps from "../../packages/i18n/messages/vi/apps.json" with { type: "json" };
+import viBooking from "../../packages/i18n/messages/vi/booking.json" with { type: "json" };
 import viPlatform from "../../packages/i18n/messages/vi/platform.json" with { type: "json" };
 
 /**
@@ -8,8 +10,8 @@ import viPlatform from "../../packages/i18n/messages/vi/platform.json" with { ty
  * `t("login.submit")`, `t("admin.billing.refund")`, `t("session.greeting", { name })` (simple `{name}` arguments only).
  */
 const catalogs = {
-  vi: { ...viApps, platform: viPlatform },
-  en: { ...enApps, platform: enPlatform },
+  vi: { ...viApps, ...viBooking, platform: viPlatform },
+  en: { ...enApps, ...enBooking, platform: enPlatform },
 } as const;
 
 export type Locale = keyof typeof catalogs;
