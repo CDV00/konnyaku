@@ -766,6 +766,7 @@
       "notification_already_pending": "Thông báo đang chờ gửi.",
       "notification_resend_not_allowed": "Thông báo chứa dữ liệu bảo mật đã gửi, không gửi lại được.",
       "billing_order_already_refunded": "Đơn này đã được hoàn tiền.",
+      "billing_order_changed": "Số buổi của đơn vừa thay đổi (ví dụ học viên vừa được xếp lớp). Chưa hoàn tiền; mở lại và thử lại.",
       "billing_order_not_refundable": "Đơn này không ở trạng thái hoàn được.",
       "billing_refund_amount_invalid": "Số tiền hoàn phải lớn hơn 0 và không quá số đã thu ({max}).",
       "billing_refund_reason_required": "Cần ghi lý do hoàn (tối đa {max} ký tự).",
