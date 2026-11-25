@@ -3,6 +3,7 @@
 //! relays SDP/ICE messages, and reports joins, leaves and the end of a room back to the API.
 
 pub mod config;
+pub mod metrics;
 pub mod protocol;
 pub mod report;
 pub mod rooms;

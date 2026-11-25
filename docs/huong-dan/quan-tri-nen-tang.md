@@ -71,4 +71,10 @@ Mỗi nhân viên Konnyaku một tài khoản riêng, bắt buộc xác minh hai
 
 Mất điện thoại và hết mã khôi phục: chưa tự đặt lại được trên giao diện; nhờ quản trị kỹ thuật đặt lại.
 
+## Giám sát hệ thống và cảnh báo
+
+Sức khoẻ máy chủ (dashboard Grafana, cảnh báo qua email / Telegram, log, trace, lỗi ứng dụng) không nằm trong bảng điều khiển nền tảng mà ở bộ giám sát do đội kỹ thuật bật khi triển khai. Dashboard mở ở `https://admin.<tên miền Konnyaku>/grafana` (hoặc qua SSH tunnel). Cách bật, đọc dashboard và xử lý từng cảnh báo: [Triển khai → Giám sát và cảnh báo](../trien-khai.md#giám-sát-và-cảnh-báo).
+
+Khi trung tâm báo lỗi kèm **Mã tham chiếu** (trang "Đã có lỗi xảy ra"), chuyển mã và thời điểm cho đội kỹ thuật để tra log và lỗi ứng dụng.
+
 > Chưa có: gói dịch vụ, giới hạn sử dụng, thu phí trung tâm; xem với tư cách trung tâm để hỗ trợ; xoá trung tâm.

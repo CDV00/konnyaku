@@ -114,6 +114,7 @@ async fn deliver(client: &reqwest::Client, url: &str, secret: &str, event: &Room
         tokio::time::sleep(delay).await;
         delay = (delay * 2).min(Duration::from_secs(120));
     }
+    crate::metrics::inc(&crate::metrics::REPORTS_DROPPED);
     tracing::error!(kind = event.kind, session = %event.session_id, "room event dropped after retries");
 }
 
