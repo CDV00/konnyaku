@@ -34,6 +34,13 @@ public sealed class NotificationMessage : Entity, ITenantOwned
     public Dictionary<string, string> Data { get; private set; } = [];
     public bool Sensitive { get; private set; }
     public string DeduplicationKey { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// Person + kind (e.g. <c>u:…:session.cancelled</c>) for messages that may be grouped: several of the same kind within
+    /// the digest window go out as one email. Null: always sent on its own (password reset, messages of other modules).
+    /// </summary>
+    public string? DigestKey { get; private set; }
+
     public NotificationStatus Status { get; private set; }
     public int Attempts { get; private set; }
     public string? LastError { get; private set; }
@@ -45,7 +52,7 @@ public sealed class NotificationMessage : Entity, ITenantOwned
 
     public static Result<NotificationMessage> Create(
         string channel, string templateKey, Guid? recipientUserId, string address, string? recipientName, string locale,
-        IReadOnlyDictionary<string, string> data, bool sensitive, string deduplicationKey, DateTimeOffset now)
+        IReadOnlyDictionary<string, string> data, bool sensitive, string deduplicationKey, DateTimeOffset now, string? digestKey = null)
     {
         if (string.IsNullOrWhiteSpace(templateKey) || string.IsNullOrWhiteSpace(deduplicationKey) || deduplicationKey.Length > 300)
         {
@@ -68,6 +75,7 @@ public sealed class NotificationMessage : Entity, ITenantOwned
             Data = new Dictionary<string, string>(data),
             Sensitive = sensitive,
             DeduplicationKey = deduplicationKey,
+            DigestKey = sensitive || string.IsNullOrWhiteSpace(digestKey) ? null : digestKey,
             Status = NotificationStatus.Pending,
             CreatedAt = now,
         };
@@ -160,6 +168,18 @@ public static class DispatchKinds
 
     /// <summary>Second try of a welcome email whose student profile was not linked yet (user <see cref="DispatchItem.RefId"/>).</summary>
     public const string LearnerWelcome = "learner_welcome";
+
+    /// <summary>Web Push for <c>inbox_item</c> <see cref="DispatchItem.RefId"/> to every browser of its user.</summary>
+    public const string Push = "push";
+
+    /// <summary>An inbox item created ahead of time becomes visible: signal the user (realtime, push).</summary>
+    public const string InboxVisible = "inbox_visible";
+
+    /// <summary>Tell the learners of assignment <see cref="DispatchItem.RefId"/> it is open (at its opening time).</summary>
+    public const string AssignmentOpen = "assignment_open";
+
+    /// <summary>Remind learners who have not handed in assignment <see cref="DispatchItem.RefId"/> (before its deadline).</summary>
+    public const string AssignmentDue = "assignment_due";
 }
 
 /// <summary>

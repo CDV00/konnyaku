@@ -50,6 +50,9 @@ docker exec kk-smoke-signaling /usr/local/bin/konnyaku-signaling healthcheck
 echo "ok signaling healthcheck"
 curl -fsS http://localhost:15100/metrics | grep -q '^konnyaku_signaling_peers 0$'
 echo "ok signaling metrics"
+curl -fsS http://localhost:15100/rt/health | grep -q '"realtime"'
+curl -fsS http://localhost:15100/metrics | grep -q '^konnyaku_realtime_connections 0$'
+echo "ok realtime health and metrics"
 
 # Idle memory right after start-up on this architecture (docs/toi-uu-tai-nguyen.md compares amd64 and arm64).
 sleep 5

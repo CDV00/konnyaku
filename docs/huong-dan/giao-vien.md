@@ -156,6 +156,10 @@ Khung **Rời tab và dán** cho biết học viên rời trang hay dán văn b�
 
 Thắc mắc về số phút hay đơn giá: liên hệ kế toán trước khi kỳ lương được chốt.
 
+## Thông báo
+
+Chuông ở thanh trên báo khi buổi dạy đổi giờ, bị hủy, 24 giờ trước mỗi buổi và khi kỳ lương được chốt. Cài đặt email và thông báo đẩy: xem [Thông báo](thong-bao.md).
+
 ## Tài khoản
 
 Bấm tên của bạn → **Tài khoản & bảo mật**: đổi mật khẩu, bật xác thực 2 bước, xem thiết bị đang đăng nhập (xem [Đăng nhập và bảo mật](dang-nhap-va-bao-mat.md)).

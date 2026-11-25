@@ -85,6 +85,26 @@ Konnyaku.Assessment.Contracts.AssessmentGradedV1
   IReadOnlyList`1 Skills
   Int32 AttemptNumber
   String Kind
+Konnyaku.Assessment.Contracts.AssignmentAudienceDto
+  DateTimeOffset OpensAt
+  Guid AssignmentId
+  Guid ClassId
+  IReadOnlyList`1 StudentIds
+  IReadOnlyList`1 SubmittedStudentIds
+  Nullable`1 DueAt
+  String Kind
+  String Title
+Konnyaku.Assessment.Contracts.AssignmentPublishedV1
+  DateTimeOffset OpensAt
+  Guid AssignmentId
+  Guid ClassId
+  Nullable`1 DueAt
+Konnyaku.Assessment.Contracts.AssignmentRescheduledV1
+  DateTimeOffset OpensAt
+  Guid AssignmentId
+  Nullable`1 DueAt
+Konnyaku.Assessment.Contracts.IAssessmentApi
+  Task`1 GetAssignmentAudienceAsync(Guid, CancellationToken)
 Konnyaku.Assessment.Contracts.SkillScoreDto
   Decimal MaxScore
   Decimal Score
@@ -310,6 +330,11 @@ Konnyaku.Scheduling.Contracts.ISchedulingApi
   Task`1 GetSessionAsync(Guid, CancellationToken)
   Task`1 GetSessionRosterAsync(Guid, CancellationToken)
   Task`1 ListClassIdsOfTeacherAsync(Guid, CancellationToken)
+Konnyaku.Scheduling.Contracts.MakeupApprovedV1
+  Guid BookingId
+  Guid EntitlementId
+  Guid SessionId
+  Guid StudentId
 Konnyaku.Scheduling.Contracts.SessionCancelledV1
   Guid SessionId
   String Reason
@@ -348,6 +373,11 @@ Konnyaku.Scheduling.Contracts.SessionScheduledV1
   String DeliveryMode
 Konnyaku.Scheduling.Contracts.SessionSeatReleasedV1
   Guid SessionId
+Konnyaku.Scheduling.Contracts.WaitlistSeatOfferedV1
+  DateTimeOffset ExpiresAt
+  Guid EntryId
+  Guid SessionId
+  Guid StudentId
 Konnyaku.Workspace.Contracts.MeetingProvisionedV1
   Guid SessionId
   String MeetingUri

@@ -22,8 +22,16 @@ echo "TURN_SECRET=$(secret 48)"
 # Encryption key of the pgBackRest repository (client-side, AES-256). Store it OUTSIDE this server as well (team
 # password manager): the backups cannot be read without it, and a lost server takes this .env with it.
 echo "BACKUP_CIPHER_PASS=$(secret 64)"
-# Redis (shared rate-limit counters of the API replicas). Letters and digits only: it goes into a connection string.
+# Redis (rate-limit counters, realtime signals). Letters and digits only: it goes into a connection string and a URL.
 echo "REDIS_PASSWORD=$(secret 40)"
+# Web Push (VAPID, RFC 8292): a P-256 key pair, base64url. The public key is handed to browsers when they subscribe;
+# changing the pair later makes every browser subscribe again (old subscriptions are refused by the push services).
+vapid=$(mktemp)
+openssl ecparam -name prime256v1 -genkey -noout -out "$vapid" 2> /dev/null
+b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+echo "VAPID_PUBLIC_KEY=$(openssl ec -in "$vapid" -pubout -outform DER 2> /dev/null | tail -c 65 | b64url)"
+echo "VAPID_PRIVATE_KEY=$(openssl ec -in "$vapid" -outform DER 2> /dev/null | head -c 39 | tail -c 32 | b64url)"
+rm -f "$vapid"
 # Monitoring profile: Grafana "admin" password and the read-only statistics role of postgres-exporter.
 echo "GRAFANA_ADMIN_PASSWORD=$(secret 24)"
 echo "DB_PASSWORD_MONITOR=$(secret)"

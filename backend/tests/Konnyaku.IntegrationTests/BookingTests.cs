@@ -165,10 +165,44 @@ public sealed class BookingTests(PostgresFixture db) : IAsyncDisposable
         var offer = (await waiting.Client.GetFromJsonAsync<WaitlistView[]>("/api/scheduling/my/waitlist", Ct))!.ShouldHaveSingleItem();
         offer.Status.ShouldBe("Offered");
         offer.OfferExpiresAt.ShouldNotBeNull();
+        // The learner hears of the held seat in the inbox (and on open tabs) right away.
+        var offered = (await waiting.Client.GetFromJsonAsync<InboxPage>("/api/notification/inbox", Ct))!.Items
+            .Where(i => i.Kind == "booking.waitlist_offered").ShouldHaveSingleItem();
+        offered.Link.ShouldBe("/learn/schedule");
+        offered.Params["expiresAt"].ShouldNotBeNullOrEmpty();
         (await waiting.Client.PostAsync($"/api/scheduling/my/waitlist/{offer.Id}/accept", null, Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
         (await waiting.Client.GetFromJsonAsync<BookingView[]>(Window("/api/scheduling/my/bookings"), Ct))!
             .ShouldContain(b => b.SessionId == hostSessions[0].Id && b.Kind == "Makeup" && b.Status == "Booked");
         (await winner.Client.GetFromJsonAsync<EntitlementView[]>("/api/scheduling/my/makeups", Ct))!.Single().State.ShouldBe("Open");
+    }
+
+    [Fact]
+    public async Task A_makeup_placed_by_staff_reaches_the_learner_inbox()
+    {
+        var center = await CenterAsync("mkpin");
+        var level = await center.LevelAsync(3);
+        var home = await center.ClassAsync("HOME", level, "Online", 5);
+        var other = await center.ClassAsync("OTHER", level, "Online", 5);
+        var learner = await center.LearnerAsync("Lan");
+        await center.EnrollAsync(home, learner);
+        await center.ScheduleAsync(home, 2, "19:00");
+        var otherSessions = await center.ScheduleAsync(other, 3, "18:00");
+        await _api.DrainOutboxAsync();
+
+        var booking = (await learner.Client.GetFromJsonAsync<BookingView[]>(Window("/api/scheduling/my/bookings"), Ct))![0];
+        var postponed = await learner.Client.PostAsync($"/api/scheduling/my/bookings/{booking.Id}/postpone", null, Ct);
+        var entitlementId = (await postponed.Content.ReadFromJsonAsync<PostponeView>(Ct))!.EntitlementId;
+        (await center.Admin.PostAsJsonAsync($"/api/scheduling/makeups/{entitlementId}/place", new { sessionId = otherSessions[1].Id }, Ct))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+        await _api.DrainOutboxAsync();
+        await _api.DrainOutboxAsync();
+
+        var inbox = (await learner.Client.GetFromJsonAsync<InboxPage>("/api/notification/inbox", Ct))!;
+        var item = inbox.Items.Where(i => i.Kind == "booking.makeup_approved").ShouldHaveSingleItem();
+        item.Params["classCode"].ShouldBe("OTHER");
+        item.Params["sequenceNo"].ShouldBe("2");
+        // With the enrollment notice of the set-up.
+        inbox.Unread.ShouldBe(2);
     }
 
     [Fact]
@@ -324,4 +358,8 @@ public sealed class BookingTests(PostgresFixture db) : IAsyncDisposable
     private sealed record FlexibleClass(Guid ClassId, int BookedAhead);
 
     private sealed record FlexibleSession(Guid SessionId, int OfflineFree);
+
+    private sealed record InboxItem(Guid Id, string Kind, Dictionary<string, string> Params, string? Link);
+
+    private sealed record InboxPage(InboxItem[] Items, int Unread);
 }

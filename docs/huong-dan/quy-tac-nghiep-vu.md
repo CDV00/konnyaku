@@ -186,4 +186,4 @@ Hệ thống tự gửi email, mỗi người theo ngôn ngữ của mình (họ
 | Link đặt lại mật khẩu | Nhân viên bấm Quên mật khẩu | Người yêu cầu |
 | Chốt kỳ lương | Kỳ lương được chốt | Giáo viên có công trong kỳ |
 
-Học viên không có email trong hồ sơ thì không nhận email. Chưa có: SMS, Zalo, thông báo trong ứng dụng, email mời nhân viên mới.
+Học viên không có email trong hồ sơ thì không nhận email. Mỗi email trên (trừ chào mừng và đặt lại mật khẩu) cũng là một thông báo trong ứng dụng; người nhận tắt được email từng loại trong **Cài đặt nhận thông báo**, và nhiều email cùng loại trong 10 phút được gộp thành một ([Thông báo](thong-bao.md)). Chưa có: SMS, Zalo, email mời nhân viên mới.

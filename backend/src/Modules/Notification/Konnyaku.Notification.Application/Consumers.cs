@@ -17,7 +17,7 @@ namespace Konnyaku.Notification.Application;
 
 /// <summary>New lead: the assigned consultant, or every tenant admin when nobody was assigned.</summary>
 public sealed class LeadCreatedNotifier(
-    NotificationQueue queue, Recipients recipients, IIdentityApi identity, ICrmContactsApi crm, ICatalogApi catalog, TenantBranding branding)
+    NotificationRouter router, Recipients recipients, IIdentityApi identity, ICrmContactsApi crm, ICatalogApi catalog, TenantBranding branding)
     : IIntegrationEventHandler<LeadCreatedV1>
 {
     public const string AdminRole = "TenantAdmin";
@@ -46,10 +46,17 @@ public sealed class LeadCreatedNotifier(
                 ["followUpAt"] = @event.FollowUpDueAt is { } due ? NotificationFormat.DateTime(due, timeZone, locale) : string.Empty,
                 ["assigned"] = @event.AssignedConsultantId is null ? string.Empty : "1",
             };
-            await queue.AddAsync(NotificationTemplates.LeadCreated, recipient, data, $"{NotificationTemplates.LeadCreated}:{@event.LeadId}:{recipient.Key}", ct);
+            var parameters = new Dictionary<string, string>
+            {
+                ["studentName"] = data["studentName"],
+                ["languageCode"] = @event.LanguageCode,
+                ["languageName"] = languageName,
+            };
+            await router.RouteAsync(new Notice(InboxKinds.LeadCreated, recipient, $"{NotificationTemplates.LeadCreated}:{@event.LeadId}:{recipient.Key}",
+                "/ops/leads", parameters, data), ct);
         }
 
-        await queue.SaveAsync(ct);
+        await router.SaveAsync(ct);
     }
 }
 
@@ -96,7 +103,7 @@ public sealed class LearnerWelcome(
         var sent = false;
         foreach (var contact in contacts)
         {
-            if (await recipients.FromContactAsync(contact, ct) is not { } recipient)
+            if (await recipients.FromContactAsync(contact, ct) is not { Address.Length: > 0 } recipient)
             {
                 continue;
             }
@@ -121,7 +128,7 @@ public sealed class LearnerWelcome(
 }
 
 /// <summary>Few lessons left. One message per remaining balance, so the same balance is never reported twice.</summary>
-public sealed class CreditLowNotifier(NotificationQueue queue, Recipients recipients, TenantBranding branding) : IIntegrationEventHandler<CreditLowV1>
+public sealed class CreditLowNotifier(NotificationRouter router, Recipients recipients, TenantBranding branding) : IIntegrationEventHandler<CreditLowV1>
 {
     public async Task HandleAsync(CreditLowV1 @event, IntegrationEventContext context, CancellationToken ct)
     {
@@ -136,13 +143,15 @@ public sealed class CreditLowNotifier(NotificationQueue queue, Recipients recipi
             ["studentName"] = recipient.Name ?? string.Empty,
             ["remaining"] = NotificationFormat.Number(@event.RemainingCredits, locale),
         };
-        var key = $"{NotificationTemplates.CreditLow}:{@event.OrderId}:{@event.RemainingCredits.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
-        await queue.AddAsync(NotificationTemplates.CreditLow, recipient, data, key, ct);
-        await queue.SaveAsync(ct);
+        var remaining = @event.RemainingCredits.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var key = $"{NotificationTemplates.CreditLow}:{@event.OrderId}:{remaining}";
+        await router.RouteAsync(new Notice(InboxKinds.CreditLow, recipient, key, "/learn/payments",
+            new Dictionary<string, string> { ["remaining"] = remaining }, data), ct);
+        await router.SaveAsync(ct);
     }
 }
 
-public sealed class EnrollmentActivatedNotifier(NotificationQueue queue, Recipients recipients, IAcademicApi academic, TenantBranding branding)
+public sealed class EnrollmentActivatedNotifier(NotificationRouter router, Recipients recipients, IAcademicApi academic, TenantBranding branding)
     : IIntegrationEventHandler<EnrollmentActivatedV1>
 {
     public async Task HandleAsync(EnrollmentActivatedV1 @event, IntegrationEventContext context, CancellationToken ct)
@@ -160,9 +169,14 @@ public sealed class EnrollmentActivatedNotifier(NotificationQueue queue, Recipie
             ["classCode"] = cls?.Code ?? string.Empty,
             ["startsOn"] = cls is null ? string.Empty : NotificationFormat.Date(cls.StartsOn, locale),
         };
-        await queue.AddAsync(NotificationTemplates.EnrollmentActivated, recipient, data,
-            $"{NotificationTemplates.EnrollmentActivated}:{@event.EnrollmentId}", ct);
-        await queue.SaveAsync(ct);
+        var parameters = new Dictionary<string, string>
+        {
+            ["classCode"] = cls?.Code ?? string.Empty,
+            ["startsOn"] = cls?.StartsOn.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
+        };
+        await router.RouteAsync(new Notice(InboxKinds.EnrollmentActivated, recipient, $"{NotificationTemplates.EnrollmentActivated}:{@event.EnrollmentId}",
+            "/learn/schedule", parameters, data), ct);
+        await router.SaveAsync(ct);
     }
 }
 
@@ -201,6 +215,18 @@ public sealed class SessionAudience(ISchedulingApi scheduling, IAcademicApi acad
         return new Audience(session, cls, members);
     }
 
+    /// <summary>Inbox parameters, raw: the web app formats the time in the language of the reader and the zone of the session.</summary>
+    public static Dictionary<string, string> Params(Audience audience) => new()
+    {
+        ["classCode"] = audience.Class?.Code ?? string.Empty,
+        ["sequenceNo"] = audience.Session.SequenceNo.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        ["startsAt"] = NotificationFormat.Iso(audience.Session.StartsAt),
+        ["timeZone"] = audience.Session.TimeZone,
+    };
+
+    /// <summary>Where the session shows for this person: the schedule of the learner, or the home of the teacher.</summary>
+    public static string Link(Member member) => member.ZonePath == "/learn" ? "/learn/schedule" : member.ZonePath;
+
     public static Dictionary<string, string> Data(Audience audience, Member member, string locale) => new()
     {
         ["classCode"] = audience.Class?.Code ?? string.Empty,
@@ -235,7 +261,7 @@ public sealed class SessionReminderPlanner(DispatchSchedule schedule, INotificat
 }
 
 public sealed class SessionRescheduledNotifier(
-    NotificationQueue queue, SessionAudience audiences, SessionReminderPlanner reminders, TenantBranding branding)
+    NotificationRouter router, SessionAudience audiences, SessionReminderPlanner reminders, TenantBranding branding)
     : IIntegrationEventHandler<SessionRescheduledV1>
 {
     public async Task HandleAsync(SessionRescheduledV1 @event, IntegrationEventContext context, CancellationToken ct)
@@ -248,16 +274,17 @@ public sealed class SessionRescheduledNotifier(
             foreach (var member in audience.Members)
             {
                 var locale = NotificationFormat.NormalizeLocale(member.Recipient.Locale) ?? await branding.DefaultLocaleAsync(ct);
-                await queue.AddAsync(NotificationTemplates.SessionRescheduled, member.Recipient, SessionAudience.Data(audience, member, locale),
-                    $"{NotificationTemplates.SessionRescheduled}:{context.EventId}:{member.Recipient.Key}", ct);
+                await router.RouteAsync(new Notice(InboxKinds.SessionRescheduled, member.Recipient,
+                    $"{NotificationTemplates.SessionRescheduled}:{context.EventId}:{member.Recipient.Key}", SessionAudience.Link(member),
+                    SessionAudience.Params(audience), SessionAudience.Data(audience, member, locale)), ct);
             }
         }
 
-        await queue.SaveAsync(ct);
+        await router.SaveAsync(ct);
     }
 }
 
-public sealed class SessionCancelledNotifier(NotificationQueue queue, SessionAudience audiences, DispatchSchedule schedule, TenantBranding branding)
+public sealed class SessionCancelledNotifier(NotificationRouter router, SessionAudience audiences, DispatchSchedule schedule, TenantBranding branding)
     : IIntegrationEventHandler<SessionCancelledV1>
 {
     public async Task HandleAsync(SessionCancelledV1 @event, IntegrationEventContext context, CancellationToken ct)
@@ -270,18 +297,20 @@ public sealed class SessionCancelledNotifier(NotificationQueue queue, SessionAud
                 var locale = NotificationFormat.NormalizeLocale(member.Recipient.Locale) ?? await branding.DefaultLocaleAsync(ct);
                 var data = SessionAudience.Data(audience, member, locale);
                 data["reason"] = @event.Reason ?? string.Empty;
-                await queue.AddAsync(NotificationTemplates.SessionCancelled, member.Recipient, data,
-                    $"{NotificationTemplates.SessionCancelled}:{@event.SessionId}:{member.Recipient.Key}", ct);
+                var parameters = SessionAudience.Params(audience);
+                parameters["reason"] = @event.Reason ?? string.Empty;
+                await router.RouteAsync(new Notice(InboxKinds.SessionCancelled, member.Recipient,
+                    $"{NotificationTemplates.SessionCancelled}:{@event.SessionId}:{member.Recipient.Key}", SessionAudience.Link(member), parameters, data), ct);
             }
         }
 
-        await queue.SaveAsync(ct);
+        await router.SaveAsync(ct);
     }
 }
 
 /// <summary>Runs 24 hours before a session: reminds its students and teacher (once per start time).</summary>
 public sealed class SessionReminderJob(
-    NotificationQueue queue, SessionAudience audiences, TenantBranding branding, NotificationOptions options, TimeProvider clock)
+    NotificationRouter router, SessionAudience audiences, TenantBranding branding, NotificationOptions options, TimeProvider clock)
     : IDispatchJob
 {
     private static readonly string[] Upcoming = ["Scheduled", "Provisioned"];
@@ -308,17 +337,18 @@ public sealed class SessionReminderJob(
         foreach (var member in audience.Members)
         {
             var locale = NotificationFormat.NormalizeLocale(member.Recipient.Locale) ?? await branding.DefaultLocaleAsync(cancellationToken);
-            await queue.AddAsync(NotificationTemplates.SessionReminder, member.Recipient, SessionAudience.Data(audience, member, locale),
-                $"{NotificationTemplates.SessionReminder}:{refId}:{stamp}:{member.Recipient.Key}", cancellationToken);
+            await router.RouteAsync(new Notice(InboxKinds.SessionReminder, member.Recipient,
+                $"{NotificationTemplates.SessionReminder}:{refId}:{stamp}:{member.Recipient.Key}", SessionAudience.Link(member),
+                SessionAudience.Params(audience), SessionAudience.Data(audience, member, locale)), cancellationToken);
         }
 
-        await queue.SaveAsync(cancellationToken);
+        await router.SaveAsync(cancellationToken);
         return null;
     }
 }
 
 /// <summary>Payslips are final: tell the teachers (all teachers of the tenant; Hr exposes no per-period list).</summary>
-public sealed class PayrollLockedNotifier(NotificationQueue queue, Recipients recipients, IIdentityApi identity, TenantBranding branding)
+public sealed class PayrollLockedNotifier(NotificationRouter router, Recipients recipients, IIdentityApi identity, TenantBranding branding)
     : IIntegrationEventHandler<PayrollPeriodLockedV1>
 {
     public const string TeacherRole = "Teacher";
@@ -338,11 +368,16 @@ public sealed class PayrollLockedNotifier(NotificationQueue queue, Recipients re
                 ["from"] = NotificationFormat.ShortDate(@event.From, locale),
                 ["to"] = NotificationFormat.ShortDate(@event.To, locale),
             };
-            await queue.AddAsync(NotificationTemplates.PayrollLocked, recipient, data,
-                $"{NotificationTemplates.PayrollLocked}:{@event.PeriodId}:{recipient.Key}", ct);
+            var parameters = new Dictionary<string, string>
+            {
+                ["from"] = @event.From.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+                ["to"] = @event.To.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+            };
+            await router.RouteAsync(new Notice(InboxKinds.PayrollLocked, recipient, $"{NotificationTemplates.PayrollLocked}:{@event.PeriodId}:{recipient.Key}",
+                "/teach", parameters, data), ct);
         }
 
-        await queue.SaveAsync(ct);
+        await router.SaveAsync(ct);
     }
 }
 

@@ -202,14 +202,18 @@ export function TopBar({ brand, links, user, logoutAction, accountHref, labels, 
   );
 }
 
-/** Admin shell: sidebar with animated highlight on desktop, sheet on phones, content on the right. */
-export function SidebarShell({ brand, links, user, logoutAction, accountHref, labels, children }: {
+/**
+ * Admin shell: sidebar with animated highlight on desktop, sheet on phones, content on the right. `actions` (the
+ * notification bell) sit in a slim bar above the content, on every screen size, so they are rendered once.
+ */
+export function SidebarShell({ brand, links, user, logoutAction, accountHref, labels, actions, children }: {
   brand: ReactNode;
   links: NavLink[];
   user?: ShellUser;
   logoutAction?: string;
   accountHref?: string;
   labels: ShellLabels;
+  actions?: ReactNode;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -241,9 +245,14 @@ export function SidebarShell({ brand, links, user, logoutAction, accountHref, la
         </div>
       </aside>
       <div className="min-w-0">
-        <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md md:hidden print:hidden">
+        <header
+          className={cn(
+            "sticky top-0 z-40 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md print:hidden",
+            actions ? "md:h-12 md:justify-end md:border-transparent md:bg-transparent md:px-8 md:backdrop-blur-none" : "md:hidden",
+          )}
+        >
           <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger className="-ml-1 grid size-9 place-items-center rounded-md hover:bg-accent" aria-label={labels.menu}>
+            <SheetTrigger className="-ml-1 grid size-9 place-items-center rounded-md hover:bg-accent md:hidden" aria-label={labels.menu}>
               <Menu className="size-5" />
             </SheetTrigger>
             <SheetContent side="left" className="w-72 p-4" closeLabel={labels.close}>
@@ -251,10 +260,13 @@ export function SidebarShell({ brand, links, user, logoutAction, accountHref, la
               <nav className="grid gap-0.5">{nav(() => setOpen(false))}</nav>
             </SheetContent>
           </Sheet>
-          {brand}
+          <div className="md:hidden">{brand}</div>
           <div className="ml-auto flex items-center gap-1">
-            <ThemeToggle label={labels.theme} />
-            {user && logoutAction && <UserMenu user={user} logoutAction={logoutAction} accountHref={accountHref} labels={labels} />}
+            {actions}
+            <span className="contents md:hidden">
+              <ThemeToggle label={labels.theme} />
+              {user && logoutAction && <UserMenu user={user} logoutAction={logoutAction} accountHref={accountHref} labels={labels} />}
+            </span>
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-8 sm:py-8">{children}</main>

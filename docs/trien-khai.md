@@ -9,9 +9,11 @@ Internet ─80/443─► Caddy ──► web ×2 (Next.js: trang công khai, /le
                     │   │       │  (mạng app)
                     │   │       ▼
                     │   │    api ×2 (ASP.NET Core) ──┐
-                    │   │       ▲                    ├─► PostgreSQL 17 (mạng data, internal)
-                    │   │       │ vào/ra phòng       │
-                    │   └─/rtc/*─► signaling ×1 (Rust, WebSocket)
+                    │   │       ▲          │ PUBLISH  ├─► PostgreSQL 17 (mạng data, internal)
+                    │   │       │ vào/ra   ▼ user:{id}│
+                    │   │       │        redis ◄──────┤ (worker cũng PUBLISH sau khi commit)
+                    │   │       │          │ SUBSCRIBE user:*
+                    │   └─/rtc/*, /rt─► signaling ×1 (Rust, WebSocket: phòng học + realtime)
                     │        worker ×1 ──────────────┘
                     │        migrator (chạy mỗi lần up, xong thì thoát)
                     │        backup (pgBackRest) ── WAL + backup, mã hóa ──► object storage S3 ở nhà cung cấp khác
@@ -29,8 +31,8 @@ Trình duyệt ◄────── hình/tiếng trực tiếp giữa các má
 | `migrator` | — | Áp migration bằng role chủ schema `konnyaku`; `api`/`worker` chỉ khởi động khi migrator thành công |
 | `postgres` | 1 | Image `konnyaku-postgres:17` (postgres:17 + pgBackRest, build trên server từ `postgres/Dockerfile`, tag riêng nên deploy không khởi động lại DB). Mạng `data` không có đường ra Internet; mạng `backup` chỉ để đẩy WAL ra object storage (không mở cổng nào). Mỗi module một role `kk_<module>` với mật khẩu riêng |
 | `backup` | 1 | pgBackRest: full hằng tuần, diff hằng ngày, WAL liên tục, diễn tập khôi phục hằng tháng, ghi file trạng thái cho giám sát ([Backup](#backup)) |
-| `signaling` | **1** | Phòng học có sẵn (`services/signaling`, Rust): WebSocket `/rtc/ws` qua Caddy, chỉ nhận vé ngắn hạn do API ký (`SIGNALING_SECRET`), giữ ai đang ở phòng nào **trong bộ nhớ** nên chỉ chạy một bản. Báo vào/ra/kết thúc về API qua mạng nội bộ |
-| `redis` | 1 | Bộ đếm giới hạn tần suất dùng chung cho mọi bản sao API (mạng `data`, cổng 6379 chỉ trong mạng nội bộ, mật khẩu `REDIS_PASSWORD`, không lưu xuống đĩa). Redis dừng thì mỗi bản sao tạm đếm riêng trong RAM, không lỗi request |
+| `signaling` | **1** | Cổng thời gian thực (`services/signaling`, Rust, image `konnyaku-signaling`), qua Caddy, chỉ nhận vé ngắn hạn do API ký (`SIGNALING_SECRET`). **Phòng học** `/rtc/ws`: giữ ai đang ở phòng nào **trong bộ nhớ** nên chỉ chạy một bản, báo vào/ra/kết thúc về API qua mạng nội bộ. **Realtime** `/rt`: một WebSocket mỗi tab đã đăng nhập, nhận tín hiệu từ Redis (`user:{id}`) và đẩy xuống tab của người đó ([Thông báo trong app](#thông-báo-trong-app-và-thời-gian-thực)) |
+| `redis` | 1 | Bộ đếm giới hạn tần suất dùng chung cho mọi bản sao API, và pub/sub tín hiệu realtime (API, worker `PUBLISH`; signaling `PSUBSCRIBE user:*`). Mạng `data`, cổng 6379 chỉ trong mạng nội bộ, mật khẩu `REDIS_PASSWORD`, không lưu xuống đĩa. Redis dừng thì mỗi bản sao tạm đếm riêng trong RAM, chuông thông báo chuyển sang hỏi lại mỗi 30 giây; không lỗi request, không mất thông báo |
 | `coturn` | 1 | TURN cho người dùng sau NAT/tường lửa chặt. Dùng mạng host (`network_mode: host`). Mật khẩu tạm theo TURN REST API (`TURN_SECRET`, hạn 6 giờ); không chuyển tiếp tới địa chỉ nội bộ/loopback |
 
 Giới hạn tần suất (form công khai `RateLimits:PublicFormsPerMinute`, quên/đặt lại mật khẩu `RateLimits:PasswordResetPerMinute`, theo IP mỗi phút) đếm trong **Redis**, nên đúng với mọi số bản sao API; khoá trong Redis chỉ chứa mã băm của IP. Không cấu hình `Redis:ConnectionString` (dev, test) thì mỗi process đếm trong RAM như trước.
@@ -47,6 +49,18 @@ Thay cho Google Meet khi trung tâm chưa có Google Workspace. Trung tâm chọ
 - **Khởi động lại signaling** (deploy) ngắt mọi phòng vài giây; trình duyệt tự kết nối lại, thời gian có mặt không bị tính trùng.
 - **Chưa có**: ghi hình (repo chưa có object storage), TURN qua TLS cổng 443 (mạng chỉ cho phép HTTPS sẽ không kết nối được), SFU cho lớp đông, nhiều bản signaling.
 
+### Thông báo trong app và thời gian thực
+
+Thiết kế ở [doc 10.9](10-hoc-tap-va-danh-gia.md#109-nhắn-tin-và-thông-báo-thời-gian-thực): không có SignalR trong API; thông báo **luôn ghi PostgreSQL trước**, socket chỉ báo "có mới".
+
+- **Hộp thông báo**: mỗi sự kiện (đổi giờ / hủy / nhắc buổi, ghi danh, sắp hết buổi, chỗ trống từ danh sách chờ, học bù được duyệt, bài mới, sắp hết hạn nộp, có điểm, lead mới, chốt lương) thành một dòng `notification.inbox_item` của tài khoản người nhận (RLS theo tenant). Học viên chưa có tài khoản chỉ nhận email như trước.
+- **Bộ định tuyến kênh**: trong app luôn bật; email và Web Push theo cài đặt từng người (`notification.notification_preference`, mặc định bật). Email cùng loại cho cùng người trong **10 phút** gộp thành một thư (`Notification__DigestMinutes`).
+- **Tín hiệu**: sau khi commit, process đã ghi (worker khi xử lý outbox, API khi đánh dấu đã đọc) `PUBLISH user:{id} {"t":"inbox","id":"…","seq":812}` lên Redis. Mỗi bản `signaling` `PSUBSCRIBE user:*` và đẩy xuống socket `/rt` của người đó; tab gọi `GET /api/notification/inbox/sync?since=<seq>` qua web để lấy nội dung. Chạy nhiều bản api, worker và signaling không cần gì thêm (mỗi bản realtime nhận mọi tín hiệu, bỏ qua người không kết nối tới nó).
+- **Vé**: tab xin `POST /api/notification/realtime/ticket` (JWT HS256 hạn 60 s, `aud=konnyaku-realtime`, chỉ id người dùng và tenant; cùng `SIGNALING_SECRET` với vé phòng học nhưng không dùng thay nhau được). Socket tự đóng sau `RT_CONNECTION_MINUTES` (60) để tab xin vé mới, nên phiên đã đăng xuất ngừng nhận tín hiệu trong tối đa 1 giờ (tín hiệu chỉ có id, nội dung vẫn phải qua API).
+- **Mất kết nối**: tab tự kết nối lại (1 → 30 s) và đồng bộ theo con trỏ; trong lúc mất, chuông hỏi lại mỗi 30 giây. Redis kết nối lại thì signaling gửi `{"t":"resync"}` cho mọi tab. Thay image `signaling` khi deploy cũng chỉ làm các tab nối lại vài giây.
+- **Web Push**: chuẩn VAPID, không cần dịch vụ ngoài. Cặp khoá `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` do `gen-secrets.sh` sinh (server cũ: chạy lại script rồi chép hai dòng này vào `.env`; để trống = tắt Web Push, trong app và email vẫn chạy). Đổi cặp khoá thì mọi trình duyệt phải bật lại. Tin đẩy **không mang nội dung**: service worker `/sw.js` hỏi web (đã đăng nhập) thông báo chưa đọc mới nhất để hiện. Worker gửi; trình duyệt trả 404/410 thì xoá đăng ký. Đăng ký đẩy là dữ liệu cá nhân: xoá khi đăng xuất trên trình duyệt đó và khi xoá dữ liệu học viên.
+- **Kiểm tra**: `docker compose exec caddy wget -qO- http://signaling:5100/rt/health` (`realtime.connections`, `realtime.redis`); metric `konnyaku_realtime_connections`, `konnyaku_realtime_redis_up`.
+
 ## Chuẩn bị (một lần)
 
 1. **VPS**: Ubuntu 24.04, 4 vCPU / 8 GB RAM / 100 GB SSD, x86 hoặc ARM (ví dụ Oracle Cloud Always Free, Ampere A1). Máy test 2 GB RAM (1–2 vCPU) chạy được với hồ sơ **máy nhỏ** trong `.env.example` (1 web, 1 api chạy luôn outbox, không có container worker); số đo và cách chọn tham số ở [toi-uu-tai-nguyen.md](toi-uu-tai-nguyen.md). Cài Docker Engine và plugin compose theo hướng dẫn chính thức của Docker. Mở firewall (cả firewall của nhà cung cấp cloud, ví dụ Security List của Oracle):
@@ -54,7 +68,7 @@ Thay cho Google Meet khi trung tâm chưa có Google Workspace. Trung tâm chọ
    | Cổng | Giao thức | Dùng cho |
    | --- | --- | --- |
    | 22 | TCP | SSH |
-   | 80, 443 | TCP | Web, cấp chứng chỉ, signaling phòng học (`/rtc/*`) |
+   | 80, 443 | TCP | Web, cấp chứng chỉ, signaling phòng học (`/rtc/*`), socket realtime (`/rt`) |
    | 443 | UDP | HTTP/3 |
    | 3478 | UDP + TCP | STUN/TURN của phòng học (coturn) |
    | 49160–49260 | UDP | Dải relay của TURN (`TURN_MIN_PORT`–`TURN_MAX_PORT`, khoảng 1 cổng cho mỗi kết nối được relay) |
@@ -79,7 +93,7 @@ Thay cho Google Meet khi trung tâm chưa có Google Workspace. Trung tâm chọ
    cp .env.example .env && ./scripts/gen-secrets.sh >> .env && chmod 600 .env
    ```
 
-   Server đã chạy từ trước bản có Redis và giám sát: thêm `REDIS_PASSWORD`, `GRAFANA_ADMIN_PASSWORD`, `DB_PASSWORD_MONITOR` (chạy lại `gen-secrets.sh` rồi chỉ chép ba dòng đó), nếu không `docker compose up` báo thiếu biến.
+   Server đã chạy từ trước bản có Redis và giám sát: thêm `REDIS_PASSWORD`, `GRAFANA_ADMIN_PASSWORD`, `DB_PASSWORD_MONITOR` (chạy lại `gen-secrets.sh` rồi chỉ chép ba dòng đó), nếu không `docker compose up` báo thiếu biến. Server đã chạy từ trước bản có hộp thông báo: chép thêm `VAPID_PUBLIC_KEY` và `VAPID_PRIVATE_KEY` (không bắt buộc: thiếu thì Web Push tắt).
 
    Sửa trong `.env`: `BASE_DOMAIN`, `ACME_EMAIL`, `IMAGE_*` (thay `OWNER` bằng tên GitHub org/user viết **chữ thường**, ví dụ `ghcr.io/cdv00/konnyaku-web`). Server đã chạy từ trước bản có phòng học: thêm `SIGNALING_SECRET` và `TURN_SECRET` (chạy lại `gen-secrets.sh` rồi chỉ chép hai dòng đó) và `IMAGE_SIGNALING`. Lưu một bản `.env` vào trình quản lý mật khẩu của nhóm: mất file này là mất mật khẩu DB và khóa ký JWT. `gen-secrets.sh` cũng sinh `CAPTCHA_KEY` (xem mục [Captcha của form công khai](#captcha-của-form-công-khai)); `.env` có sẵn từ trước thì thêm tay một dòng `CAPTCHA_KEY=$(openssl rand -hex 32)`, nếu không `docker compose up` báo thiếu biến. Tương tự `BACKUP_CIPHER_PASS` (khoá mã hoá backup, xem [Backup](#backup)) — khoá này phải có một bản **ngoài server**.
 
@@ -467,7 +481,7 @@ docker compose exec postgres psql -U konnyaku -c "CREATE ROLE kk_notification LO
 | Backup ngay | `./scripts/kk-backup.sh backup full` |
 | Diễn tập khôi phục | `./scripts/kk-backup.sh drill` (kết quả: `backups/status/drill.json`) |
 | Khôi phục | `./scripts/restore.sh --time "<thời điểm>"` hoặc `latest` ([Khôi phục](#khôi-phục)) |
-| Phòng học đang mở | `docker compose exec caddy wget -qO- http://signaling:5100/rtc/health` (số phòng, số người); dashboard Grafana khi bật giám sát |
+| Phòng học đang mở, tab đang nối realtime | `docker compose exec caddy wget -qO- http://signaling:5100/rtc/health` (số phòng, số người, `realtime.connections`, `realtime.redis`); dashboard Grafana khi bật giám sát |
 | Dashboard, trace, log | `https://admin.BASE_DOMAIN/grafana/` hoặc SSH tunnel ([Giám sát và cảnh báo](#giám-sát-và-cảnh-báo)) |
 | Redis | `docker compose exec redis sh -c 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli info memory'` |
 | Kiểm tra TURN | Mở <https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/>, nhập `turn:BASE_DOMAIN:3478` với username/credential lấy từ một vé phòng học; phải thấy candidate `relay` |

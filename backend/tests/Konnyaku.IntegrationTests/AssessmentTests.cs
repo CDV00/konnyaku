@@ -202,6 +202,60 @@ public sealed class AssessmentTests(PostgresFixture db) : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Learners_hear_of_new_assignments_due_dates_and_scores_in_their_inbox()
+    {
+        var c = await Center.CreateAsync(_api, db, "asinbox");
+        var bank = await c.BankAsync("Inbox");
+        var question = await c.QuestionAsync(bank, new { type = "TrueFalse", stem = "Ice is cold.", points = 1, key = new { choices = new[] { "true" } } });
+        var paper = await c.PaperAsync("Inbox", new { sections = new[] { new { id = "s1", title = "All", items = new[] { new { kind = "Question", questionId = question } } } } });
+        var assignment = await c.AssignAsync(c.Teacher, paper, new
+        {
+            kind = "Homework", opensAt = DateTimeOffset.UtcNow.AddDays(-2), dueAt = DateTimeOffset.UtcNow.AddDays(3), scoreRelease = "OnSubmit",
+        });
+        await _api.DrainOutboxAsync();
+        await DispatchAsync();
+
+        foreach (var index in new[] { 0, 1 })
+        {
+            var assigned = (await c.Learn(index).GetFromJsonAsync<JsonElement>("/api/notification/inbox", Ct)).GetProperty("items").EnumerateArray()
+                .Single(i => i.GetProperty("kind").GetString() == "assessment.assigned");
+            assigned.GetProperty("link").GetString().ShouldBe($"/learn/assessments/{assignment}");
+            assigned.GetProperty("params").GetProperty("title").GetString().ShouldBe("Assignment");
+        }
+
+        // The first learner hands it in (graded at once): a score notice, and no due-date reminder for them.
+        var attempt = await c.StartAsync(c.Learners[0], assignment);
+        var item = attempt.GetProperty("items")[0].GetProperty("id").GetGuid();
+        await (await c.Learn(0).PutAsJsonAsync($"/api/assessment/my/attempts/{Id(attempt)}/answers",
+            new { answers = new[] { new { itemId = item, response = new { choices = new[] { "true" } } } } }, Ct)).ShouldSucceed();
+        await (await c.Learn(0).PostAsync($"/api/assessment/my/attempts/{Id(attempt)}/submit", null, Ct)).ShouldSucceed();
+        await _api.DrainOutboxAsync();
+        await DispatchAsync();
+
+        // A day before the deadline (moved in the database to now): only who has not handed it in is reminded.
+        await c.SqlAsync("UPDATE assessment.assignment SET due_at = now() + interval '20 hours' WHERE id = @id", assignment);
+        await c.SqlAsync("UPDATE notification.dispatch_item SET due_at = now() WHERE kind = 'assignment_due' AND ref_id = @id", assignment);
+        await DispatchAsync();
+
+        static IEnumerable<string?> Kinds(JsonElement inbox) =>
+            inbox.GetProperty("items").EnumerateArray().Select(i => i.GetProperty("kind").GetString());
+        var first = await c.Learn(0).GetFromJsonAsync<JsonElement>("/api/notification/inbox", Ct);
+        var graded = first.GetProperty("items").EnumerateArray().Single(i => i.GetProperty("kind").GetString() == "assessment.graded");
+        graded.GetProperty("params").GetProperty("score").GetString().ShouldBe("1");
+        graded.GetProperty("link").GetString().ShouldBe($"/learn/attempts/{Id(attempt)}/result");
+        Kinds(first).ShouldNotContain("assessment.due_soon");
+        Kinds(await c.Learn(1).GetFromJsonAsync<JsonElement>("/api/notification/inbox", Ct)).ShouldContain("assessment.due_soon");
+    }
+
+    private async Task DispatchAsync()
+    {
+        var dispatcher = _api.Services.GetRequiredService<Konnyaku.Notification.Infrastructure.NotificationDispatcher>();
+        for (var round = 0; round < 10 && await dispatcher.ProcessDueAsync(200, Ct) > 0; round++)
+        {
+        }
+    }
+
+    [Fact]
     public async Task Scores_and_answers_follow_the_release_policy()
     {
         var c = await Center.CreateAsync(_api, db, "asrel");

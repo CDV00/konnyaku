@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Konnyaku.Infrastructure.Redis;
 using StackExchange.Redis;
 
 namespace Konnyaku.Infrastructure.Http;
@@ -24,21 +25,9 @@ public static class KonnyakuRateLimiting
 
     public static IServiceCollection AddKonnyakuRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
-        var redis = configuration["Redis:ConnectionString"];
-        if (!string.IsNullOrWhiteSpace(redis))
+        if (KonnyakuRedis.IsConfigured(configuration))
         {
-            services.AddSingleton<IConnectionMultiplexer>(_ =>
-            {
-                var options = ConfigurationOptions.Parse(redis);
-                // Start (and keep serving) while Redis is down; fail fast instead of queueing commands, so a Redis outage
-                // costs one round trip at most before the in-memory fallback answers.
-                options.AbortOnConnectFail = false;
-                options.BacklogPolicy = BacklogPolicy.FailFast;
-                options.ConnectTimeout = 2000;
-                options.AsyncTimeout = 1000;
-                options.ClientName = "konnyaku-api";
-                return ConnectionMultiplexer.Connect(options);
-            });
+            services.AddKonnyakuRedis(configuration);
             services.AddSingleton<RedisWindowCounter>();
         }
 

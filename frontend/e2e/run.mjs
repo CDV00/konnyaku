@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// One command for the end-to-end tests: a throwaway stack (PostgreSQL + Mailpit in Docker, Api, Worker, web),
-// the review seed, then Playwright. Same script locally and in CI (`--infra=external` when the CI job runs
-// PostgreSQL and Mailpit as services).
+// One command for the end-to-end tests: a throwaway stack (PostgreSQL + Mailpit + Redis + the realtime service in Docker,
+// Api, Worker, web), the review seed, then Playwright. Same script locally and in CI (`--infra=external` when the CI job
+// runs PostgreSQL, Mailpit and Redis as services and builds the realtime service itself: E2E_REALTIME_BIN).
 //
 //   node frontend/e2e/run.mjs                    build, start everything, seed, test, tear down
 //   node frontend/e2e/run.mjs --no-build         reuse the last Release build of the backend and .next of the web
@@ -31,7 +31,11 @@ const ports = {
   mailpit: process.env.E2E_MAILPIT_PORT ?? "8030",
   api: process.env.E2E_API_PORT ?? "5190",
   web: process.env.E2E_WEB_PORT ?? "4950",
+  redis: process.env.E2E_REDIS_PORT ?? "6390",
+  rt: process.env.E2E_RT_PORT ?? "5195",
 };
+// Secret shared by the API (Rtc:SignalingSecret of appsettings.Development.json) and the realtime service.
+const realtimeSecret = "dev-only-signaling-secret-0123456789abcdef";
 const infra = option("--infra", "docker"); // docker | external
 const build = !flag("--no-build");
 const serve = flag("--serve");
@@ -41,7 +45,9 @@ const logs = join(here, "logs");
 mkdirSync(logs, { recursive: true });
 
 const compose = ["compose", "-f", join(here, "compose.yaml")];
-const composeEnv = { ...process.env, E2E_PG_PORT: ports.pg, E2E_SMTP_PORT: ports.smtp, E2E_MAILPIT_PORT: ports.mailpit };
+const composeEnv = {
+  ...process.env, E2E_PG_PORT: ports.pg, E2E_SMTP_PORT: ports.smtp, E2E_MAILPIT_PORT: ports.mailpit, E2E_REDIS_PORT: ports.redis, E2E_RT_PORT: ports.rt,
+};
 
 // Module connection strings of the dev settings, pointed at the e2e database (new modules are picked up automatically).
 const devSettings = JSON.parse(readFileSync(join(repo, "backend/src/Hosts/Konnyaku.Api/appsettings.Development.json"), "utf8").replace(/^﻿/, ""));
@@ -63,6 +69,9 @@ const backendEnv = {
   RateLimits__PasswordResetPerMinute: "10000",
   Notification__Smtp__Port: ports.smtp,
   Notification__SiteUrlTemplate: `http://{host}:${ports.web}`,
+  // Realtime: signals through this stack's Redis, sockets to this stack's realtime service.
+  Redis__ConnectionString: `localhost:${ports.redis}`,
+  Realtime__Url: `ws://localhost:${ports.rt}/rt`,
   DOTNET_CLI_TELEMETRY_OPTOUT: "1",
   DOTNET_NOLOGO: "1",
 };
@@ -155,9 +164,9 @@ async function main() {
   // Infrastructure, backend build and web build side by side.
   const steps = [];
   if (infra === "docker") {
-    log("fresh PostgreSQL + Mailpit (docker compose project konnyaku-e2e)");
+    log("fresh PostgreSQL + Mailpit + Redis + realtime (docker compose project konnyaku-e2e)");
     spawnSync("docker", [...compose, "down", "-v", "--remove-orphans"], { stdio: "ignore", env: composeEnv });
-    steps.push(runLogged("infra", "docker", [...compose, "up", "-d", "--wait"], { env: composeEnv }));
+    steps.push(runLogged("infra", "docker", [...compose, "up", "-d", "--build", "--wait"], { env: composeEnv }));
   }
   if (build) {
     // Release output: does not touch the Debug build a running dev API holds open.
@@ -177,6 +186,12 @@ async function main() {
     env: { ...backendEnv, ConnectionStrings__Owner: `Host=localhost;Port=${ports.pg};Database=konnyaku;Username=konnyaku;Password=konnyaku_dev` },
   });
 
+  // CI (--infra=external): the realtime service is a binary built by the job; locally it runs in the compose project.
+  if (infra === "external" && process.env.E2E_REALTIME_BIN) {
+    start("realtime", process.env.E2E_REALTIME_BIN, [], {
+      env: { ...process.env, LISTEN_ADDR: `127.0.0.1:${ports.rt}`, SIGNALING_SECRET: realtimeSecret, REDIS_URL: `redis://127.0.0.1:${ports.redis}` },
+    });
+  }
   start("api", "dotnet", dotnetRun("Konnyaku.Api"), { env: { ...backendEnv, ASPNETCORE_URLS: apiUrl } });
   const worker = start("worker", "dotnet", dotnetRun("Konnyaku.Worker"), { env: backendEnv });
   let workerReady = false;
@@ -191,6 +206,10 @@ async function main() {
   await waitFor("the API", httpOk(`${apiUrl}/health`), 120);
   await waitFor("the Worker", async () => workerReady, 120);
   await waitFor("the web app", httpOk(`http://localhost:${ports.web}/api/health`), 120);
+  await waitFor("the realtime service and its Redis subscription", async () => {
+    const health = await fetch(`http://localhost:${ports.rt}/rt/health`).then((r) => r.json());
+    return health.realtime?.redis === true;
+  }, 120);
 
   run(python, [join(repo, "infra/scripts/seed_review.py")], { env: { ...process.env, KONNYAKU_API: apiUrl, PYTHONIOENCODING: "utf-8" }, shell: false });
   log(`stack ready in ${Math.round((Date.now() - started) / 1000)}s: http://review.localhost:${ports.web}  (Mailpit http://localhost:${ports.mailpit})`);

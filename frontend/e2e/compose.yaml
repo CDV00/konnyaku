@@ -26,3 +26,19 @@ services:
     ports:
       - "${E2E_SMTP_PORT:-1030}:1025"
       - "${E2E_MAILPIT_PORT:-8030}:8025"
+
+  # Realtime signals of the bell: the Api/Worker publish on Redis, the realtime service pushes to the browser (/rt).
+  redis:
+    image: redis:8.2-alpine
+    ports:
+      - "${E2E_REDIS_PORT:-6390}:6379"
+
+  # services/signaling, built from this checkout (cached after the first run). Same secret as the dev API settings.
+  realtime:
+    build: ../../services/signaling
+    environment:
+      SIGNALING_SECRET: dev-only-signaling-secret-0123456789abcdef
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "${E2E_RT_PORT:-5195}:5100"
+    depends_on: [redis]

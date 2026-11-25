@@ -17,6 +17,14 @@ pub struct Config {
     pub ping_interval: Duration,
     /// How often rooms are checked for automatic closing.
     pub sweep_interval: Duration,
+    /// `REDIS_URL` (e.g. `redis://:password@redis:6379`): source of realtime signals. Unset: `/rt` accepts sockets but
+    /// nothing reaches them (browsers fall back to polling).
+    pub redis_url: Option<String>,
+    /// `RT_MAX_CONNECTIONS_PER_USER`: open `/rt` sockets per user on one replica (one per tab).
+    pub max_connections_per_user: usize,
+    /// `RT_CONNECTION_MINUTES`: a realtime socket is closed after this long; the browser reconnects with a fresh ticket,
+    /// so a signed-out session stops receiving signals within this time.
+    pub connection_lifetime: Duration,
 }
 
 pub const MIN_SECRET_BYTES: usize = 32;
@@ -45,6 +53,18 @@ impl Config {
                 .map_err(|_| "ROOM_GRACE_MINUTES must be a number".to_string())?,
             Err(_) => 30,
         };
+        let max_connections_per_user = match std::env::var("RT_MAX_CONNECTIONS_PER_USER") {
+            Ok(v) => v
+                .parse::<usize>()
+                .map_err(|_| "RT_MAX_CONNECTIONS_PER_USER must be a number".to_string())?,
+            Err(_) => 20,
+        };
+        let lifetime_minutes = match std::env::var("RT_CONNECTION_MINUTES") {
+            Ok(v) => v
+                .parse::<u64>()
+                .map_err(|_| "RT_CONNECTION_MINUTES must be a number".to_string())?,
+            Err(_) => 60,
+        };
         Ok(Self {
             listen_addr: std::env::var("LISTEN_ADDR").unwrap_or_else(|_| "0.0.0.0:5100".into()),
             secret,
@@ -56,6 +76,9 @@ impl Config {
             grace: Duration::from_secs(grace_minutes * 60),
             ping_interval: Duration::from_secs(20),
             sweep_interval: Duration::from_secs(30),
+            redis_url: std::env::var("REDIS_URL").ok().filter(|v| !v.is_empty()),
+            max_connections_per_user: max_connections_per_user.max(1),
+            connection_lifetime: Duration::from_secs(lifetime_minutes.max(1) * 60),
         })
     }
 
@@ -69,6 +92,9 @@ impl Config {
             grace: Duration::from_secs(1800),
             ping_interval: Duration::from_secs(20),
             sweep_interval: Duration::from_millis(100),
+            redis_url: None,
+            max_connections_per_user: 3,
+            connection_lifetime: Duration::from_secs(3600),
         }
     }
 }

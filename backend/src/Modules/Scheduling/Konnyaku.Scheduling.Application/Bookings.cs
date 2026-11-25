@@ -651,6 +651,7 @@ public sealed class MakeupAdminHandlers(
 
         booked.Value.PlacedByStaff(staffId);
         entitlement.Use(booked.Value.Id);
+        db.Publish(new MakeupApprovedV1(booked.Value.Id, entitlement.Id, session.Id, entitlement.StudentId));
         try
         {
             await db.SaveChangesAsync(ct);

@@ -9,6 +9,8 @@ pub const TICKET_ISSUER: &str = "konnyaku";
 pub const TICKET_AUDIENCE: &str = "konnyaku-rtc";
 pub const SERVICE_ISSUER: &str = "konnyaku-rtc";
 pub const SERVICE_AUDIENCE: &str = "konnyaku-api";
+/// Audience of tickets for the realtime socket (`/rt`): see `RealtimeTickets` in the Notification module.
+pub const REALTIME_AUDIENCE: &str = "konnyaku-realtime";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -48,13 +50,33 @@ pub enum TicketError {
     Expired,
 }
 
+/// Claims of a realtime ticket: who is connecting (one socket per tab, any area of the site).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct UserTicket {
+    pub sub: Uuid,
+    pub tid: Uuid,
+    pub exp: i64,
+    #[serde(default)]
+    pub iss: String,
+    #[serde(default)]
+    pub aud: String,
+}
+
 pub fn verify(secret: &str, token: &str) -> Result<Ticket, TicketError> {
+    verify_for(secret, token, TICKET_AUDIENCE)
+}
+
+pub fn verify_user(secret: &str, token: &str) -> Result<UserTicket, TicketError> {
+    verify_for(secret, token, REALTIME_AUDIENCE)
+}
+
+fn verify_for<T: serde::de::DeserializeOwned>(secret: &str, token: &str, audience: &str) -> Result<T, TicketError> {
     let mut validation = Validation::new(Algorithm::HS256);
     validation.set_issuer(&[TICKET_ISSUER]);
-    validation.set_audience(&[TICKET_AUDIENCE]);
+    validation.set_audience(&[audience]);
     validation.set_required_spec_claims(&["exp", "iss", "aud", "sub"]);
     validation.leeway = 30;
-    decode::<Ticket>(token, &DecodingKey::from_secret(secret.as_bytes()), &validation)
+    decode::<T>(token, &DecodingKey::from_secret(secret.as_bytes()), &validation)
         .map(|data| data.claims)
         .map_err(|e| match e.kind() {
             jsonwebtoken::errors::ErrorKind::ExpiredSignature => TicketError::Expired,
@@ -87,7 +109,7 @@ pub fn service_token(secret: &str, now: i64) -> String {
 }
 
 /// Signs a ticket like the API does. Used by tests and local tools.
-pub fn issue(secret: &str, ticket: &Ticket) -> String {
+pub fn issue<T: Serialize>(secret: &str, ticket: &T) -> String {
     encode(
         &Header::new(Algorithm::HS256),
         ticket,
@@ -150,6 +172,22 @@ mod tests {
             TicketError::Invalid
         );
         assert_eq!(verify(SECRET, "not-a-jwt").unwrap_err(), TicketError::Invalid);
+    }
+
+    #[test]
+    fn room_and_realtime_tickets_are_not_interchangeable() {
+        let user = UserTicket {
+            sub: Uuid::new_v4(),
+            tid: Uuid::new_v4(),
+            exp: unix_now() + 60,
+            iss: TICKET_ISSUER.into(),
+            aud: REALTIME_AUDIENCE.into(),
+        };
+        let token = issue(SECRET, &user);
+        assert_eq!(verify_user(SECRET, &token).unwrap().sub, user.sub);
+        assert_eq!(verify(SECRET, &token).unwrap_err(), TicketError::Invalid);
+        let room = issue(SECRET, &ticket(unix_now() + 60));
+        assert_eq!(verify_user(SECRET, &room).unwrap_err(), TicketError::Invalid);
     }
 
     #[test]

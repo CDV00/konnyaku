@@ -83,7 +83,9 @@
 
 | Tình huống | Cách xử lý |
 | --- | --- |
-| Học viên không nhận email nào | Hồ sơ chưa có email, hoặc email sai. Quản trị xem **Thông báo** → lọc **Lỗi** để biết lý do |
+| Học viên không nhận email nào | Hồ sơ chưa có email, hoặc email sai. Quản trị xem **Thông báo** → lọc **Lỗi** để biết lý do. Học viên có thể đã tắt email loại đó trong **Cài đặt nhận thông báo** (thông báo vẫn có trong chuông) |
+| Chuông không tự cập nhật | Mạng chặn kết nối trực tiếp: chuông vẫn tự cập nhật mỗi 30 giây. Tải lại trang nếu cần ngay ([Thông báo](thong-bao.md)) |
+| Không nhận được thông báo đẩy | Chưa bật trên thiết bị đó, trình duyệt đang chặn thông báo, hoặc đã đăng xuất (đăng xuất tự tắt). Mở **Cài đặt nhận thông báo** → **Bật trên thiết bị này** ([Thông báo](thong-bao.md#thông-báo-đẩy-trên-thiết-bị-này)) |
 | Email bị lỗi vĩnh viễn | Sửa email trong hồ sơ; khi lỗi phía người nhận đã khắc phục, bấm **Gửi lại** |
 | Email đến bằng tiếng Anh | **Ngôn ngữ liên lạc** của học viên là Tiếng Anh; **Sửa** hồ sơ để đổi |
 

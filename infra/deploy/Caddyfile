@@ -41,6 +41,12 @@
 		reverse_proxy signaling:5100
 	}
 
+	# Realtime socket of every signed-in tab (inbox signals; doc 10.9), same service, on every tenant host. The socket
+	# carries ids only; Caddy keeps it open as long as both ends do (the service pings every 20 s).
+	handle /rt {
+		reverse_proxy signaling:5100
+	}
+
 	handle {
 		# Internal endpoints (certificate checks) are not public.
 		@internal path /api/internal/*

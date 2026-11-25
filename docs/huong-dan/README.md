@@ -20,14 +20,15 @@ Cập nhật: 25/11/2026
 | Khách muốn đăng ký học | [Phụ huynh và khách](phu-huynh-va-khach.md) | |
 | Người vận hành nền tảng Konnyaku (super-admin) | [Quản trị nền tảng](quan-tri-nen-tang.md) | |
 
-Dùng chung cho mọi người: [Đăng nhập, mật khẩu và bảo mật tài khoản](dang-nhap-va-bao-mat.md), [Câu hỏi thường gặp và xử lý sự cố](cau-hoi-thuong-gap.md), [Thuật ngữ](thuat-ngu.md).
+Dùng chung cho mọi người: [Đăng nhập, mật khẩu và bảo mật tài khoản](dang-nhap-va-bao-mat.md), [Thông báo: chuông và cài đặt nhận](thong-bao.md), [Câu hỏi thường gặp và xử lý sự cố](cau-hoi-thuong-gap.md), [Thuật ngữ](thuat-ngu.md).
 
 ## Mục lục
 
 1. [Bắt đầu nhanh cho trung tâm mới](bat-dau-nhanh.md): thứ tự cài đặt cơ sở → nhân sự → chương trình → lớp → học viên → thu phí.
 2. [Đăng nhập, mật khẩu và bảo mật tài khoản](dang-nhap-va-bao-mat.md): hai tab đăng nhập, quên mật khẩu, khoá tài khoản, xác thực 2 bước, thiết bị đang đăng nhập.
-3. [Khu vực Vận hành: thao tác chung](van-hanh-chung.md): thanh bên, ngăn kéo, tìm / lọc, che dữ liệu cá nhân, xuất CSV, sửa / ngừng dùng, lịch sử thay đổi, hồ sơ học viên.
-4. Hướng dẫn theo vai trò:
+3. [Thông báo: chuông, hộp thông báo và cài đặt nhận](thong-bao.md): chuông có số chưa đọc ở cả 3 khu vực, cập nhật không cần tải lại trang; bật / tắt email và thông báo đẩy theo từng loại; gom email.
+4. [Khu vực Vận hành: thao tác chung](van-hanh-chung.md): thanh bên, ngăn kéo, tìm / lọc, che dữ liệu cá nhân, xuất CSV, sửa / ngừng dùng, lịch sử thay đổi, hồ sơ học viên.
+5. Hướng dẫn theo vai trò:
     - [Quản trị nền tảng (super-admin)](quan-tri-nen-tang.md)
     - [Quản trị trung tâm](quan-tri-trung-tam.md)
     - [Quản lý cơ sở](quan-ly-co-so.md)
@@ -37,11 +38,11 @@ Dùng chung cho mọi người: [Đăng nhập, mật khẩu và bảo mật tà
     - [Giáo viên](giao-vien.md)
     - [Học viên](hoc-vien.md)
     - [Phụ huynh và khách](phu-huynh-va-khach.md)
-5. [Phòng học trực tuyến](phong-hoc-truc-tuyen.md): kiểm tra thiết bị, vào phòng, chia sẻ màn hình, kết thúc buổi.
-6. [Quy trình nghiệp vụ trọn vẹn](quy-trinh.md): khách đăng ký → vào lớp; buổi học → điểm danh → trừ buổi → công → lương; hoàn tiền; đổi lịch / đổi giáo viên; bảo lưu, nghỉ học; quên mật khẩu, khoá tài khoản, 2FA; yêu cầu xem / xoá dữ liệu cá nhân.
-7. [Quy tắc nghiệp vụ cần biết](quy-tac-nghiep-vu.md): ngưỡng điểm danh, thứ tự trừ buổi, nợ buổi, hoàn tiền, phân quyền theo cơ sở, giới hạn phòng học, email tự động.
-8. [Câu hỏi thường gặp và xử lý sự cố](cau-hoi-thuong-gap.md)
-9. [Thuật ngữ](thuat-ngu.md)
+6. [Phòng học trực tuyến](phong-hoc-truc-tuyen.md): kiểm tra thiết bị, vào phòng, chia sẻ màn hình, kết thúc buổi.
+7. [Quy trình nghiệp vụ trọn vẹn](quy-trinh.md): khách đăng ký → vào lớp; buổi học → điểm danh → trừ buổi → công → lương; hoàn tiền; đổi lịch / đổi giáo viên; bảo lưu, nghỉ học; quên mật khẩu, khoá tài khoản, 2FA; yêu cầu xem / xoá dữ liệu cá nhân.
+8. [Quy tắc nghiệp vụ cần biết](quy-tac-nghiep-vu.md): ngưỡng điểm danh, thứ tự trừ buổi, nợ buổi, hoàn tiền, phân quyền theo cơ sở, giới hạn phòng học, email tự động.
+9. [Câu hỏi thường gặp và xử lý sự cố](cau-hoi-thuong-gap.md)
+10. [Thuật ngữ](thuat-ngu.md)
 
 ## Các khu vực của Konnyaku
 
@@ -65,7 +66,7 @@ Người vận hành nền tảng Konnyaku dùng một địa chỉ riêng (`htt
 - Liên kết tài khoản phụ huynh với học viên (phụ huynh chưa xem được thông tin của con).
 - Đổi giờ, đổi giáo viên hay huỷ **từng buổi** (chỉ đổi được cả lịch tuần từ một ngày, xem [Đổi lịch, đổi giáo viên](quy-trinh.md#4-đổi-lịch-đổi-giáo-viên)).
 - Bảo lưu, chuyển lớp (chỉ có cho nghỉ hẳn bằng hoàn tiền, xem [Bảo lưu và nghỉ học](quy-trinh.md#5-bảo-lưu-và-nghỉ-học)). Xin nghỉ từng buổi và học bù đã có (xem [Học viên → Lịch học](hoc-vien.md#lịch-học-xin-nghỉ-học-bù-đổi-hình-thức)).
-- Email hay thông báo khi được mời từ hàng chờ (học viên thấy chỗ đang giữ trên trang **Lịch học**).
+- Email khi được mời từ hàng chờ (đã có thông báo trong ứng dụng và thông báo đẩy, xem [Thông báo](thong-bao.md)). Nhắn tin giữa học viên, giáo viên và giáo vụ.
 - Thêm học viên vào lớp bằng tay (học viên chỉ vào lớp khi đơn hàng gắn lớp được trả đủ).
 - Sửa điểm danh sau khi đã xác nhận.
 - Thanh toán online, đăng nhập bằng Google, tự đăng ký tài khoản.
@@ -92,6 +93,7 @@ Người vận hành nền tảng Konnyaku dùng một địa chỉ riêng (`htt
 | Quy tắc (ngưỡng, cách trừ buổi, hoàn tiền, email tự động) | [quy-tac-nghiep-vu](quy-tac-nghiep-vu.md) |
 | Luồng đi qua nhiều vai trò | Bảng bước trong [quy-trinh](quy-trinh.md) |
 | Bước cài đặt trung tâm mới | [bat-dau-nhanh](bat-dau-nhanh.md) và thẻ hướng dẫn nhanh (`messages/*/onboarding.json`) |
+| Chuông, hộp thông báo, loại thông báo mới, cài đặt nhận | [thong-bao](thong-bao.md) (bảng "Những thông báo bạn nhận") |
 | Thông báo lỗi người dùng hay gặp | [cau-hoi-thuong-gap](cau-hoi-thuong-gap.md) |
 | Từ mới | [thuat-ngu](thuat-ngu.md) |
 | Tính năng trước đây "chưa có" nay đã có | Xoá dòng ở [Những gì chưa có](#những-gì-chưa-có-ở-phiên-bản-này) và các ghi chú "Chưa có" / cách xử lý tạm trong trang vai trò, quy trình, FAQ |

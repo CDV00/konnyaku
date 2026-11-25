@@ -4,7 +4,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Konnyaku.Notification.Application;
 
-/// <summary>A student's personal data was erased: the messages addressed to their account lose address, name and data.</summary>
+/// <summary>
+/// A student's personal data was erased: the messages addressed to their account lose address, name and data; their
+/// inbox items lose what they said; their channel preferences and push subscriptions (browsers) go.
+/// </summary>
 public sealed class StudentAnonymizedEraser(INotificationDbContext db) : IIntegrationEventHandler<StudentAnonymizedV1>
 {
     public async Task HandleAsync(StudentAnonymizedV1 @event, IntegrationEventContext context, CancellationToken cancellationToken)
@@ -20,6 +23,13 @@ public sealed class StudentAnonymizedEraser(INotificationDbContext db) : IIntegr
             message.ErasePersonalData();
         }
 
+        foreach (var item in await db.InboxItems.Where(i => i.UserId == userId).ToListAsync(cancellationToken))
+        {
+            item.ErasePersonalData();
+        }
+
         await db.SaveChangesAsync(cancellationToken);
+        await db.PushSubscriptions.Where(s => s.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+        await db.Preferences.Where(p => p.UserId == userId).ExecuteDeleteAsync(cancellationToken);
     }
 }

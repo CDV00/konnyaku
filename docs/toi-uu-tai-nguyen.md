@@ -142,6 +142,20 @@ Hai service thêm vào sau đợt đo chính, nên đo riêng: container signali
 
 Trần: `SIGNALING_MEM_LIMIT` 256m ở hồ sơ 8 GB (~1 100 người cùng lúc), 96m ở hồ sơ 2 GB (~400 người, tức ~65 lớp 6 người — quá đủ cho máy 1–2 vCPU); `COTURN_MEM_LIMIT` 128m / 64m. Phòng nằm trong bộ nhớ của một bản signaling duy nhất: chạm trần thì mọi phòng rớt, nên trần đặt theo giờ cao điểm chứ không sát số đo. Không có GC hay heap để chỉnh như .NET/Node.
 
+### 10. Socket realtime `/rt` (chuông thông báo)
+
+Cùng service `signaling` (doc 10.9): mỗi tab đã đăng nhập giữ một WebSocket `/rt`, service `PSUBSCRIBE user:*` trên Redis. Đo container đứng một mình với Redis, k6 mở tab bằng vé ký với `SIGNALING_SECRET` ([`infra/loadtest/realtime.js`](../infra/loadtest/realtime.js), 2 tab mỗi người), trong lúc đó `redis-cli` phát 2 000 tín hiệu:
+
+| Tải | RAM | CPU | Ghi chú |
+| --- | --- | --- | --- |
+| Rảnh (đã subscribe Redis) | ~1,4 MiB | 0 % | |
+| 2 000 tab của 1 000 người | ~32 MiB | ~0 % | 4 000/4 000 tín hiệu tới đúng tab |
+| 30 s sau khi đóng hết | ~24 MiB | 0 % | Bộ cấp phát giữ lại, không tăng thêm ở lượt sau |
+
+- Khoảng **15 KiB mỗi tab**: bộ đệm đọc/ghi của socket `/rt` đặt 4 KiB (tín hiệu chỉ vài chục byte), thay vì 128 KiB mặc định như phòng học.
+- Trần `SIGNALING_MEM_LIMIT` giữ nguyên (256m / 96m): 1 000 người trong phòng học (~210 MiB) **hoặc** ~15 000 tab; máy 2 GB với 96m đủ ~400 người trong phòng hoặc ~5 000 tab. Redis không lưu gì cho pub/sub, `REDIS_MAXMEMORY` không đổi.
+- Mỗi tab tự kết nối lại sau `RT_CONNECTION_MINUTES` (60) để lấy vé mới; mỗi người tối đa `RT_MAX_CONNECTIONS_PER_USER` (20) socket trên mỗi bản.
+
 ## Sau khi tối ưu
 
 Cùng cách đọc như bảng trước. Hai dòng "chưa sửa keep-alive" là lượt đo trước khi thêm `KEEP_ALIVE_TIMEOUT` (mục 7).

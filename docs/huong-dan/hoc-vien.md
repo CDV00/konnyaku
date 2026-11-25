@@ -123,6 +123,10 @@ Mở **Thanh toán** ở thanh trên cùng. Bảng **Lịch sử thanh toán** l
 
 ![Lịch sử thanh toán](images/hoc-vien-thanh-toan.webp)
 
+## Thông báo
+
+Chuông ở thanh trên báo ngay khi buổi học đổi giờ hoặc bị hủy, có chỗ trống từ danh sách chờ, được xếp học bù, có bài mới, sắp hết hạn nộp hay có điểm, không cần tải lại trang. Bấm thông báo để mở đúng trang. Bật thông báo đẩy trên điện thoại hoặc tắt bớt email: xem [Thông báo](thong-bao.md).
+
 ## Đổi mật khẩu
 
 Bấm tên của bạn ở góc trên bên phải → **Tài khoản & bảo mật** → trang **Đổi mật khẩu**. Đổi xong, các thiết bị khác đang đăng nhập bị đăng xuất.

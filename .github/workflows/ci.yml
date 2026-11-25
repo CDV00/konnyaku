@@ -46,6 +46,14 @@ jobs:
     defaults:
       run:
         working-directory: services/signaling
+    # Realtime test: a Redis PUBLISH reaches the WebSocket of the user (tests/realtime.rs).
+    services:
+      redis:
+        image: redis:8.2-alpine
+        ports:
+          - 6379:6379
+    env:
+      REDIS_URL: redis://127.0.0.1:6379
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -116,6 +124,10 @@ jobs:
         ports:
           - 1030:1025
           - 8030:8025
+      redis:
+        image: redis:8.2-alpine
+        ports:
+          - 6390:6379
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -152,8 +164,17 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -h localhost -p 5450 -U konnyaku -d konnyaku -f infra/docker/postgres/init/01-modules.sql
         env:
           PGPASSWORD: konnyaku_dev
+      # The realtime service (bell updates over /rt), run as a binary next to the Api.
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: services/signaling
+      - run: cargo build --release --locked
+        working-directory: services/signaling
       - name: Build, start, seed, test
         run: node frontend/e2e/run.mjs --infra=external
+        env:
+          E2E_REALTIME_BIN: ${{ github.workspace }}/services/signaling/target/release/konnyaku-signaling
       - name: Upload traces, videos, screenshots and server logs
         if: failure()
         uses: actions/upload-artifact@v4

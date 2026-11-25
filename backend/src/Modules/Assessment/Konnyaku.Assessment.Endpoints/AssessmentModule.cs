@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Konnyaku.Application.Authorization;
 using Konnyaku.Assessment.Application;
+using Konnyaku.Assessment.Contracts;
 using Konnyaku.Assessment.Infrastructure;
 using Konnyaku.Infrastructure.Auth;
 using Konnyaku.Infrastructure.Http;
@@ -36,6 +37,7 @@ public sealed class AssessmentModule : IModule
         services.AddScoped<PaperHandlers>();
         services.AddScoped<AssignmentHandlers>();
         services.AddScoped<LearnerHandlers>();
+        services.AddScoped<IAssessmentApi, AssessmentApi>();
     }
 
     public void AddWorkerServices(IServiceCollection services)
