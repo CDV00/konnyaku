@@ -119,7 +119,12 @@ public sealed class BankHandlers(IAssessmentDbContext db, AssessmentAccess acces
             return error;
         }
 
-        if (string.IsNullOrWhiteSpace(command.Title) || string.IsNullOrWhiteSpace(QuestionRules.StripTags(richText.Sanitize(command.Passage))))
+        if (string.IsNullOrWhiteSpace(command.Title))
+        {
+            return Error.Validation("assessment.title_required");
+        }
+
+        if (string.IsNullOrWhiteSpace(QuestionRules.StripTags(richText.Sanitize(command.Passage))))
         {
             return Error.Validation("assessment.passage_required");
         }
@@ -144,7 +149,12 @@ public sealed class BankHandlers(IAssessmentDbContext db, AssessmentAccess acces
             return error;
         }
 
-        if (string.IsNullOrWhiteSpace(command.Title) || string.IsNullOrWhiteSpace(QuestionRules.StripTags(richText.Sanitize(command.Passage))))
+        if (string.IsNullOrWhiteSpace(command.Title))
+        {
+            return Error.Validation("assessment.title_required");
+        }
+
+        if (string.IsNullOrWhiteSpace(QuestionRules.StripTags(richText.Sanitize(command.Passage))))
         {
             return Error.Validation("assessment.passage_required");
         }
@@ -267,7 +277,9 @@ public sealed class BankHandlers(IAssessmentDbContext db, AssessmentAccess acces
             return Error.Validation("assessment.group_not_found");
         }
 
-        if (c.FrameworkCode is { Length: > 0 } frameworkCode && (c.SkillCode is not null || c.LevelCode is not null))
+        var skillCode = NullIfEmpty(c.SkillCode);
+        var levelCode = NullIfEmpty(c.LevelCode);
+        if (c.FrameworkCode is { Length: > 0 } frameworkCode && (skillCode is not null || levelCode is not null))
         {
             var framework = await catalog.GetFrameworkAsync(frameworkCode, ct);
             if (framework is null)
@@ -275,12 +287,12 @@ public sealed class BankHandlers(IAssessmentDbContext db, AssessmentAccess acces
                 return Error.Validation("assessment.framework_unknown");
             }
 
-            if (c.SkillCode is not null && framework.Skills.All(s => s.Code != c.SkillCode))
+            if (skillCode is not null && framework.Skills.All(s => s.Code != skillCode))
             {
                 return Error.Validation("assessment.skill_unknown");
             }
 
-            if (c.LevelCode is not null && framework.Levels.All(l => l.Code != c.LevelCode))
+            if (levelCode is not null && framework.Levels.All(l => l.Code != levelCode))
             {
                 return Error.Validation("assessment.level_unknown");
             }
@@ -295,7 +307,7 @@ public sealed class BankHandlers(IAssessmentDbContext db, AssessmentAccess acces
             Shuffle = content.Shuffle,
         };
         return new QuestionData(c.Type, richText.Sanitize(c.Stem), cleanContent, c.Key ?? new AnswerKey(), c.Points, c.FrameworkCode,
-            NullIfEmpty(c.SkillCode), NullIfEmpty(c.LevelCode), c.Tags ?? [], c.Explanation is null ? null : richText.Sanitize(c.Explanation), c.GroupId);
+            skillCode, levelCode, c.Tags ?? [], c.Explanation is null ? null : richText.Sanitize(c.Explanation), c.GroupId);
     }
 
     private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;

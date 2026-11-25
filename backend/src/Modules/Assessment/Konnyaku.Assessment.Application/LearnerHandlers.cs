@@ -83,7 +83,15 @@ public sealed class LearnerHandlers(IAssessmentDbContext db, LearnerScope scope,
             .OrderBy(t => t.Number).ToListAsync(ct);
         var paper = await db.Papers.AsNoTracking().FirstAsync(p => p.Id == assignment.PaperId, ct);
         var now = clock.GetUtcNow();
-        var questions = paper.Layout.Sections.SelectMany(s => s.Items).Sum(i => i.Kind == SectionItemKind.Random ? i.Count : 1);
+        var groupIds = paper.Layout.Sections.SelectMany(s => s.Items).Where(i => i.Kind == SectionItemKind.Group && i.GroupId is not null)
+            .Select(i => i.GroupId!.Value).ToArray();
+        var grouped = groupIds.Length == 0 ? 0 : await db.Questions.CountAsync(q => q.GroupId != null && groupIds.Contains(q.GroupId.Value) && !q.Archived, ct);
+        var questions = paper.Layout.Sections.SelectMany(s => s.Items).Sum(i => i.Kind switch
+        {
+            SectionItemKind.Random => i.Count,
+            SectionItemKind.Group => 0,
+            _ => 1,
+        }) + grouped;
         return new MyAssignmentDetail(ToView(assignment, list, now), assignment.ScoringRule, assignment.ScoreRelease, assignment.ReleaseAt,
             assignment.AnswerVisibility, paper.Layout.Timed ? paper.Layout.Sections.Sum(s => s.TimeLimitMinutes ?? 0) : assignment.TimeLimitMinutes,
             questions, list.Select(t => Summary(assignment, t, now)).ToList());

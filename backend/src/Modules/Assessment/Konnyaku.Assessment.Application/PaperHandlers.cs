@@ -1,4 +1,5 @@
 using Konnyaku.Assessment.Domain;
+using Konnyaku.Catalog.Contracts;
 using Konnyaku.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 
@@ -39,7 +40,7 @@ public static class QuestionPool
 }
 
 /// <summary>Test papers: sections of fixed questions, whole reading groups and random draws.</summary>
-public sealed class PaperHandlers(IAssessmentDbContext db, AssessmentAccess access, TimeProvider clock)
+public sealed class PaperHandlers(IAssessmentDbContext db, AssessmentAccess access, ICatalogApi catalog, TimeProvider clock)
 {
     public async Task<IReadOnlyList<PaperView>> ListAsync(Actor actor, bool includeArchived, CancellationToken ct)
     {
@@ -92,7 +93,7 @@ public sealed class PaperHandlers(IAssessmentDbContext db, AssessmentAccess acce
         }
 
         var layout = Clean(command.Layout);
-        if (await ValidateSourcesAsync(layout, actor, ct) is { } error)
+        if (await ValidateSourcesAsync(command, layout, actor, ct) is { } error)
         {
             return error;
         }
@@ -124,7 +125,7 @@ public sealed class PaperHandlers(IAssessmentDbContext db, AssessmentAccess acce
         }
 
         var layout = Clean(command.Layout);
-        if (await ValidateSourcesAsync(layout, actor, ct) is { } error)
+        if (await ValidateSourcesAsync(command, layout, actor, ct) is { } error)
         {
             return error;
         }
@@ -159,8 +160,13 @@ public sealed class PaperHandlers(IAssessmentDbContext db, AssessmentAccess acce
     }
 
     /// <summary>Every fixed question and group exists in a bank the author may read; every random draw has enough questions.</summary>
-    private async Task<Error?> ValidateSourcesAsync(PaperLayout layout, Actor actor, CancellationToken ct)
+    private async Task<Error?> ValidateSourcesAsync(PaperCommand command, PaperLayout layout, Actor actor, CancellationToken ct)
     {
+        if ((await catalog.ListLanguagesAsync(ct)).All(l => l.Code != command.LanguageCode))
+        {
+            return Error.Validation("assessment.language_unknown");
+        }
+
         var items = layout.Sections.SelectMany(s => s.Items).ToList();
         var questionIds = items.Where(i => i.Kind == SectionItemKind.Question && i.QuestionId is not null).Select(i => i.QuestionId!.Value).Distinct().ToArray();
         var questions = await db.Questions.AsNoTracking().Where(q => questionIds.Contains(q.Id) && !q.Archived)

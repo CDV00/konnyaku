@@ -14,6 +14,12 @@ Creates tenant "review" (host review.<base domain>, e.g. http://review.localhost
     KO-T1-ON3  online, no schedule yet (for the coordinator to schedule)
 - packages, orders (paid, partially paid, unpaid, one refunded, one waiting for a refund), leads in every status
 - timesheets from the held sessions, last month's payroll period locked, this month's open
+- tests and homework (Assessment): one shared question bank per language (ja/en/zh, 15–16 questions of every format,
+  furigana / pinyin, a reading group each) and one paper per teacher;
+    JP-N5-ON1  quiz, submitted (and graded on submit) by hv-review01..03; hv-review04/05 can still take it
+    EN-A2-Q1   test in two timed parts with an essay graded on a rubric: hv-review06/07 submitted, waiting in
+               teacher.en@'s grading queue (scores released after grading)
+    ZH-HSK1-HN homework open for hv-review10 (late work loses 10%)
 - the platform super-admin (console at http://admin.<base domain>:4000/platform), when none exists yet:
     OPERATOR_EMAIL / OPERATOR_PASSWORD, TOTP secret OPERATOR_TOTP_SECRET (add it to an authenticator app,
     or print the current code with: python infra/scripts/seed_review.py --totp)
@@ -338,6 +344,9 @@ def main():
                      for i, seat in enumerate(en_seats)]
         post(f"/api/learning/sessions/{session['id']}/attendance/confirm", {"overrides": overrides}, "confirm attendance", teacher_en)
 
+    # --- tests and homework (Assessment) ----------------------------------------------------------------------------
+    assessments = _seed_assessments(host, staff_token, learners, {"ja": jp_on1, "en": en_q1, "zh": zh_hn})
+
     # --- payroll -------------------------------------------------------------------------------------------------------
     first_this_month = TODAY.replace(day=1)
     last_month_end = first_this_month - dt.timedelta(days=1)
@@ -360,10 +369,263 @@ def main():
     print(f"  staff (password {STAFF_PASSWORD}): admin, manager, coordinator, consultant, accountant,")
     print("    accountant.hn (Cau Giay branch only), teacher.ja, teacher.en, teacher.zh  @review.example.com")
     print(f"  learners (password {LEARNER_PASSWORD}): hv-review01..hv-review12, parent ph-review01")
+    print(f"  tests: {assessments}")
     print(f"  accountant@ signs in with two-step sign-in, TOTP secret {secret}")
     print(f"    current code: python infra/scripts/seed_review.py --totp {secret}")
     print(f"platform console at http://admin.{args.base_domain}:4000/platform")
     print(f"  {OPERATOR_EMAIL} / {OPERATOR_PASSWORD}, TOTP secret {OPERATOR_TOTP_SECRET} (code now: {totp(OPERATOR_TOTP_SECRET)})")
+
+
+def _opts(*texts):
+    return [{"id": chr(97 + i), "html": text} for i, text in enumerate(texts)]
+
+
+def _question(kind, stem, points=1, skill=None, tags=(), **extra):
+    """A question payload plus the right answer (for seeded attempts). `right` is the learner response that scores."""
+    right = extra.pop("right")
+    return {"payload": {"type": kind, "stem": stem, "points": points, "skillCode": skill, "tags": list(tags), **extra}, "right": right}
+
+
+def _single(stem, options, correct, **kw):
+    return _question("SingleChoice", stem, content={"options": _opts(*options), "shuffle": True},
+                     key={"choices": [correct]}, right={"choices": [correct]}, **kw)
+
+
+def _multi(stem, options, correct, **kw):
+    return _question("MultipleChoice", stem, content={"options": _opts(*options), "shuffle": True},
+                     key={"choices": correct}, right={"choices": correct}, **kw)
+
+
+def _true_false(stem, value, **kw):
+    v = "true" if value else "false"
+    return _question("TrueFalse", stem, key={"choices": [v]}, right={"choices": [v]}, **kw)
+
+
+def _blanks(stem, accepted, **kw):
+    return _question("FillBlank", stem, key={"blanks": accepted, "ignoreCase": True, "ignoreDiacritics": kw.pop("diacritics", False)},
+                     right={"blanks": [a[0] for a in accepted]}, **kw)
+
+
+def _matching(stem, left, right_side, **kw):
+    pairs = {chr(97 + i): f"t{i}" for i in range(len(left))}
+    return _question("Matching", stem, content={"options": _opts(*left), "targets": [{"id": f"t{i}", "html": t} for i, t in enumerate(right_side)],
+                                                "shuffle": True}, key={"pairs": pairs}, right={"pairs": pairs}, **kw)
+
+
+def _ordering(stem, items, **kw):
+    order = [chr(97 + i) for i in range(len(items))]
+    return _question("Ordering", stem, content={"options": _opts(*items)}, key={"order": order}, right={"order": order}, **kw)
+
+
+def _short(stem, accepted, **kw):
+    return _question("ShortAnswer", stem, key={"accepted": accepted, "ignoreCase": True, "ignoreDiacritics": kw.pop("diacritics", False)},
+                     right={"text": accepted[0]}, **kw)
+
+
+def _essay(stem, minimum, maximum, count, answer, **kw):
+    return _question("Essay", stem, content={"essay": {"min": minimum, "max": maximum, "count": count}}, right={"text": answer}, **kw)
+
+
+# Question banks of the review tenant: 15 questions per language, every format of the core engine, one reading group each.
+_BANKS = {
+    "ja": {
+        "name": "Ngữ pháp & từ vựng N5", "language": "ja", "framework": "JLPT", "level": "N5",
+        "questions": [
+            _single("わたし＿＿ がくせいです。", ["は", "を", "に", "で"], "a", skill="GRAMMAR", tags=["grammar", "particles"]),
+            _single("きのう <ruby>本<rt>ほん</rt></ruby>を ＿＿。", ["読みました", "読みます", "読んで", "読む"], "a", skill="GRAMMAR", tags=["grammar"]),
+            _single("「山」の 読み方は？", ["やま", "かわ", "たに", "そら"], "a", skill="VOCABULARY_KANJI", tags=["kanji"]),
+            _single("「<ruby>学校<rt>がっこう</rt></ruby>」の いみは？", ["trường học", "bệnh viện", "nhà ga", "công viên"], "a",
+                    skill="VOCABULARY_KANJI", tags=["vocabulary"]),
+            _single("これは ＿＿ ですか。— ほんです。", ["なん", "だれ", "どこ", "いつ"], "a", skill="GRAMMAR", tags=["grammar"]),
+            _multi("Chọn các từ chỉ đồ ăn", ["りんご", "くるま", "パン", "いす"], ["a", "c"], points=2, skill="VOCABULARY_KANJI", tags=["vocabulary"]),
+            _true_false("「<ruby>月曜日<rt>げつようび</rt></ruby>」は 日曜日の つぎの 日です。", True, skill="VOCABULARY_KANJI", tags=["vocabulary"]),
+            _blanks("まいあさ [[1]] を のみます。(cà phê)", [["コーヒー", "こーひー"]], skill="VOCABULARY_KANJI", tags=["vocabulary"]),
+            _blanks("あした [[1]] へ 行きます。(trường học)", [["学校", "がっこう"]], skill="VOCABULARY_KANJI", tags=["kanji"]),
+            _matching("Nối từ với nghĩa", ["いぬ", "ねこ", "とり"], ["con chó", "con mèo", "con chim"], points=3, skill="VOCABULARY_KANJI",
+                      tags=["vocabulary"]),
+            _ordering("Sắp xếp thành câu đúng (★) – câu 1", ["わたしは", "日本語を", "べんきょう", "しています"], points=2, skill="GRAMMAR", tags=["grammar", "star"]),
+            _ordering("Sắp xếp thành câu đúng (★) – câu 2", ["あした", "友だちと", "えいがを", "見ます"], points=2, skill="GRAMMAR", tags=["grammar", "star"]),
+            _short("「ありがとう」を ていねいに 言うと？", ["ありがとうございます"], skill="GRAMMAR", tags=["expressions"]),
+            _essay("Viết 3–5 câu tự giới thiệu bằng tiếng Nhật (50–200 ký tự).", 50, 200, "Characters",
+                   "はじめまして。わたしは グエンです。ベトナムの ハノイから きました。だいがくせいです。にほんごを べんきょうしています。どうぞ よろしく おねがいします。",
+                   points=10, skill="GRAMMAR", tags=["writing"]),
+        ],
+        "group": {
+            "title": "田中さんの いちにち",
+            "passage": "<ruby>田中<rt>たなか</rt></ruby>さんは まいにち 7時に おきます。でんしゃで <ruby>会社<rt>かいしゃ</rt></ruby>へ 行きます。<br>"
+                       "ひるごはんは 12時に <ruby>食<rt>た</rt></ruby>べます。",
+            "questions": [
+                _true_false("田中さんは 7時に おきます。", True, skill="READING", tags=["reading"]),
+                _single("田中さんは なにで 会社へ 行きますか。", ["でんしゃ", "バス", "じてんしゃ"], "a", skill="READING", tags=["reading"]),
+            ],
+        },
+    },
+    "en": {
+        "name": "English A2 – grammar & reading", "language": "en", "framework": "CEFR", "level": "A2",
+        "questions": [
+            _single("She ___ to school every day.", ["goes", "go", "going", "gone"], "a", skill="READING", tags=["grammar"]),
+            _single("I ___ TV when you called.", ["was watching", "watched", "am watching", "watch"], "a", skill="READING", tags=["grammar"]),
+            _single("There isn't ___ milk in the fridge.", ["any", "some", "a", "many"], "a", skill="READING", tags=["grammar"]),
+            _single("Tom is ___ than his brother.", ["taller", "tallest", "more tall", "tall"], "a", skill="READING", tags=["grammar"]),
+            _single("We ___ in Ha Noi since 2020.", ["have lived", "live", "lived", "are living"], "a", skill="READING", tags=["grammar"]),
+            _multi("Which words are past tense?", ["went", "go", "saw", "see"], ["a", "c"], points=2, skill="READING", tags=["grammar"]),
+            _true_false("“Rarely” means “often”.", False, skill="READING", tags=["vocabulary"]),
+            _blanks("I was born [[1]] 1999 and moved [[2]] Ho Chi Minh City [[3]] May.", [["in"], ["to"], ["in"]], points=3, skill="READING",
+                    tags=["grammar", "prepositions"]),
+            _matching("Match the opposites", ["big", "fast", "happy"], ["small", "slow", "sad"], points=3, skill="READING", tags=["vocabulary"]),
+            _ordering("Put the words in order", ["I", "usually", "have", "breakfast at 7"], points=2, skill="READING", tags=["grammar"]),
+            _short("Past participle of “write”?", ["written"], skill="WRITING", tags=["grammar"]),
+            _short("Opposite of “cheap”?", ["expensive"], skill="WRITING", tags=["vocabulary"]),
+            _essay("Write 80–120 words about your last holiday.", 80, 120, "Words",
+                   "Last summer I went to Da Nang with my family. We stayed in a small hotel near the beach for four days. Every morning we "
+                   "swam in the sea and in the afternoon we visited the Marble Mountains and the old town of Hoi An. The food was delicious, "
+                   "especially the seafood and the noodles. My favourite moment was the boat trip at night because the lanterns on the river "
+                   "were beautiful. It was a short holiday but I felt relaxed and happy. Next year I want to visit Ha Long Bay.",
+                   points=10, skill="WRITING", tags=["writing"]),
+        ],
+        "group": {
+            "title": "Lan's weekend",
+            "passage": "Lan works in a bank from Monday to Friday. On Saturday she plays badminton with her friends.<br>"
+                       "On Sunday she visits her grandparents in the countryside and comes back by bus in the evening.",
+            "questions": [
+                _true_false("Lan works on Saturday.", False, skill="READING", tags=["reading"]),
+                _single("How does Lan come back on Sunday?", ["By bus", "By train", "By car"], "a", skill="READING", tags=["reading"]),
+            ],
+        },
+    },
+    "zh": {
+        "name": "HSK1 – Từ vựng & ngữ pháp", "language": "zh-Hans", "framework": "HSK", "level": "HSK1",
+        "questions": [
+            _single("「<ruby>你好<rt>nǐ hǎo</rt></ruby>」 nghĩa là gì?", ["Xin chào", "Tạm biệt", "Cảm ơn", "Xin lỗi"], "a", skill="READING", tags=["vocabulary"]),
+            _single("我 ___ 学生。", ["是", "有", "在", "叫"], "a", skill="READING", tags=["grammar"]),
+            _single("你叫什么 ___？", ["名字", "朋友", "老师", "学校"], "a", skill="READING", tags=["grammar"]),
+            _single("Chữ nào nghĩa là “nước”?", ["水", "火", "山", "木"], "a", skill="CHARACTERS", tags=["characters"]),
+            _single("Số “tám” viết là?", ["八", "六", "九", "七"], "a", skill="CHARACTERS", tags=["characters"]),
+            _multi("Chọn các từ chỉ người thân", ["妈妈", "桌子", "爸爸", "米饭"], ["a", "c"], points=2, skill="READING", tags=["vocabulary"]),
+            _true_false("「<ruby>谢谢<rt>xièxie</rt></ruby>」 nghĩa là “cảm ơn”.", True, skill="READING", tags=["vocabulary"]),
+            _blanks("我 [[1]] 中国人。(là)", [["是"]], skill="WRITING", tags=["grammar"]),
+            _blanks("今天 星期 [[1]]。(thứ Hai)", [["一"]], skill="CHARACTERS", tags=["characters"]),
+            _matching("Nối chữ với nghĩa", ["猫", "狗", "鱼"], ["con mèo", "con chó", "con cá"], points=3, skill="CHARACTERS", tags=["vocabulary"]),
+            _ordering("Sắp xếp thành câu đúng – câu 1", ["我", "喜欢", "喝", "茶"], points=2, skill="WRITING", tags=["grammar"]),
+            _ordering("Sắp xếp thành câu đúng – câu 2", ["你", "是", "哪国人"], points=2, skill="WRITING", tags=["grammar"]),
+            _short("Viết pinyin của 「中国」", ["zhōngguó", "zhongguo", "zhong guo"], diacritics=True, skill="WRITING", tags=["pinyin"]),
+            _essay("Viết 3 câu giới thiệu bản thân bằng chữ Hán (20–100 ký tự).", 20, 100, "Characters",
+                   "你好！我叫阮安。我是越南人。我是学生。我喜欢喝茶。", points=10, skill="WRITING", tags=["writing"]),
+        ],
+        "group": {
+            "title": "我的家",
+            "passage": "<ruby>我<rt>wǒ</rt></ruby><ruby>家<rt>jiā</rt></ruby>有四个人：爸爸、妈妈、哥哥和我。<br>我们住在河内。",
+            "questions": [
+                _true_false("他家有五个人。", False, skill="READING", tags=["reading"]),
+                _single("他们住在哪儿？", ["河内", "北京", "上海"], "a", skill="READING", tags=["reading"]),
+            ],
+        },
+    },
+}
+
+_RUBRIC = {"id": "ielts", "name": "IELTS Writing (rút gọn)", "criteria": [
+    {"id": "task", "name": "Hoàn thành yêu cầu", "maxBand": 9}, {"id": "coherence", "name": "Mạch lạc", "maxBand": 9},
+    {"id": "lexical", "name": "Từ vựng", "maxBand": 9}, {"id": "grammar", "name": "Ngữ pháp", "maxBand": 9}]}
+
+
+def _seed_assessments(host, staff_token, learners, classes):
+    """Banks, papers and assignments for the three language teachers, a quiz with submitted attempts (graded on submit)
+    and a test with essays waiting in the English teacher's grading queue."""
+    now = dt.datetime.now(dt.timezone.utc)
+    iso = lambda d: d.isoformat().replace("+00:00", "Z")  # noqa: E731
+    teacher = {lang: {**host, "Authorization": f"Bearer {staff_token(f'teacher.{lang}@review.example.com')}"}
+               for lang in ("ja", "en", "zh")}
+
+    banks = {}
+    for lang, spec in _BANKS.items():
+        t = teacher[lang]
+        bank = must(call("POST", "/api/assessment/banks", {"name": spec["name"], "languageCode": spec["language"], "visibility": "Shared",
+                                                          "description": "Dữ liệu demo"}, t), f"bank {lang}")
+        made = []
+        for q in spec["questions"]:
+            body = {**q["payload"], "frameworkCode": spec["framework"], "levelCode": spec["level"]}
+            made.append((must(call("POST", f"/api/assessment/banks/{bank['id']}/questions", body, t), "question"), q["right"]))
+        group = must(call("POST", f"/api/assessment/banks/{bank['id']}/groups",
+                          {"title": spec["group"]["title"], "passage": spec["group"]["passage"]}, t), "group")
+        for q in spec["group"]["questions"]:
+            body = {**q["payload"], "frameworkCode": spec["framework"], "levelCode": spec["level"], "groupId": group["id"]}
+            made.append((must(call("POST", f"/api/assessment/banks/{bank['id']}/questions", body, t), "group question"), q["right"]))
+        banks[lang] = {"bank": bank, "group": group, "questions": made}
+
+    def fixed(lang, *types):
+        return [{"kind": "Question", "questionId": q["id"]} for q, _ in banks[lang]["questions"]
+                if q["groupId"] is None and q["type"] in types]
+
+    def paper(lang, title, sections, rubrics=None, show_ruby=True):
+        return must(call("POST", "/api/assessment/papers", {
+            "title": title, "languageCode": _BANKS[lang]["language"], "frameworkCode": _BANKS[lang]["framework"], "showRuby": show_ruby,
+            "layout": {"sections": sections, "rubrics": rubrics or []}}, teacher[lang]), f"paper {lang}")
+
+    objective = ("SingleChoice", "MultipleChoice", "TrueFalse", "FillBlank", "Matching", "Ordering")
+    jp_paper = paper("ja", "Kiểm tra nhanh N5 – bài 1–5", [
+        {"id": "s1", "title": "Từ vựng · Ngữ pháp · Đọc", "skillCode": None, "shuffleQuestions": True,
+         "items": fixed("ja", "MultipleChoice", "TrueFalse", "FillBlank", "Matching") + [
+             {"kind": "Random", "bankId": banks["ja"]["bank"]["id"], "tags": ["star"], "count": 1},
+             {"kind": "Random", "bankId": banks["ja"]["bank"]["id"], "tags": ["grammar"], "count": 2},
+             {"kind": "Group", "groupId": banks["ja"]["group"]["id"]}]}])
+    en_paper = paper("en", "Mid-course test A2", [
+        {"id": "s1", "title": "Reading", "skillCode": "READING", "timeLimitMinutes": 20, "shuffleQuestions": False,
+         "items": fixed("en", *objective) + [{"kind": "Group", "groupId": banks["en"]["group"]["id"]}]},
+        {"id": "s2", "title": "Writing", "skillCode": "WRITING", "timeLimitMinutes": 30, "shuffleQuestions": False,
+         "items": fixed("en", "ShortAnswer") + [dict(item, rubricId="ielts") for item in fixed("en", "Essay")]},
+    ], rubrics=[_RUBRIC])
+    zh_paper = paper("zh", "Bài tập HSK1 – tuần 1", [
+        {"id": "s1", "title": "HSK1", "skillCode": None, "shuffleQuestions": False,
+         "items": fixed("zh", *objective, "ShortAnswer", "Essay") + [{"kind": "Group", "groupId": banks["zh"]["group"]["id"]}]}])
+
+    def assign(lang, paper_, title, **settings):
+        body = {"paperId": paper_["id"], "title": title, "target": "Class", "classId": classes[lang]["id"], "kind": "Quiz",
+                "opensAt": iso(now - dt.timedelta(days=2)), "dueAt": iso(now + dt.timedelta(days=5)), "latePolicy": "Accept",
+                "latePenaltyPercent": 0, "maxAttempts": 1, "scoringRule": "Best", "grader": "Auto", "scoreRelease": "OnSubmit",
+                "answerVisibility": "AfterSubmit", **settings}
+        return must(call("POST", "/api/assessment/assignments", body, teacher[lang]), f"assignment {title}")
+
+    quiz = assign("ja", jp_paper, "Kiểm tra nhanh bài 1–5", maxAttempts=2, timeLimitMinutes=20)
+    test = assign("en", en_paper, "Mid-course test", kind="Test", latePolicy="Lock", scoreRelease="AfterGrading",
+                  answerVisibility="AfterDue", opensAt=iso(now - dt.timedelta(days=1)), dueAt=iso(now + dt.timedelta(days=2)))
+    assign("zh", zh_paper, "Bài tập tuần 1", kind="Homework", latePolicy="Penalty", latePenaltyPercent=10, maxAttempts=None,
+           scoringRule="Last", opensAt=iso(now), dueAt=iso(now + dt.timedelta(days=7)))
+
+    rights = {q["stem"]: right for lang in banks for q, right in banks[lang]["questions"]}
+
+    def take(learner_index, assignment, wrong_every):
+        """A learner works through the attempt (every `wrong_every`-th answer wrong or skipped), part by part, then submits."""
+        username = f"hv-review{learner_index + 1:02d}"
+        token = must(call("POST", "/api/identity/learn/login", {"username": username, "password": LEARNER_PASSWORD}, host),
+                     f"login {username}")["accessToken"]
+        me = {**host, "Authorization": f"Bearer {token}"}
+        play = must(call("POST", f"/api/assessment/my/assignments/{assignment['id']}/attempts", None, me), f"start {username}")
+        answered = 0
+        while True:
+            answers = []
+            for item in play["items"]:
+                if item["locked"] or (play["timed"] and item["sectionIndex"] != play["sectionIndex"]):
+                    continue
+                right = rights.get(item["stem"])
+                answered += 1
+                if right is None or answered % wrong_every == 0:
+                    continue  # left blank (or a wrong answer for typed items)
+                answers.append({"itemId": item["id"], "response": right, "flagged": answered % 7 == 0})
+            if answers:
+                must(call("PUT", f"/api/assessment/my/attempts/{play['id']}/answers", {"answers": answers}, me), "answers")
+            if play["timed"] and play["sectionIndex"] < len(play["sections"]) - 1:
+                play = must(call("POST", f"/api/assessment/my/attempts/{play['id']}/next-section", None, me), "next section")
+                continue
+            break
+        call("POST", f"/api/assessment/my/attempts/{play['id']}/events", {"kind": "TabHidden", "value": 8 + learner_index}, me)
+        return must(call("POST", f"/api/assessment/my/attempts/{play['id']}/submit", None, me), f"submit {username}")
+
+    # JP-N5-ON1 learners are learners[0:5]; EN-A2-Q1 learners are learners[5:9]. hv-review04/05 and 08/09 are left to try it out.
+    for index, wrong in ((0, 9), (1, 4), (2, 3)):
+        take(index, quiz, wrong)
+    for index, wrong in ((5, 6), (6, 4)):
+        take(index, test, wrong)
+    return "3 banks, 3 papers; quiz submitted by hv-review01..03, test waiting for teacher.en@ to grade (hv-review06, 07)"
 
 
 def _healthy():

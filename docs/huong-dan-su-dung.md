@@ -126,6 +126,22 @@ Nếu trung tâm dùng phòng học có sẵn của Konnyaku (không cần Googl
 
 Phòng học có sẵn **chưa ghi hình**: buổi học trong phòng này không có video xem lại.
 
+### Bài tập & kiểm tra
+
+Mục **Bài tập & kiểm tra** liệt kê bài giáo viên giao cho lớp của học viên, chia hai nhóm **Cần làm** và **Đã nộp**. Mỗi bài ghi loại (bài tập về nhà, kiểm tra nhanh, bài kiểm tra, thi thử, kiểm tra xếp lớp), hạn nộp, trạng thái và điểm khi đã được công bố.
+
+1. Bấm vào bài để xem thông tin: số câu, thời gian làm, hạn nộp, số lần được làm, cách tính điểm, khi nào có điểm và đáp án.
+2. Bấm **Bắt đầu làm bài**. Mỗi màn hình một câu. Dải số phía trên là bảng điều hướng: câu đã trả lời có nền màu, câu đánh dấu **Xem lại** có chấm vàng.
+3. Bài **tự lưu vài giây một lần** (góc trên hiện **Đã lưu**). Mất mạng, tắt máy hay đổi máy: mở lại bài và bấm **Làm tiếp**, câu trả lời vẫn còn.
+4. Đồng hồ chạy theo máy chủ. Hết giờ, bài **tự nộp** kể cả khi đã đóng trình duyệt. Đề chia phần có giờ riêng (kiểu JLPT, IELTS): hết giờ phần nào thì phần đó khoá và chuyển sang phần sau; bấm **Phần tiếp theo** để sang sớm (không quay lại được).
+5. Bấm **Nộp bài**, xác nhận. Hệ thống báo nếu còn câu chưa trả lời.
+
+Các dạng câu: một đáp án, nhiều đáp án, đúng/sai, điền vào chỗ trống, nối cặp (chọn ở ô bên phải), sắp xếp (dùng mũi tên lên/xuống), trả lời ngắn và tự luận (có đếm số từ, hoặc số ký tự với tiếng Nhật, tiếng Trung). Câu đọc hiểu có đoạn văn ở trên, bấm vào tiêu đề để thu gọn.
+
+**Kết quả** hiện điểm, điểm theo từng kỹ năng, câu đúng sai và nhận xét của giáo viên. Điểm và đáp án chỉ hiện theo thiết lập của bài: có thể ngay khi nộp, khi giáo viên chấm xong, hoặc vào một giờ định sẵn cho cả lớp. Câu tự luận và câu trả lời ngắn chưa khớp đáp án hiện **Chờ giáo viên chấm**.
+
+Trong lúc làm bài, việc rời khỏi tab và dán văn bản được ghi lại cho giáo viên xem. Hệ thống không chặn các thao tác này.
+
 ### Đổi mật khẩu
 
 Lần đăng nhập đầu tiên, hệ thống mở trang **Đổi mật khẩu**. Nhập **Mật khẩu hiện tại** (mật khẩu tạm), **Mật khẩu mới** (ít nhất 8 ký tự, có cả chữ và số), rồi bấm **Lưu mật khẩu**. Muốn đổi lại sau này: bấm tên của bạn → **Tài khoản & bảo mật**. Các thiết bị khác đang đăng nhập sẽ bị đăng xuất.
@@ -166,6 +182,43 @@ Quên bấm kết thúc: phòng tự đóng khi không còn ai sau giờ kết t
 Lớp tại cơ sở không có dữ liệu phòng học, nên mặc định mọi học viên là Vắng; giáo viên chọn tay từng người rồi xác nhận.
 
 **Xác nhận chỉ làm được một lần.** Ngay sau đó hệ thống trừ buổi của học viên (trừ Vắng có phép) và ghi công cho giáo viên. Kiểm tra kỹ trước khi bấm.
+
+### Bài tập & kiểm tra
+
+Mục **Bài tập & kiểm tra** có 4 thẻ: **Bài đã giao**, **Ngân hàng câu hỏi**, **Đề**, **Chấm bài**. Giáo viên quản lý ngân hàng và đề của mình, xem được ngân hàng **Dùng chung** của người khác, và giao bài cho các lớp mình dạy. Quản lý cơ sở và điều phối viên làm được mọi việc này với mọi lớp của cơ sở mình.
+
+**Ngân hàng câu hỏi.** Mỗi ngân hàng thuộc một ngôn ngữ, để **Riêng** hoặc **Dùng chung**.
+
+- **Thêm câu hỏi**: chọn dạng câu, nhập đề, đáp án, điểm, kỹ năng và trình độ (theo khung của Catalog: JLPT, CEFR, HSK…), thẻ (ví dụ `n5, bài 3, ngữ pháp`) và lời giải thích.
+- Ô văn bản dùng cú pháp gọn: `[漢字|かんじ]` thành furigana, `[你好|nǐ hǎo]` thành pinyin, `**đậm**`, `_nghiêng_`. Bôi đen chữ rồi bấm **Furigana / pinyin** để chèn nhanh. Bản xem trước hiện ngay bên dưới.
+- Điền vào chỗ trống: viết `[[1]]`, `[[2]]` vào đề, rồi nhập các đáp án chấp nhận cho từng chỗ trống. Liệt kê đủ cả cách viết kana và kanji. Có tuỳ chọn bỏ qua hoa thường và bỏ qua dấu (dấu tiếng Việt, tiếng Pháp; dấu ゛゜ của kana luôn được giữ).
+- **Nhóm đọc hiểu**: một đoạn văn dùng chung cho nhiều câu.
+- Mỗi lần sửa câu hỏi tạo phiên bản mới. Bài đã làm giữ nguyên phiên bản lúc làm. **Lưu trữ** để ẩn câu khỏi đề mới.
+
+**Đề.** Đề gồm các phần, thường theo kỹ năng. Có thể đặt thời gian riêng cho từng phần: hoặc mọi phần đều có giờ, hoặc không phần nào có. Mỗi phần thêm:
+
+- **câu cố định** từ ngân hàng;
+- **cả nhóm đọc hiểu**;
+- **rút ngẫu nhiên** N câu theo ngân hàng, thẻ, kỹ năng và trình độ. Mỗi học viên nhận một bộ câu khác nhau.
+
+Thêm **thang tiêu chí** (ví dụ IELTS Writing: 4 tiêu chí, mỗi tiêu chí band 0–9) rồi gắn vào câu tự luận. Bỏ chọn **Hiện furigana / pinyin** cho đề kiểu JLPT có kiểm tra cách đọc chữ Hán.
+
+**Giao bài.** Bấm **Giao bài**, chọn đề, lớp và đối tượng: cả lớp, một buổi học, hoặc vài học viên. Thiết lập:
+
+- loại bài, giờ mở và hạn nộp;
+- nộp muộn: nhận bài, trừ % điểm, hoặc khoá khi hết hạn;
+- số lần làm và cách tính điểm (lần cao nhất, lần cuối, trung bình);
+- thời gian làm (đề có giờ theo phần thì lấy theo đề);
+- ai chấm (máy chấm, hoặc giáo viên duyệt mọi bài);
+- khi nào công bố điểm và khi nào cho xem đáp án.
+
+Trang chi tiết bài cho biết từng học viên đã làm chưa, nộp lúc nào, có nộp muộn không, điểm, và số lần rời tab hoặc dán. Bấm **Công bố điểm ngay** khi đã chấm xong cả lớp. Bài chưa ai làm thì xoá được.
+
+**Chấm bài.** Câu khách quan có điểm ngay khi nộp. Thẻ **Chấm bài** liệt kê bài đang chờ: câu tự luận, câu trả lời ngắn không khớp đáp án, và mọi bài của lớp chọn **Giáo viên duyệt mọi bài**. Lọc theo lớp và hạn nộp.
+
+1. Mở bài, xem câu trả lời của học viên cạnh đáp án.
+2. Với câu chờ chấm, chọn band cho từng tiêu chí (hoặc nhập điểm), viết nhận xét, bấm **Lưu điểm câu này**. Câu nào cũng sửa được điểm.
+3. Viết nhận xét chung rồi bấm **Hoàn tất và lưu điểm**. Điểm trở thành chính thức và được công bố theo thiết lập của bài.
 
 ## Vận hành trung tâm (`ops`)
 
@@ -325,6 +378,10 @@ Hệ thống tự gửi email, mỗi người theo ngôn ngữ của mình (họ
 | Chốt kỳ lương | Giáo viên |
 
 Học viên không có email trong hồ sơ thì không nhận email. Mục **Thông báo** (chỉ quản trị thấy) liệt kê thư đã gửi, đang chờ và lỗi; lọc theo trạng thái. Thư lỗi tạm thời được thử lại tự động; thư lỗi vĩnh viễn (ví dụ địa chỉ không tồn tại) hiện lý do. **Gửi lại** gửi lần nữa tới đúng địa chỉ cũ (dùng khi lỗi đã được khắc phục, ví dụ máy chủ thư hết lỗi hoặc người nhận đã mở lại hộp thư).
+
+### Bài tập & kiểm tra (chỉ xem)
+
+Quản trị, quản lý cơ sở và điều phối viên thấy mục **Bài tập & kiểm tra**. Mục này hiện số bài đã giao, số bài đang mở, số lượt chờ chấm, điểm trung bình 30 ngày qua và danh sách bài giao gần đây của các cơ sở mình quản lý. Soạn đề, giao bài và chấm bài làm ở khu vực giáo viên (`/teach/assessments`).
 
 ## Quy trình mẫu từ đầu đến cuối
 
