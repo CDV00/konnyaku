@@ -25,3 +25,6 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Local dev runner (dev.ps1): logs and PIDs
+.dev/

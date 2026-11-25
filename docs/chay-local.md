@@ -20,9 +20,34 @@ Frontend dùng 4000 để tránh trùng các dự án khác hay chạy ở 3000/
 
 .NET SDK 10, Node 20+, Docker Desktop, Python 3. Nếu lệnh `pnpm` báo lỗi corepack, dùng `npx -y pnpm@10.34.9` thay cho `pnpm` ở mọi lệnh bên dưới.
 
-## Bật hệ thống
+## Cách nhanh: một lệnh (Windows)
 
-Mỗi lệnh chạy lâu (API, Worker, frontend) cần một cửa sổ terminal riêng. Mọi lệnh chạy từ thư mục gốc repo.
+`dev.cmd` ở thư mục gốc repo làm hết các bước bên dưới. Nó gọi `dev.ps1` với `-ExecutionPolicy Bypass`, nên không cần đổi cài đặt PowerShell.
+
+```powershell
+.\dev.cmd up -Seed
+```
+
+| Lệnh | Làm gì |
+| --- | --- |
+| `.\dev.cmd up` | Bật PostgreSQL, Redis, Mailpit → build backend → tạo role module còn thiếu → migration → chạy API, Worker, Web ở nền (không cần mở 3 terminal) → chờ cả ba sẵn sàng. Lần đầu tự `pnpm install` |
+| `.\dev.cmd up -Seed` | Như trên, rồi chạy `seed_review.py`. Chỉ dùng lần đầu hoặc sau `reset` |
+| `.\dev.cmd up -NoBuild` | Bỏ bước build khi code backend không đổi (nhanh hơn) |
+| `.\dev.cmd status` | Thành phần nào đang chạy, PID, cổng, container, địa chỉ mở trình duyệt |
+| `.\dev.cmd logs api` | Xem log và theo dõi tiếp (`api`, `worker`, `web`, `migrator`, `build`); Ctrl+C để thoát |
+| `.\dev.cmd seed` | Nạp dữ liệu review khi hệ thống đang chạy |
+| `.\dev.cmd down` | Tắt API, Worker, Web và dừng container, **giữ dữ liệu** |
+| `.\dev.cmd down -Free` | Như trên, thêm tắt các tiến trình build .NET còn sót để trả RAM |
+| `.\dev.cmd down -Force` | Tắt luôn tiến trình lạ đang chiếm cổng 4000 hoặc 5080 (ví dụ terminal cũ đóng ngang) |
+| `.\dev.cmd reset -Yes` | Tắt hết và **xoá database dev**. Sau đó `.\dev.cmd up -Seed` |
+
+Log và PID nằm trong `.dev/` (đã gitignore). Script chỉ tắt những gì nó bật. Một tiến trình khác chiếm cổng thì script báo tên và PID thay vì tắt bừa.
+
+Nếu `up` báo một module "không đọc được bảng của mình", database dev được tạo khi module đó chưa có role, nên bảng của nó thiếu quyền. Chạy `.\dev.cmd reset -Yes` rồi `.\dev.cmd up -Seed`. Từ bản này trở đi, `up` tạo role của module mới **trước** migration, nên thêm module không cần xoá database nữa.
+
+## Bật hệ thống từng bước
+
+Phần này là những gì `dev.cmd up` làm, để chạy tay trên macOS/Linux hoặc khi cần xem từng bước. Mỗi lệnh chạy lâu (API, Worker, frontend) cần một cửa sổ terminal riêng. Mọi lệnh chạy từ thư mục gốc repo.
 
 1. Hạ tầng:
 
@@ -203,6 +228,8 @@ và một file override (`-f compose.yaml -f override.yaml`) đổi cổng Caddy
 
 ## Tắt hệ thống
 
+Bật bằng `dev.cmd up` thì tắt bằng `.\dev.cmd down` (giữ dữ liệu). Bật tay từng bước thì:
+
 1. Frontend, Worker, API: bấm **Ctrl+C** trong từng terminal.
 2. Hạ tầng Docker:
 
@@ -210,9 +237,9 @@ và một file override (`-f compose.yaml -f override.yaml`) đổi cổng Caddy
    | --- | --- | --- |
    | Tạm dừng, lần sau bật lại nhanh | `docker compose -f infra/docker/docker-compose.yml stop` | Giữ nguyên |
    | Tắt và gỡ container | `docker compose -f infra/docker/docker-compose.yml down` | Giữ nguyên (nằm trong volume) |
-   | Xoá sạch để làm lại từ đầu | `docker compose -f infra/docker/docker-compose.yml down -v` | **Mất hết** database và file MinIO |
+   | Xoá sạch để làm lại từ đầu | `docker compose -f infra/docker/docker-compose.yml down -v` | **Mất hết** database |
 
-   Sau `down -v` phải chạy lại từ bước 1, gồm cả migration và seed. Cần `down -v` khi thêm module mới (script tạo schema/role chỉ chạy lúc tạo volume).
+   Sau `down -v` phải chạy lại từ bước 1, gồm cả migration và seed. Khi thêm module mới, chạy lại `infra/docker/postgres/init/01-modules.sql` (idempotent) **trước** migration để có role của module; `dev.cmd up` tự làm việc này.
 
 ### Cổng vẫn bị chiếm sau khi tắt
 
