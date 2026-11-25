@@ -1,0 +1,8 @@
+# Upstreams of the web replicas, imported by the Caddyfile. At rest: every container Docker DNS returns for "web".
+# scripts/deploy.sh replaces this file with a static list during a rolling deploy (so Caddy stops sending requests to
+# a replica before it is stopped) and puts this content back at the end.
+dynamic a {
+	name web
+	port 3000
+	refresh 5s
+}
