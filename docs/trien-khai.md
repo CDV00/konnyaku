@@ -14,6 +14,7 @@ Internet ─80/443─► Caddy ──► web ×2 (Next.js: trang công khai, /le
                     │   └─/rtc/*─► signaling ×1 (Rust, WebSocket)
                     │        worker ×1 ──────────────┘
                     │        migrator (chạy mỗi lần up, xong thì thoát)
+                    │        backup (pgBackRest) ── WAL + backup, mã hóa ──► object storage S3 ở nhà cung cấp khác
                     └─ chứng chỉ HTTPS cấp tự động cho từng host tenant
 Internet ─3478 + dải UDP─► coturn (TURN, mạng host)
 Trình duyệt ◄────── hình/tiếng trực tiếp giữa các máy (WebRTC), qua coturn khi mạng chặn ──────► Trình duyệt
@@ -26,7 +27,8 @@ Trình duyệt ◄────── hình/tiếng trực tiếp giữa các má
 | `api` | `API_REPLICAS` (2) | Không mở ra Internet. Chỉ tin `X-Forwarded-For` từ mạng `app` (`APP_SUBNET`). Cache tenant trong bộ nhớ 1 phút |
 | `worker` | `WORKER_REPLICAS` (1) | Chạy nhiều bản an toàn: outbox lấy việc bằng `FOR UPDATE SKIP LOCKED` |
 | `migrator` | — | Áp migration bằng role chủ schema `konnyaku`; `api`/`worker` chỉ khởi động khi migrator thành công |
-| `postgres` | 1 | Mạng `data` không có đường ra Internet. Mỗi module một role `kk_<module>` với mật khẩu riêng |
+| `postgres` | 1 | Image `konnyaku-postgres:17` (postgres:17 + pgBackRest, build trên server từ `postgres/Dockerfile`, tag riêng nên deploy không khởi động lại DB). Mạng `data` không có đường ra Internet; mạng `backup` chỉ để đẩy WAL ra object storage (không mở cổng nào). Mỗi module một role `kk_<module>` với mật khẩu riêng |
+| `backup` | 1 | pgBackRest: full hằng tuần, diff hằng ngày, WAL liên tục, diễn tập khôi phục hằng tháng, ghi file trạng thái cho giám sát ([Backup](#backup)) |
 | `signaling` | **1** | Phòng học có sẵn (`services/signaling`, Rust): WebSocket `/rtc/ws` qua Caddy, chỉ nhận vé ngắn hạn do API ký (`SIGNALING_SECRET`), giữ ai đang ở phòng nào **trong bộ nhớ** nên chỉ chạy một bản. Báo vào/ra/kết thúc về API qua mạng nội bộ |
 | `redis` | 1 | Bộ đếm giới hạn tần suất dùng chung cho mọi bản sao API (mạng `data`, cổng 6379 chỉ trong mạng nội bộ, mật khẩu `REDIS_PASSWORD`, không lưu xuống đĩa). Redis dừng thì mỗi bản sao tạm đếm riêng trong RAM, không lỗi request |
 | `coturn` | 1 | TURN cho người dùng sau NAT/tường lửa chặt. Dùng mạng host (`network_mode: host`). Mật khẩu tạm theo TURN REST API (`TURN_SECRET`, hạn 6 giờ); không chuyển tiếp tới địa chỉ nội bộ/loopback |
@@ -79,19 +81,67 @@ Thay cho Google Meet khi trung tâm chưa có Google Workspace. Trung tâm chọ
 
    Server đã chạy từ trước bản có Redis và giám sát: thêm `REDIS_PASSWORD`, `GRAFANA_ADMIN_PASSWORD`, `DB_PASSWORD_MONITOR` (chạy lại `gen-secrets.sh` rồi chỉ chép ba dòng đó), nếu không `docker compose up` báo thiếu biến.
 
-   Sửa trong `.env`: `BASE_DOMAIN`, `ACME_EMAIL`, `IMAGE_*` (thay `OWNER` bằng tên GitHub org/user viết **chữ thường**, ví dụ `ghcr.io/cdv00/konnyaku-web`). Server đã chạy từ trước bản có phòng học: thêm `SIGNALING_SECRET` và `TURN_SECRET` (chạy lại `gen-secrets.sh` rồi chỉ chép hai dòng đó) và `IMAGE_SIGNALING`. Lưu một bản `.env` vào trình quản lý mật khẩu của nhóm: mất file này là mất mật khẩu DB và khóa ký JWT. `gen-secrets.sh` cũng sinh `CAPTCHA_KEY` (xem mục [Captcha của form công khai](#captcha-của-form-công-khai)); `.env` có sẵn từ trước thì thêm tay một dòng `CAPTCHA_KEY=$(openssl rand -hex 32)`, nếu không `docker compose up` báo thiếu biến.
+   Sửa trong `.env`: `BASE_DOMAIN`, `ACME_EMAIL`, `IMAGE_*` (thay `OWNER` bằng tên GitHub org/user viết **chữ thường**, ví dụ `ghcr.io/cdv00/konnyaku-web`). Server đã chạy từ trước bản có phòng học: thêm `SIGNALING_SECRET` và `TURN_SECRET` (chạy lại `gen-secrets.sh` rồi chỉ chép hai dòng đó) và `IMAGE_SIGNALING`. Lưu một bản `.env` vào trình quản lý mật khẩu của nhóm: mất file này là mất mật khẩu DB và khóa ký JWT. `gen-secrets.sh` cũng sinh `CAPTCHA_KEY` (xem mục [Captcha của form công khai](#captcha-của-form-công-khai)); `.env` có sẵn từ trước thì thêm tay một dòng `CAPTCHA_KEY=$(openssl rand -hex 32)`, nếu không `docker compose up` báo thiếu biến. Tương tự `BACKUP_CIPHER_PASS` (khoá mã hoá backup, xem [Backup](#backup)) — khoá này phải có một bản **ngoài server**.
 
 5. **GitHub**: Settings → Environments, tạo `staging` và `production`. Mỗi environment có secrets `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` (khóa riêng của một user chỉ dùng để deploy, thuộc nhóm `docker`), `DEPLOY_KNOWN_HOSTS` (kết quả `ssh-keyscan -H <host>`), và biến `DEPLOY_PATH` nếu khác `/opt/konnyaku`. Nên bật *Required reviewers* cho `production`.
 
 ## Deploy
 
-- Mỗi PR: CI build 5 image (api, worker, migrator, web, signaling) trên máy amd64 và máy arm64 thật của GitHub rồi chạy thử (`infra/deploy/scripts/smoke-test.sh`), không đẩy lên registry.
+- Mỗi PR: CI build 5 image (api, worker, migrator, web, signaling) trên máy amd64 và máy arm64 thật của GitHub rồi chạy thử (`infra/deploy/scripts/smoke-test.sh`, kể cả web dừng êm khi nhận SIGTERM), build image PostgreSQL + pgBackRest và kiểm tra cú pháp các script, không đẩy lên registry.
 - Merge vào `main` → CI xanh → workflow **Deploy** build lại trên từng kiến trúc, chạy thử, đẩy `<sha>-amd64` / `<sha>-arm64`, gộp thành tag đa kiến trúc `<sha>` và `latest`, rồi deploy lên **staging**.
 - Lên **production**: Actions → Deploy → Run workflow → `production`.
-- Workflow chép `compose.yaml`, `Caddyfile`, `postgres/`, `scripts/`, `monitoring/` lên server, đặt `IMAGE_TAG` trong `.env`, rồi `docker compose pull && docker compose up -d`. Migration chạy tự động trước khi API khởi động.
-- **Quay lại bản trước**: trên server sửa `IMAGE_TAG` trong `.env` về SHA cũ rồi chạy `docker compose up -d`. Migration không tự đảo ngược, nên mọi migration phải tương thích ngược với bản code trước đó (thêm cột/bảng trước, xoá ở bản sau).
+- Workflow chép `compose.yaml`, `Caddyfile`, `caddy/`, `postgres/`, `scripts/`, `monitoring/` lên server rồi chạy **`./scripts/deploy.sh <sha>`** (deploy cuốn chiếu, bên dưới). Deploy tay trên server cũng chỉ là lệnh đó.
 
-`docker compose up -d` tạo lại mọi bản sao cùng lúc, nên mỗi lần deploy có vài giây gián đoạn. Đủ cho pilot; khi cần không gián đoạn thì chuyển sang deploy cuốn chiếu (rolling).
+### Deploy cuốn chiếu (không gián đoạn)
+
+`scripts/deploy.sh <tag>` ghi `IMAGE_TAG=<tag>` vào `.env` rồi:
+
+1. Kéo image của tag; build `konnyaku-postgres:17` nếu server chưa có.
+2. Hạ tầng (`postgres`, `backup`, `redis`, `caddy`, `coturn`, giám sát nếu bật) chỉ được tạo lại khi định nghĩa của nó trong `compose.yaml` đổi (với `postgres` là một lần khởi động lại DB, vài giây lỗi — báo trước khi deploy bản như vậy). `Caddyfile` được nạp lại êm (`caddy reload`, không cắt kết nối).
+3. **Migrator chạy trước**. Lỗi thì dừng, chưa bản sao nào bị đổi.
+4. `api`, rồi `web`, rồi `worker`: **từng bản sao một** — tạo một bản mới bên cạnh, chờ healthcheck báo `healthy` (tối đa `DEPLOY_HEALTH_TIMEOUT`, 180 s), rồi mới dừng một bản cũ. Bản mới không healthy thì bị xoá, script dừng và **bản cũ vẫn phục vụ**. Lúc cao nhất có thêm một bản sao (máy 2 GB: thêm ~150–400 MiB trong vài chục giây).
+5. Bản cũ không bị cắt ngang request nào:
+   - **Caddy → web**: Caddy tìm các bản sao web qua Docker DNS (`caddy/web-upstreams.caddy`), mà DNS liệt kê một container ngay khi nó *khởi động* (trước khi nghe cổng) và tới tận khi nó *biến mất*, Caddy còn giữ danh sách 5 s. Một POST gửi vào khe đó không thử lại được (Caddy gửi lại với thân rỗng). Nên trong lúc cuốn chiếu web, script ghi vào file đó **danh sách tĩnh** các bản đang phục vụ rồi `caddy reload` (êm, request đang chạy không bị cắt): bản mới chỉ vào danh sách khi đã healthy, bản cũ ra khỏi danh sách trước khi bị dừng; cuối cùng trả lại tra DNS (cả khi script lỗi giữa chừng).
+   - **web → api**: Node tra DNS ở mỗi kết nối mới, không có khe như trên. Khi dừng (SIGTERM, `stop_grace_period: 30s`) API **phục vụ thêm 5 s** (`Shutdown__DrainSeconds`) với `Connection: close` để web bỏ các kết nối keep-alive đang giữ sau một response trọn vẹn, rồi Kestrel mới thôi nhận kết nối và trả nốt request đang chạy. `apiFetch` thử lại (tối đa 5 lần trong ~1,5 s) khi kết nối bị từ chối — request chưa tới API nên an toàn với mọi method; kết nối đứt giữa chừng chỉ thử lại với GET.
+   - **web dừng**: `frontend/graceful-shutdown.cjs` thay cho handler của Next.js (vốn thoát ngay, cắt request đang chạy): cũng 5 s `Connection: close`, rồi đóng cổng, trả nốt request và thoát 0. Caddy tự đóng kết nối rảnh tới web sau 3 s (`keepalive 3s`), luôn trước web, nên không bao giờ gửi request vào kết nối web đang đóng.
+
+| Thành phần | Cách đổi bản |
+| --- | --- |
+| `api`, `web`, `worker` | Cuốn chiếu như trên. Worker chạy song song hai bản an toàn (`FOR UPDATE SKIP LOCKED`, inbox chống trùng). Máy 2 GB (`WORKER_REPLICAS=0`) bỏ qua worker |
+| `migrator` | Chạy một lần trước khi đổi bản; trong lúc cuốn chiếu, bản cũ và bản mới cùng chạy trên schema mới (xem quy tắc dưới) |
+| `signaling` | Giữ phòng học trong bộ nhớ nên không chạy hai bản được. Chỉ thay khi image đổi **và không có phòng nào đang mở** (hỏi `/rtc/health`); đang có lớp thì giữ bản cũ và in lệnh chạy lại sau giờ học: `./scripts/deploy.sh --no-pull --signaling now`. Thay khi có lớp thì mọi phòng mất kết nối vài giây rồi trình duyệt tự nối lại (thời gian có mặt không bị tính trùng). Vì vậy thay đổi giao thức giữa signaling và API/trình duyệt phải để bản cũ và bản mới cùng hiểu được trong một khoảng thời gian |
+| `coturn` | Image cố định, chỉ tạo lại khi định nghĩa đổi; khi đó cuộc gọi đang đi qua TURN rớt và tự nối lại (ICE). Làm ngoài giờ học |
+| `caddy` | `Caddyfile` đổi: nạp lại êm. Định nghĩa service đổi (image, cổng): tạo lại, mất kết nối vài giây — làm ngoài giờ học |
+| `postgres`, `backup` | Tag `konnyaku-postgres:17` không theo `IMAGE_TAG`, deploy app không đụng tới. Đổi phiên bản pgBackRest: `docker compose build --no-cache postgres` rồi `docker compose up -d postgres backup` ngoài giờ học |
+
+Số đo (máy dev Windows + Docker Desktop **dùng chung với các phiên khác**, stack production 2 web + 2 api + worker, DB review; k6 [`infra/loadtest/deploy.js`](../infra/loadtest/deploy.js) qua Caddy suốt lúc deploy, ~7 request/s: xem trang công khai, `/ops`, `/learn`, gửi form đăng ký (POST), đăng nhập (POST)):
+
+| Cách deploy | Thời gian | Request | Lỗi |
+| --- | --- | --- | --- |
+| Cũ: đổi tag + `docker compose up -d` (mọi bản sao tạo lại cùng lúc) | ~50 s | 636 | **122** (500/502/503, treo 60 s) |
+| `deploy.sh` (bản cuối) | 158 s | 1 749 | **0** |
+| `deploy.sh` quay lại tag trước (rollback) | 126 s | 1 524 | **0** |
+
+Các lượt đo trung gian chỉ ra từng nguyên nhân lỗi đã sửa ở trên: chưa có drain → `UND_ERR_SOCKET` web→api và 502 cho POST khi web dừng; Caddy dựa vào DNS → POST tới IP vừa biến mất hoặc tới container chưa nghe cổng bị 502 (thử lại với thân rỗng), và một lỗi làm bản sao khoẻ bị loại 30 s (`fail_duration` cũ) → loạt 503. Lần deploy **đầu tiên** có thay đổi này vẫn có thể có vài lỗi (bản sao cũ chưa có drain); từ lần sau là 0.
+
+### Migration tương thích ngược
+
+Trong lúc cuốn chiếu và khi quay lại bản trước, **code bản cũ chạy trên schema mới**. Mọi migration phải để bản code liền trước vẫn chạy đúng:
+
+- Thêm cột/bảng: được (cột mới cho phép NULL hoặc có giá trị mặc định).
+- Đổi tên hoặc xoá cột/bảng: tách hai bản — bản N thêm cái mới và ghi cả hai (hoặc thôi đọc cái cũ), bản N+1 mới xoá cái cũ.
+- Đổi kiểu, thêm `NOT NULL` hay ràng buộc mới lên dữ liệu đang có: thêm cột mới + chép dữ liệu, chuyển code sang, xoá cột cũ ở bản sau.
+- Event (`...V1`) và API giữa các module: giữ hợp đồng cũ, thêm `V2` khi phá vỡ (quy tắc 3 trong `CLAUDE.md`).
+
+### Quay lại bản trước (rollback)
+
+Cũng cuốn chiếu, không gián đoạn: chạy lại script với SHA cũ (lấy từ lịch sử Actions hoặc `docker images`):
+
+```bash
+cd /opt/konnyaku && ./scripts/deploy.sh <sha cũ>
+```
+
+Migration không tự đảo ngược: bản cũ chạy trên schema mới (vì thế cần quy tắc ở trên). Nếu chính dữ liệu bị hỏng do bản lỗi, xem [Khôi phục](#khôi-phục).
 
 ## Captcha của form công khai
 
@@ -153,29 +203,108 @@ Bảo mật tài khoản ở production (mặc định, không cần đặt bi�
 
 ## Backup
 
+Hai lớp, cả hai chạy tự động:
+
+| Lớp | Công cụ | Điểm khôi phục | Ở đâu |
+| --- | --- | --- | --- |
+| Chính | **pgBackRest** (service `backup` + `archive_command` của PostgreSQL) | **Bất kỳ thời điểm nào** trong `BACKUP_RETENTION_DAYS` (30) ngày gần nhất; mất server thì mất tối đa `PG_ARCHIVE_TIMEOUT` (60) giây dữ liệu | Object storage S3 ở nhà cung cấp khác, mã hoá phía client |
+| Phụ | `scripts/backup.sh` (`pg_dump` hằng đêm qua cron) | Theo ngày, `BACKUP_KEEP_DAYS` (7) ngày | Trên server (+ `rclone` nếu đặt `RCLONE_REMOTE`) |
+
+**Vì sao pgBackRest (không phải WAL-G)**: cùng làm được full + WAL liên tục lên S3 và PITR; pgBackRest có sẵn trong repo PGDG mà image `postgres:17` đã cấu hình (một dòng `apt-get`, cùng nguồn với PostgreSQL), có **chính sách giữ theo thời gian** (`repo1-retention-full-type=time`: giữ đủ full để khôi phục mọi thời điểm trong N ngày, WAL cũ hơn tự xoá), **mã hoá AES-256 phía client** chỉ bằng một mật khẩu (WAL-G cần quản lý khoá libsodium/PGP riêng), backup **diff/incr theo khối** (`repo1-block`) ít tải lên hơn, `info --output=json` cho file trạng thái, và `check` xác minh cả đường đẩy WAL. Đổi lại pgBackRest lớn hơn một chút và cần chạy cạnh PostgreSQL (cùng volume, cùng socket) — ở đây là sidecar `backup` dùng chung image.
+
+**Vì sao giữ `pg_dump`**: độc lập hoàn toàn với pgBackRest (công cụ khác, định dạng logic, không cần khoá mã hoá), lấy lại được một schema hay một bảng, và đọc được bằng PostgreSQL bản khác. Tốn vài giây CPU mỗi đêm và dung lượng đĩa bằng vài lần DB đã nén. Bỏ nó khi DB lớn tới mức dump mất hàng chục phút.
+
+### Cài đặt
+
+1. **Object storage** ở nhà cung cấp **khác** VPS (Backblaze B2, Cloudflare R2, Wasabi, hoặc object storage của Viettel IDC, VNG Cloud, FPT, BizFly…): tạo một bucket riêng (không public), một khoá truy cập **chỉ có quyền trên bucket đó**. Nếu nhà cung cấp có object lock / versioning thì bật để chống xoá nhầm hoặc bị xoá bởi kẻ đã chiếm server (pgBackRest tự xoá bản hết hạn, nên đặt thời gian giữ của lock ngắn hơn hoặc bằng `BACKUP_RETENTION_DAYS`).
+2. Điền khối `BACKUP_S3_*` trong `.env` (ví dụ B2 và R2 có trong `.env.example`). pgBackRest luôn dùng HTTPS.
+3. `BACKUP_CIPHER_PASS` do `gen-secrets.sh` sinh (server cũ: thêm tay `BACKUP_CIPHER_PASS=$(openssl rand -hex 32)`). **Lưu khoá này ngoài server** — trình quản lý mật khẩu của nhóm, cùng chỗ với bản sao `.env`: mất server là mất `.env`, và không có khoá thì backup trên object storage vô dụng. Không đổi khoá khi repo đã có dữ liệu (muốn đổi: dùng `BACKUP_S3_PATH` mới và để bản cũ hết hạn).
+4. `./scripts/deploy.sh` (hoặc `docker compose up -d`). Service `backup` tạo stanza, kiểm tra đường đẩy WAL (`pgbackrest check`) và chạy full backup đầu tiên ngay. Xem: `docker compose logs -f backup`, `./scripts/kk-backup.sh info`.
+5. Cron cho lớp phụ:
+
+   ```
+   15 2 * * * cd /opt/konnyaku && ./scripts/backup.sh >> backups/backup.log 2>&1
+   ```
+
+Server đã chạy từ trước bản này: lần deploy đầu tạo lại `postgres` (image mới, bật `archive_mode`) — **một lần khởi động lại DB, vài giây lỗi**, làm ngoài giờ học.
+
+### Lịch và giữ bản
+
+| Biến | Mặc định | Ý nghĩa |
+| --- | --- | --- |
+| `BACKUP_TIME_UTC` | `19:30` (02:30 giờ Việt Nam) | Giờ chạy backup hằng ngày |
+| `BACKUP_FULL_WEEKDAY` | `7` (Chủ nhật) | Ngày full; các ngày khác diff. Full cũng chạy khi bản full mới nhất cũ hơn 7 ngày (service ngừng đúng hôm đó) |
+| `BACKUP_RETENTION_DAYS` | `30` | Khôi phục được mọi thời điểm trong N ngày; với full hằng tuần thường giữ 5 bản full + diff + WAL |
+| `PG_ARCHIVE_TIMEOUT` | `60` | Khi có ghi, đoạn WAL được đóng và đẩy đi ít nhất mỗi N giây: lượng dữ liệu tối đa mất khi mất server |
+| `BACKUP_DRILL_DAY` | `1` | Ngày trong tháng chạy diễn tập sau backup (`0`: tắt) |
+| `BACKUP_WAL_QUEUE_MAX` | `4GiB` | Object storage không tới được lâu: quá ngưỡng này WAL bị bỏ để không đầy đĩa (PITR có khoảng trống tới full kế tiếp; cảnh báo `wal_pending_segments` báo trước) |
+| `BACKUP_MEM_LIMIT` | `256m` (máy 2 GB: `128m`) | Trần RAM của service `backup` (diễn tập gồm cả một PostgreSQL tạm) |
+
+Backup tay: `./scripts/kk-backup.sh backup full` (hoặc `diff`, `incr`).
+
+**RAM** (đo bằng `docker stats` mỗi giây trên stack thử, DB review ~30 MB): service `backup` **~2 MiB** lúc chờ (vòng lặp shell), đỉnh **~37 MiB** khi chạy diff backup, **~42 MiB** khi diễn tập (pgBackRest restore + PostgreSQL tạm 32 MB buffer). Đẩy WAL chạy trong container `postgres` dưới dạng tiến trình ngắn của pgBackRest, không làm đổi đáng kể RAM của nó. Trần mặc định 256m / 128m để dư cho DB lớn hơn; tổng RAM thêm vào stack lúc thường gần như bằng 0.
+
+### File trạng thái (cho giám sát)
+
+Ghi vào `BACKUP_DIR/status/` trên host (mặc định `/opt/konnyaku/backups/status/`; trong container là `/backups/status/`), thay file nguyên khối (ghi file tạm rồi `mv`). Định dạng Prometheus text (đọc được bằng textfile collector của node_exporter) và JSON cùng nội dung:
+
+| File | Ai ghi, khi nào | Chỉ số |
+| --- | --- | --- |
+| `pgbackrest.prom`, `backup.json` | Service `backup`, mỗi phút và sau mỗi backup/diễn tập | `konnyaku_backup_configured` (0/1), `konnyaku_backup_heartbeat_timestamp_seconds`, `konnyaku_backup_last_success_timestamp_seconds{type="full\|diff\|incr"}`, `konnyaku_backup_last_run_timestamp_seconds`, `konnyaku_backup_last_run_success`, `konnyaku_backup_count`, `konnyaku_backup_oldest_timestamp_seconds`, `konnyaku_backup_repo_size_bytes`, `konnyaku_backup_wal_last_archived_timestamp_seconds`, `konnyaku_backup_wal_last_failed_timestamp_seconds`, `konnyaku_backup_wal_failed_total`, `konnyaku_backup_wal_pending_segments`, `konnyaku_backup_drill_last_run_timestamp_seconds`, `konnyaku_backup_drill_last_success`, `konnyaku_backup_drill_last_success_timestamp_seconds` |
+| `drill.json` | Sau mỗi lần diễn tập | thời điểm, đạt/không, mốc khôi phục, thời gian, số dòng từng bảng (khôi phục / live), ghi chú |
+| `dump.prom`, `dump.json` | `scripts/backup.sh`, khi dump thành công | `konnyaku_dump_last_success_timestamp_seconds`, `konnyaku_dump_last_size_bytes` |
+
+Timestamp là giây Unix UTC, `0` = chưa từng. Khi bật giám sát, node-exporter đọc thư mục này và các cảnh báo `BackupOverdue`, `DumpOverdue`, `BackupSidecarStalled`, `WalArchivingFailing`, `BackupNotConfigured`, `RestoreDrillOverdue`, `BackupStatusMissing` dùng các chỉ số trên ([Cảnh báo](#cảnh-báo)).
+
+`konnyaku_backup_wal_last_archived_timestamp_seconds` cũ **không** có nghĩa là lỗi: DB không có ghi thì không đóng đoạn WAL mới.
+
+## Khôi phục
+
+| Tình huống | Làm gì |
+| --- | --- |
+| Lỡ tay xoá/sửa dữ liệu, cả hệ thống cần quay lại | `./scripts/restore.sh --time "<thời điểm ngay trước sự cố>"` |
+| Lỡ tay xoá dữ liệu **một trung tâm**, các trung tâm khác vẫn đang làm việc | Không quay cả DB: dựng bản tạm ở thời điểm trước sự cố rồi chép riêng dữ liệu cần lấy (bên dưới) |
+| Mất server, đĩa hỏng | Server mới + `./scripts/restore.sh latest` |
+| Khôi phục nhầm | `restore.sh` đã đánh dấu trạng thái trước đó: `./scripts/restore.sh --name before-restore-<thời gian> --timeline <số timeline cũ>` (script in ra cả hai khi chạy) |
+
+Mọi lệnh chạy trong `/opt/konnyaku`. Xem trước khoảng có thể khôi phục: `./scripts/restore.sh --list` (bản full/diff, WAL từ … đến …).
+
+### Về một thời điểm (PITR)
+
 ```bash
-crontab -e
+./scripts/restore.sh --time "2026-11-25 10:30:00+07"
 ```
 
-Thêm dòng:
+Script: đánh dấu trạng thái hiện tại (restore point `before-restore-…`) và đẩy WAL mới nhất → dừng web/api/worker/signaling/backup rồi PostgreSQL → pgBackRest khôi phục bản full/diff phù hợp vào volume (chỉ tải file khác, `--delta`) → khởi động PostgreSQL, chờ phát lại WAL tới đúng thời điểm và mở DB (timeline mới) → bật lại mọi thứ, chạy một full backup mới. Mọi thứ ghi sau thời điểm đó **mất với mọi trung tâm** (vẫn nằm trong repo ở timeline cũ). Thời gian ≈ dừng site + tải bản full/diff + phát lại WAL + bật lại site; trên máy dev với DB review: site gián đoạn **78 s** (dừng 15 s, pgBackRest restore `--delta` 2 s, phát lại WAL và mở DB 20 s, bật lại container ~40 s), cộng 7 s full backup sau đó. Server mới (volume trống): 156 s.
 
-```
-15 2 * * * cd /opt/konnyaku && ./scripts/backup.sh >> backups/backup.log 2>&1
-```
+### Lên server mới
 
-`backup.sh` chạy `pg_dump` toàn bộ database (mọi schema module, kể cả sổ buổi học), kiểm tra file đọc được, giữ `BACKUP_KEEP_DAYS` ngày trên máy. **Bản trên cùng máy không phải backup**: cài `rclone`, cấu hình một remote object storage ở nhà cung cấp khác và đặt `RCLONE_REMOTE` trong `.env` để mỗi bản được đẩy đi.
+1. Cài Docker, mở firewall, trỏ DNS như [Chuẩn bị](#chuẩn-bị-một-lần); chép `infra/deploy/` vào `/opt/konnyaku`.
+2. Lấy **`.env` cũ** từ trình quản lý mật khẩu (cần đúng `BACKUP_*`, `BACKUP_CIPHER_PASS`, `POSTGRES_PASSWORD` và `DB_PASSWORD_*` — mật khẩu các role nằm trong DB được khôi phục — cùng `AUTH_SIGNING_KEY`, `CAPTCHA_KEY`…). Đăng nhập GHCR.
+3. `./scripts/restore.sh latest` (volume trống: khôi phục đầy đủ) rồi `./scripts/deploy.sh <sha đang chạy>`.
 
-### Khôi phục
-
-Diễn tập mỗi tháng trên staging:
+### Lấy lại một phần dữ liệu
 
 ```bash
-docker compose stop web api worker
-docker compose exec -T postgres pg_restore -U konnyaku -d konnyaku --clean --if-exists /backups/<file>.dump
-docker compose up -d
+./scripts/kk-backup.sh drill --time "2026-11-25 10:30:00+07" --keep
+docker compose exec backup psql -h /tmp/kk-drill -p 5499 -U konnyaku konnyaku     # xem dữ liệu ở thời điểm đó
+docker compose exec -T backup pg_dump -h /tmp/kk-drill -p 5499 -U konnyaku -a -t 'crm.lead' konnyaku > lead.sql
+./scripts/kk-backup.sh drill-stop
 ```
 
-`pg_dump` cho điểm khôi phục theo ngày. Khi có doanh thu, chuyển sang managed PostgreSQL hoặc pgBackRest để khôi phục tới từng thời điểm.
+Bản tạm chạy trong container `backup` (không mở cổng, không bao giờ ghi vào repo backup), không đụng DB đang chạy. Chép dữ liệu về bằng SQL có lọc theo `tenant_id`; **sổ buổi học chỉ được thêm bút toán**, không chèn lại dòng cũ đè lên số dư hiện tại mà ghi bút toán điều chỉnh.
+
+### Diễn tập hằng tháng
+
+Tự động ngày `BACKUP_DRILL_DAY` mỗi tháng, sau backup; chạy tay bất cứ lúc nào: `./scripts/kk-backup.sh drill`.
+
+1. Đếm số dòng các bảng chính trên DB đang chạy (một câu lệnh, cùng snapshot): `billing.credit_ledger_entry`, `billing.payment`, `billing.order`, `scheduling.session`, `academic.enrollment`, `learning.attendance`, `crm.student_profile`, `crm.lead`, `identity.user`, `platform.tenant` (đổi bằng `BACKUP_DRILL_TABLES`).
+2. Tạo restore point ngay sau đó, chờ WAL chứa nó lên object storage (`pgbackrest check`).
+3. Khôi phục từ object storage vào thư mục tạm trong container `backup`, khởi động một PostgreSQL riêng (socket, không TCP, `archive_mode=off`, 32 MB buffer), chờ phát lại WAL tới restore point.
+4. Đạt khi: khôi phục và mở DB thành công, đủ 12 schema module, đếm được mọi bảng; số dòng khác live chỉ khi có ghi chen giữa bước 1 và 2 (ghi vào `notes`), riêng sổ buổi học chỉ được bằng hoặc nhiều hơn.
+5. Ghi `drill.json`, cập nhật `pgbackrest.prom`, xoá bản tạm.
+
+Cần đĩa trống ≈ dung lượng DB. Mỗi quý nên diễn tập thêm một lần đầy đủ trên **staging hoặc server mới** bằng `restore.sh` (đo thời gian khôi phục thật, kiểm tra đăng nhập và vài màn hình).
 
 ## Giám sát và cảnh báo
 
@@ -333,6 +462,11 @@ docker compose exec postgres psql -U konnyaku -c "CREATE ROLE kk_notification LO
 | RAM/CPU từng container | `docker stats --no-stream` |
 | Vào psql | `docker compose exec postgres psql -U konnyaku` |
 | Dung lượng | `docker system df` |
+| Deploy / quay lại bản trước | `./scripts/deploy.sh <sha>` ([Deploy](#deploy)) |
+| Backup: danh sách, khoảng khôi phục được | `./scripts/kk-backup.sh info`; trạng thái: `cat backups/status/backup.json` |
+| Backup ngay | `./scripts/kk-backup.sh backup full` |
+| Diễn tập khôi phục | `./scripts/kk-backup.sh drill` (kết quả: `backups/status/drill.json`) |
+| Khôi phục | `./scripts/restore.sh --time "<thời điểm>"` hoặc `latest` ([Khôi phục](#khôi-phục)) |
 | Phòng học đang mở | `docker compose exec caddy wget -qO- http://signaling:5100/rtc/health` (số phòng, số người); dashboard Grafana khi bật giám sát |
 | Dashboard, trace, log | `https://admin.BASE_DOMAIN/grafana/` hoặc SSH tunnel ([Giám sát và cảnh báo](#giám-sát-và-cảnh-báo)) |
 | Redis | `docker compose exec redis sh -c 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli info memory'` |

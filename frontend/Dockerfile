@@ -32,6 +32,9 @@ ENV NODE_ENV=production \
 WORKDIR /app
 COPY --from=build --chown=node:node /repo/apps/site/.next/standalone ./
 COPY --from=build --chown=node:node /repo/apps/site/.next/static ./apps/site/.next/static
+# Graceful SIGTERM for rolling deploys (finish requests in flight instead of exiting at once).
+COPY --chown=node:node graceful-shutdown.cjs ./
+ENV NEXT_MANUAL_SIG_HANDLE=true
 USER node
 EXPOSE 3000
-CMD ["node", "apps/site/server.js"]
+CMD ["node", "--require", "./graceful-shutdown.cjs", "apps/site/server.js"]

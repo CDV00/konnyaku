@@ -1,7 +1,7 @@
 name: Deploy
 
 # Builds the five images (api, worker, migrator, web, signaling) for amd64 and arm64, smoke-tests each on its own
-# architecture, pushes them to GHCR as multi-arch tags and rolls the server forward.
+# architecture, pushes them to GHCR as multi-arch tags and rolls the server forward (scripts/deploy.sh, no downtime).
 # After CI succeeds on main it deploys to staging; production is deployed by hand
 # (Actions → Deploy → Run workflow → production), optionally gated by required reviewers on that environment.
 # Repository settings needed (Settings → Environments → production / staging):
@@ -128,7 +128,8 @@ jobs:
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           # Stack definition comes from the repo; .env (secrets, domain) and backups/ stay on the server.
           cd infra/deploy
-          tar -czf - compose.yaml Caddyfile postgres scripts monitoring .env.example \
+          tar -czf - compose.yaml Caddyfile caddy postgres scripts monitoring .env.example 
             | ssh -i ~/.ssh/id_deploy "$TARGET" "mkdir -p '$DEPLOY_PATH' && tar -xzf - -C '$DEPLOY_PATH'"
-          ssh -i ~/.ssh/id_deploy "$TARGET" "cd '$DEPLOY_PATH' && sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=$TAG/' .env \
-            && docker compose pull --quiet && docker compose up -d --remove-orphans && docker image prune -f"
+          # Rolling deploy: migrator first, then api/web/worker one replica at a time (new healthy before old stops);
+          # signaling only when no classroom is open (docs/trien-khai.md#deploy). Rollback: the same with an older tag.
+          ssh -i ~/.ssh/id_deploy "$TARGET" "cd '$DEPLOY_PATH' && ./scripts/deploy.sh '$TAG'"
