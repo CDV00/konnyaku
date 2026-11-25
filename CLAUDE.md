@@ -34,6 +34,7 @@ SaaS Education ERP + LMS cho trung tâm ngoại ngữ: nhiều trung tâm (tenan
 - Node 20.18: giữ `tailwindcss` và `@tailwindcss/postcss` đúng **4.1.18** (4.3 cần `require(esm)`, lỗi build).
 - Nếu `pnpm` (corepack) lỗi, dùng `npx -y pnpm@10.34.9 …`.
 - Cách bật/tắt, bảng cổng, lỗi thường gặp: [docs/chay-local.md](docs/chay-local.md). Cổng: web 4000, API 5080, Worker 5090, PostgreSQL 5433.
+- Bật/tắt cả hệ thống trên Windows: `.\dev.cmd up` (thêm `-Seed` lần đầu), `.\dev.cmd status`, `.\dev.cmd logs api`, `.\dev.cmd down`; log và PID trong `.dev/`.
 - Dev server khai báo trong `.claude/launch.json` (api, worker, site).
 - Tenant xác định theo host: mở `http://demo.localhost:4000`. Tài khoản demo trong `docs/chay-local.md`.
 

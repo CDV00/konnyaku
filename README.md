@@ -5,7 +5,7 @@ Stack: .NET 10 (ASP.NET Core) · Next.js App Router · PostgreSQL.
 
 ## Chạy local
 
-Hướng dẫn đầy đủ cách bật, tắt, bảng cổng và xử lý lỗi: [docs/chay-local.md](docs/chay-local.md). Frontend là một app Next.js chạy ở cổng 4000 (trang công khai, `/learn`, `/teach`, `/ops`). Người cùng phát triển đọc thêm [CLAUDE.md](CLAUDE.md) và các skill trong `.claude/skills/`.
+Trên Windows, bật cả hệ thống bằng một lệnh `.\dev.cmd up -Seed` (lần sau `.\dev.cmd up`), xem trạng thái `.\dev.cmd status`, tắt `.\dev.cmd down`. Hướng dẫn đầy đủ cách bật, tắt, bảng cổng và xử lý lỗi: [docs/chay-local.md](docs/chay-local.md). Frontend là một app Next.js chạy ở cổng 4000 (trang công khai, `/learn`, `/teach`, `/ops`). Người cùng phát triển đọc thêm [CLAUDE.md](CLAUDE.md) và các skill trong `.claude/skills/`.
 
 Yêu cầu: .NET SDK 10, Node 20+, Docker, Python 3 (script seed). pnpm dùng qua `npx pnpm@10.34.9` nếu corepack trên máy lỗi.
 
