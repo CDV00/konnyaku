@@ -156,6 +156,12 @@ Cùng service `signaling` (doc 10.9): mỗi tab đã đăng nhập giữ một W
 - Trần `SIGNALING_MEM_LIMIT` giữ nguyên (256m / 96m): 1 000 người trong phòng học (~210 MiB) **hoặc** ~15 000 tab; máy 2 GB với 96m đủ ~400 người trong phòng hoặc ~5 000 tab. Redis không lưu gì cho pub/sub, `REDIS_MAXMEMORY` không đổi.
 - Mỗi tab tự kết nối lại sau `RT_CONNECTION_MINUTES` (60) để lấy vé mới; mỗi người tối đa `RT_MAX_CONNECTIONS_PER_USER` (20) socket trên mỗi bản.
 
+### 11. Kho file: Garage, files-backup, ClamAV
+
+File không đi qua API (URL ký, trình duyệt gửi thẳng lên Garage qua Caddy), nên api và web không tăng RAM theo dung lượng file. Phần API vẫn làm khi hoàn tất một upload: đọc 512 byte đầu (magic bytes), băm SHA-256 theo luồng (bộ đệm 80 KB), và riêng ảnh thì đọc cả ảnh vào RAM để xoá EXIF (ảnh tối đa 20 MB, một ảnh mỗi request).
+
+Garage v2.5.0 (một node, metadata SQLite, `block_ram_buffer_max = 32MiB`) đo bằng `docker stats` khi chạy một mình: **~8 MiB** lúc chờ, đỉnh **~35 MiB** khi rclone tải lên song song 8 luồng 200 file 200 KB và một file 100 MB. Trần `GARAGE_MEM_LIMIT` 192m (8 GB) / 128m (2 GB) để dư cho bộ đệm khối và cache metadata khi số object lớn. `files-backup` (rclone) chỉ chạy một vòng shell lúc chờ; khi chép dùng 2 luồng, bộ đệm 4 MB: trần 128m / 96m. ClamAV (profile `clamav`) giữ cơ sở dữ liệu chữ ký trong RAM, ~1–1,5 GiB: chỉ hợp với máy 8 GB.
+
 ## Sau khi tối ưu
 
 Cùng cách đọc như bảng trước. Hai dòng "chưa sửa keep-alive" là lượt đo trước khi thêm `KEEP_ALIVE_TIMEOUT` (mục 7).
@@ -193,6 +199,7 @@ Hai khối trong [`infra/deploy/.env.example`](../infra/deploy/.env.example); co
 | api | 1 × trần 384m, **chạy luôn outbox** | 2 × trần 512m |
 | worker | 0 | 1 × trần 256m |
 | signaling, coturn | trần 96m, 64m | trần 256m, 128m |
+| garage, files-backup (kho file) | trần 128m, 96m | trần 192m, 128m; ClamAV tuỳ chọn 1536m |
 | pool mỗi module | api 6 | api 6, worker 3 |
 | PostgreSQL | 80 kết nối, `shared_buffers` 128MB, trần 512m | 200 kết nối, `shared_buffers` 512MB, trần 2g |
 | RAM stack đo được: load / stress (tổng đỉnh) | ~470 / 630–780 MiB | ~880 / 1 080–1 375 MiB |

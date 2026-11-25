@@ -89,7 +89,8 @@
       "notifications": "Notifications",
       "security": "Security",
       "privacy": "Privacy",
-      "makeups": "Make-ups"
+      "makeups": "Make-ups",
+      "files": "Files"
     },
     "hint": {
       "leads": "Follow up and move leads along",
@@ -103,7 +104,8 @@
       "notifications": "Sent emails, failures and resending",
       "security": "Lock accounts, reset passwords, sign-in log",
       "privacy": "Personal data requests, access log",
-      "makeups": "Exceptional make-ups, learners who often ask for leave"
+      "makeups": "Exceptional make-ups, learners who often ask for leave",
+      "files": "Storage used, uploaded files, quarantined files"
     },
     "zone": "Operations",
     "subtitle": "How the center is doing today, with shortcuts to everyday tasks.",
@@ -818,7 +820,25 @@
       "scheduling_makeup_lesson_mismatch": "A make-up cannot be placed in the learner's own class.",
       "scheduling_already_booked": "The learner already has a seat in this session.",
       "scheduling_settings_invalid": "Invalid rule values.",
-      "scheduling_booking_changed_concurrently": "The data just changed, reload the page."
+      "scheduling_booking_changed_concurrently": "The data just changed, reload the page.",
+      "content_file_name_invalid": "Invalid file name.",
+      "content_purpose_invalid": "Invalid file purpose.",
+      "content_purpose_forbidden": "You may not upload this kind of file.",
+      "content_type_not_allowed": "This file type is not accepted (images, audio, PDF, Office and short videos only).",
+      "content_file_empty": "The file is empty.",
+      "content_file_too_large": "The file is too large (at most {maxMb} MB).",
+      "content_quota_exceeded": "The center has used all of its storage.",
+      "content_too_many_pending": "You have too many unfinished uploads. Wait for them to finish and try again.",
+      "content_file_not_found": "File not found.",
+      "content_file_not_pending": "This file is no longer waiting for an upload.",
+      "content_upload_missing": "Storage has not received the file. Upload it again.",
+      "content_size_mismatch": "The file size does not match the one announced when the upload started.",
+      "content_type_mismatch": "The file content does not match its type (its extension may have been changed).",
+      "content_image_invalid": "The image is damaged or unreadable.",
+      "content_scan_unavailable": "The virus scan is not available right now. Try again in a few minutes.",
+      "content_file_quarantined": "The virus scanner blocked this file; it is quarantined.",
+      "content_file_forbidden": "You may not open this file.",
+      "content_file_not_ready": "The file is not ready yet."
     },
     "classStatus": {
       "Planned": "Planned",
@@ -1390,6 +1410,51 @@
       "identity_password_too_long": "The password can be at most 128 characters.",
       "identity_password_too_weak": "Use both letters and digits, and not a common password.",
       "identity_password_unchanged": "The new password must differ from the current one."
+    }
+  },
+  "files": {
+    "title": "Files",
+    "description": "Storage used by the center, every uploaded file and quarantined files. Files go straight to storage and open through a 5-minute link.",
+    "upload": "Upload material",
+    "uploading": "Uploading…",
+    "uploaded": "{name} uploaded.",
+    "uploadFailed": "The file could not be sent to storage. Try again in a few minutes.",
+    "download": "Open",
+    "delete": "Delete",
+    "deleteConfirm": "Delete {name}? Wherever it is used, it will no longer open.",
+    "used": "Used",
+    "ofLimit": "of {limit} ({percent}%)",
+    "pending": "Uploading",
+    "pendingHint": "Unfinished uploads, removed after 24 hours",
+    "quarantined": "Quarantined",
+    "quarantinedHint": "Blocked by the virus scanner; nobody can open them",
+    "byPurpose": "By purpose",
+    "allPurposes": "All purposes",
+    "allStatuses": "All statuses",
+    "empty": "No files yet.",
+    "colName": "File name",
+    "colPurpose": "Purpose",
+    "colCount": "Files",
+    "colSize": "Size",
+    "colStatus": "Status",
+    "colUploaded": "Uploaded",
+    "colActions": "Actions",
+    "purpose": {
+      "Material": "Teaching material",
+      "QuestionMedia": "Question media",
+      "Submission": "Submissions",
+      "ChatAttachment": "Chat attachments",
+      "Avatar": "Profile pictures"
+    },
+    "status": {
+      "Ready": "Ready",
+      "Pending": "Uploading",
+      "Quarantined": "Quarantined",
+      "Deleted": "Deleted"
+    },
+    "owner": {
+      "Staff": "Uploaded by staff",
+      "Learner": "Uploaded by a learner"
     }
   }
 }

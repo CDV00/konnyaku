@@ -153,6 +153,7 @@ Một người có thể giữ nhiều vai trò; quyền là hợp của các va
 | Bảo mật tài khoản, nhật ký bảo mật | ✓ | | | | | |
 | Quyền riêng tư, nhật ký truy cập | ✓ | | | | | |
 | Nhật ký thông báo | ✓ | | | | | |
+| Tệp: dung lượng, mọi tệp đã tải lên, xoá, tệp bị cách ly | ✓ | | | | | |
 | Điểm danh, vào lớp dạy (trong `/teach`) | | | | | | ✓ (buổi mình dạy) |
 | Bài tập, kiểm tra: soạn ngân hàng, đề; giao bài; chấm | ✓ | ✓ (cơ sở mình) | ✓ (cơ sở mình) | | | ✓ (lớp mình dạy; ngân hàng, đề của mình) |
 | Bài tập, kiểm tra: tổng quan trong Vận hành | ✓ | ✓ (cơ sở mình) | ✓ (cơ sở mình) | | | |
@@ -187,3 +188,19 @@ Hệ thống tự gửi email, mỗi người theo ngôn ngữ của mình (họ
 | Chốt kỳ lương | Kỳ lương được chốt | Giáo viên có công trong kỳ |
 
 Học viên không có email trong hồ sơ thì không nhận email. Mỗi email trên (trừ chào mừng và đặt lại mật khẩu) cũng là một thông báo trong ứng dụng; người nhận tắt được email từng loại trong **Cài đặt nhận thông báo**, và nhiều email cùng loại trong 10 phút được gộp thành một ([Thông báo](thong-bao.md)). Chưa có: SMS, Zalo, email mời nhân viên mới.
+
+## Tệp
+
+| Loại tệp (mục đích) | Ai tải lên | Giới hạn | Ai mở được |
+| --- | --- | --- | --- |
+| Tài liệu giảng dạy | Nhân sự | 100 MB | Mọi nhân sự của trung tâm; học viên qua lớp được chia sẻ (sắp có) |
+| Media câu hỏi | Nhân sự | 50 MB | Mọi nhân sự; học viên khi làm bài có câu đó |
+| Bài nộp | Học viên (25 MB), nhân sự (50 MB) | | Người nộp, quản trị; giáo viên qua bài tập của lớp mình |
+| Tệp đính kèm tin nhắn | Mọi người | 10 MB | Người gửi, quản trị; người trong cuộc trò chuyện (sắp có) |
+| Ảnh đại diện | Mọi người | 2 MB, chỉ ảnh | Mọi người trong trung tâm |
+
+- Chỉ nhận ảnh, âm thanh, PDF, Word/Excel/PowerPoint và video ngắn; ảnh tối đa 20 MB. Hệ thống kiểm tra nội dung thật của tệp, không tin đuôi tệp.
+- Ảnh được xoá thông tin vị trí (GPS), máy chụp, ngày chụp; hướng ảnh được giữ.
+- Khi trung tâm chưa bật quét virus, học viên chỉ tải được ảnh, PDF và âm thanh.
+- Mọi đường link mở tệp chỉ dùng được 5 phút. Trung tâm khác không bao giờ thấy tệp của bạn.
+- Tải lên dở dang (mất mạng, đóng trang) tự xoá sau 24 giờ.

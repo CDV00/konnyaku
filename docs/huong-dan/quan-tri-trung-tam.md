@@ -4,7 +4,7 @@
 
 Vai trò **Quản trị** làm được mọi việc trong khu vực Vận hành, kể cả những việc chỉ quản trị làm: tạo cơ sở, chương trình, nhân sự, bảo mật tài khoản, quyền riêng tư, nhật ký thông báo. **Xác thực 2 bước bắt buộc** với quản trị.
 
-Thanh bên của quản trị có thêm 3 mục **Quyền riêng tư**, **Bảo mật**, **Thông báo**.
+Thanh bên của quản trị có thêm 4 mục **Quyền riêng tư**, **Bảo mật**, **Thông báo**, **Tệp**.
 
 ![Tổng quan của quản trị](images/van-hanh-tong-quan.webp)
 
@@ -19,6 +19,7 @@ Thanh bên của quản trị có thêm 3 mục **Quyền riêng tư**, **Bảo 
 | Tài khoản học viên: khoá, đặt lại mật khẩu; nhật ký bảo mật | [Bên dưới](#bảo-mật) |
 | Yêu cầu dữ liệu cá nhân, nhật ký truy cập | [Bên dưới](#quyền-riêng-tư) |
 | Email tự động: xem, gửi lại | [Bên dưới](#thông-báo) |
+| Dung lượng lưu trữ, tài liệu tải lên, tệp bị cách ly | [Bên dưới](#tệp) |
 | Lead | [Tư vấn](tu-van.md) |
 | Học viên | [Khu vực Vận hành → Học viên](van-hanh-chung.md#học-viên) |
 | Lớp, lịch | [Điều phối](dieu-phoi.md) |
@@ -166,10 +167,27 @@ Mở **Thông báo** (chỉ quản trị): **Nhật ký thông báo** liệt kê
 
 Danh sách email tự động và ai nhận: [Quy tắc → Email tự động](quy-tac-nghiep-vu.md#email-tự-động).
 
+## Tệp
+
+Mở **Tệp** (chỉ quản trị): dung lượng lưu trữ của trung tâm và mọi tệp đã tải lên.
+
+![Trang Tệp](images/tep.webp)
+
+- Ba ô trên cùng: **Đã dùng** (trên tổng dung lượng của trung tâm, thanh bên dưới chuyển vàng ở 75 %, đỏ ở 90 %), **Đang tải lên** (tệp chưa hoàn tất, tự xoá sau 24 giờ), **Bị cách ly** (tệp bị trình quét virus chặn).
+- **Theo mục đích**: số tệp và dung lượng của tài liệu giảng dạy, media câu hỏi, bài nộp, tệp đính kèm tin nhắn, ảnh đại diện.
+- Danh sách: **Tên tệp**, ai tải lên (nhân sự hay học viên), **Mục đích**, **Dung lượng**, **Trạng thái**, thời gian. Lọc theo mục đích và trạng thái.
+- **Tải tài liệu lên**: chọn tệp (PDF, ảnh, âm thanh, Word/Excel/PowerPoint, video ngắn; tối đa 100 MB, ảnh 20 MB). Tệp đi thẳng tới kho lưu trữ, sau đó hệ thống kiểm tra nội dung thật của tệp (đổi đuôi tệp không qua được) và xoá thông tin vị trí, máy chụp trong ảnh. Xong thì tệp hiện **Sẵn sàng**.
+- **Mở**: mở tệp ở tab mới bằng một đường link chỉ dùng được 5 phút; chép link gửi người khác thì sau đó không mở được nữa.
+- **Xoá**: xoá tệp khỏi kho, trả lại dung lượng. Nơi nào đang dùng tệp đó sẽ không mở được nữa.
+- **Bị cách ly**: không ai mở được, kể cả người tải lên; vẫn tính vào dung lượng cho tới khi bạn xoá.
+- Hết dung lượng thì không ai tải thêm được (báo "Trung tâm đã dùng hết dung lượng lưu trữ"): xoá bớt tệp cũ hoặc liên hệ Konnyaku để nâng gói.
+
+Ai mở được tệp nào: [Quy tắc → Tệp](quy-tac-nghiep-vu.md#tệp).
+
 ## Kiểm tra định kỳ
 
 | Tần suất | Việc |
 | --- | --- |
 | Hằng ngày | **Tổng quan**: lead đang mở, đơn chờ thanh toán |
 | Hằng tuần | **Thông báo** → lọc **Lỗi**; **Bảo mật** → nhật ký; **Quyền riêng tư** → yêu cầu sắp / quá hạn |
-| Hằng tháng | Kỳ lương được chốt; **Nhân sự** → khoá tài khoản người đã nghỉ; rà nhật ký truy cập |
+| Hằng tháng | **Tệp** → dung lượng còn lại, tệp bị cách ly; kỳ lương được chốt; **Nhân sự** → khoá tài khoản người đã nghỉ; rà nhật ký truy cập |

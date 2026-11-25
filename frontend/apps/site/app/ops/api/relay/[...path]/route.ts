@@ -38,6 +38,9 @@ const writes: Record<"POST" | "PUT" | "DELETE", RegExp[]> = {
     route("billing/orders/{id}/refunds"),
     route("billing/accounts/{id}/adjustments"),
     route("notification/messages/{id}/resend"),
+    // Files: a signed upload URL, then the completion check (the body itself goes straight to the object storage).
+    route("content/uploads"),
+    route("content/uploads/{id}/complete"),
   ],
   PUT: [
     route("organization/branches/{id}"),
@@ -57,7 +60,7 @@ const writes: Record<"POST" | "PUT" | "DELETE", RegExp[]> = {
     route("billing/orders/{id}"),
     route("billing/payments/{id}"),
   ],
-  DELETE: [route("organization/holidays/{id}"), route("hr/rates/{id}")],
+  DELETE: [route("organization/holidays/{id}"), route("hr/rates/{id}"), route("content/files/{id}")],
 };
 
 /** Reads made from the browser (change history, payments, refunds and the lesson ledger inside a drawer; record pickers). */
@@ -66,6 +69,8 @@ const reads = [
   route("billing/orders/{id}/(payments|refunds|refund-quote)"),
   route("billing/accounts/{id}/ledger"),
   route("billing/receipts/(receipt|refund)/{id}/prints"),
+  // A signed download URL (5 minutes), asked for when the link is clicked.
+  route("content/files/{id}/download"),
   // Record pickers search a list (search term and page in the query string).
   route("crm/(students|leads)"),
 ];

@@ -89,7 +89,8 @@
       "notifications": "Thông báo",
       "security": "Bảo mật",
       "privacy": "Quyền riêng tư",
-      "makeups": "Học bù"
+      "makeups": "Học bù",
+      "files": "Tệp"
     },
     "hint": {
       "leads": "Gọi lại, chuyển trạng thái khách đăng ký",
@@ -103,7 +104,8 @@
       "notifications": "Email đã gửi, lỗi và gửi lại",
       "security": "Khoá tài khoản, đặt lại mật khẩu, nhật ký đăng nhập",
       "privacy": "Yêu cầu về dữ liệu cá nhân, nhật ký truy cập",
-      "makeups": "Duyệt học bù ngoại lệ, học viên xin nghỉ nhiều"
+      "makeups": "Duyệt học bù ngoại lệ, học viên xin nghỉ nhiều",
+      "files": "Dung lượng, tệp đã tải lên, tệp bị cách ly"
     },
     "zone": "Vận hành",
     "subtitle": "Tình hình trung tâm hôm nay và lối tắt tới các việc thường làm.",
@@ -818,7 +820,25 @@
       "scheduling_makeup_lesson_mismatch": "Không xếp học bù vào chính lớp của học viên.",
       "scheduling_already_booked": "Học viên đã có chỗ trong buổi này.",
       "scheduling_settings_invalid": "Giá trị quy tắc không hợp lệ.",
-      "scheduling_booking_changed_concurrently": "Dữ liệu vừa thay đổi, hãy tải lại trang."
+      "scheduling_booking_changed_concurrently": "Dữ liệu vừa thay đổi, hãy tải lại trang.",
+      "content_file_name_invalid": "Tên tệp không hợp lệ.",
+      "content_purpose_invalid": "Mục đích tệp không hợp lệ.",
+      "content_purpose_forbidden": "Bạn không được tải loại tệp này lên.",
+      "content_type_not_allowed": "Loại tệp này không được nhận (chỉ ảnh, âm thanh, PDF, Office, video ngắn).",
+      "content_file_empty": "Tệp rỗng.",
+      "content_file_too_large": "Tệp quá lớn (tối đa {maxMb} MB).",
+      "content_quota_exceeded": "Trung tâm đã dùng hết dung lượng lưu trữ.",
+      "content_too_many_pending": "Bạn có quá nhiều tệp đang tải lên dở. Đợi chúng xong rồi thử lại.",
+      "content_file_not_found": "Không tìm thấy tệp.",
+      "content_file_not_pending": "Tệp này không còn chờ tải lên.",
+      "content_upload_missing": "Kho lưu trữ chưa nhận được tệp. Tải lại lần nữa.",
+      "content_size_mismatch": "Kích thước tệp không khớp với lúc bắt đầu tải lên.",
+      "content_type_mismatch": "Nội dung tệp không đúng với loại tệp (đuôi tệp có thể bị đổi).",
+      "content_image_invalid": "Ảnh bị hỏng hoặc không đọc được.",
+      "content_scan_unavailable": "Chưa quét virus được lúc này. Thử lại sau ít phút.",
+      "content_file_quarantined": "Tệp bị trình quét virus chặn và đã được cách ly.",
+      "content_file_forbidden": "Bạn không có quyền mở tệp này.",
+      "content_file_not_ready": "Tệp chưa sẵn sàng."
     },
     "classStatus": {
       "Planned": "Dự kiến",
@@ -1390,6 +1410,51 @@
       "identity_password_too_long": "Mật khẩu dài tối đa 128 ký tự.",
       "identity_password_too_weak": "Mật khẩu cần có cả chữ và số, và không phải mật khẩu phổ biến.",
       "identity_password_unchanged": "Mật khẩu mới phải khác mật khẩu hiện tại."
+    }
+  },
+  "files": {
+    "title": "Tệp",
+    "description": "Dung lượng đã dùng của trung tâm, mọi tệp đã tải lên và tệp bị cách ly. Tệp đi thẳng tới kho lưu trữ, có link tạm 5 phút khi mở.",
+    "upload": "Tải tài liệu lên",
+    "uploading": "Đang tải lên…",
+    "uploaded": "Đã tải lên {name}.",
+    "uploadFailed": "Không gửi được tệp tới kho lưu trữ. Thử lại sau ít phút.",
+    "download": "Mở",
+    "delete": "Xoá",
+    "deleteConfirm": "Xoá tệp {name}? Nơi nào đang dùng tệp này sẽ không mở được nữa.",
+    "used": "Đã dùng",
+    "ofLimit": "trên {limit} ({percent}%)",
+    "pending": "Đang tải lên",
+    "pendingHint": "Tệp chưa hoàn tất, tự xoá sau 24 giờ",
+    "quarantined": "Bị cách ly",
+    "quarantinedHint": "Bị trình quét virus chặn, không ai mở được",
+    "byPurpose": "Theo mục đích",
+    "allPurposes": "Mọi mục đích",
+    "allStatuses": "Mọi trạng thái",
+    "empty": "Chưa có tệp nào.",
+    "colName": "Tên tệp",
+    "colPurpose": "Mục đích",
+    "colCount": "Số tệp",
+    "colSize": "Dung lượng",
+    "colStatus": "Trạng thái",
+    "colUploaded": "Tải lên lúc",
+    "colActions": "Thao tác",
+    "purpose": {
+      "Material": "Tài liệu giảng dạy",
+      "QuestionMedia": "Media câu hỏi",
+      "Submission": "Bài nộp",
+      "ChatAttachment": "Tệp đính kèm tin nhắn",
+      "Avatar": "Ảnh đại diện"
+    },
+    "status": {
+      "Ready": "Sẵn sàng",
+      "Pending": "Đang tải lên",
+      "Quarantined": "Bị cách ly",
+      "Deleted": "Đã xoá"
+    },
+    "owner": {
+      "Staff": "Nhân sự tải lên",
+      "Learner": "Học viên tải lên"
     }
   }
 }

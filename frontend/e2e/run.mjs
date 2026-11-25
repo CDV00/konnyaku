@@ -72,6 +72,10 @@ const backendEnv = {
   // Realtime: signals through this stack's Redis, sockets to this stack's realtime service.
   Redis__ConnectionString: `localhost:${ports.redis}`,
   Realtime__Url: `ws://localhost:${ports.rt}/rt`,
+  // Files: LocalDisk storage shared by Api and Worker, signed URLs pointing at this API.
+  Storage__Provider: "LocalDisk",
+  Storage__LocalDisk__Root: join(here, ".storage"),
+  Storage__LocalDisk__PublicBaseUrl: apiUrl,
   DOTNET_CLI_TELEMETRY_OPTOUT: "1",
   DOTNET_NOLOGO: "1",
 };

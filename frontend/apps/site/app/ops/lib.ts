@@ -156,7 +156,8 @@ export type Permission =
   | "crm.export"
   | "crm.privacy"
   | "notification.messages"
-  | "assessment.manage";
+  | "assessment.manage"
+  | "content.files";
 
 type PermissionScope = { permission: Permission; tenantWide: boolean; branchIds: string[] };
 
