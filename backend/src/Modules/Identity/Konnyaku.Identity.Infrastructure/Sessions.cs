@@ -7,8 +7,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace Konnyaku.Identity.Infrastructure;
 
@@ -113,26 +111,5 @@ internal static class TwoFactorConfiguration
             ? configured
             : [Roles.TenantAdmin, Roles.Accountant];
         return new TwoFactorPolicy(roles.ToHashSet());
-    }
-}
-
-/// <summary>
-/// Stand-in until the Notification module sends email: logs that a link was requested, with the link itself in
-/// Development only (never in production logs).
-/// </summary>
-internal sealed class LoggingPasswordResetMailer(ILogger<LoggingPasswordResetMailer> logger, IHostEnvironment environment) : IPasswordResetMailer
-{
-    public Task SendAsync(PasswordResetMail mail, CancellationToken cancellationToken)
-    {
-        if (environment.IsDevelopment())
-        {
-            logger.LogInformation("Password reset link for {UserId} (no mail service yet): {ResetUrl}", mail.UserId, mail.ResetUrl);
-        }
-        else
-        {
-            logger.LogWarning("Password reset requested for {UserId}, but no mail service is configured; the link was not sent", mail.UserId);
-        }
-
-        return Task.CompletedTask;
     }
 }

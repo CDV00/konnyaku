@@ -4,6 +4,7 @@ using Konnyaku.Application.Authorization;
 using Konnyaku.Application.Security;
 using Konnyaku.Application.Tenancy;
 using Konnyaku.Identity.Domain;
+using Konnyaku.Notification.Contracts;
 using Konnyaku.SharedKernel;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -37,18 +38,6 @@ public interface ISessionCache
 public sealed record TwoFactorPolicy(IReadOnlySet<string> RequiredRoles)
 {
     public bool IsRequiredFor(IEnumerable<string> roles) => roles.Any(RequiredRoles.Contains);
-}
-
-public sealed record PasswordResetMail(Guid TokenId, Guid UserId, string Email, string DisplayName, string Locale, string ResetUrl,
-    int ExpiresInMinutes);
-
-/// <summary>
-/// Sends the reset link. The Notification module's email API takes this over once it is available; until then the
-/// default implementation only logs (the link itself in Development only).
-/// </summary>
-public interface IPasswordResetMailer
-{
-    Task SendAsync(PasswordResetMail mail, CancellationToken cancellationToken);
 }
 
 /// <summary>Adds entries to the center's security log (saved with the caller's changes).</summary>
@@ -500,14 +489,16 @@ internal static class PasswordResets
 /// Self-service "forgot password" for staff (they sign in with an email). The answer never tells whether the email
 /// exists; links are single-use, expire after 30 minutes and at most 3 are sent per account per hour. Learners have no
 /// email: the sign-in page tells them to ask their center, whose administrator resets the password.
+/// The email goes through the Notification module (template <c>identity.password_reset</c>), requested from this module's
+/// outbox in the same transaction as the token: no token without its email, no email for a token that was rolled back.
 /// </summary>
 public sealed class PasswordResetHandler(
-    IIdentityDbContext db, ITenantContext tenant, IPasswordHasher<User> hasher, IPasswordResetMailer mailer, SessionManager sessions,
-    SecurityLog log, TimeProvider clock)
+    IIdentityDbContext db, ITenantContext tenant, IPasswordHasher<User> hasher, SessionManager sessions, SecurityLog log, TimeProvider clock)
 {
     public const int MaxPerHour = 3;
+    public const string TemplateKey = "identity.password_reset";
 
-    public async Task RequestAsync(ForgotPasswordCommand command, string resetPageUrl, CancellationToken ct)
+    public async Task RequestAsync(ForgotPasswordCommand command, CancellationToken ct)
     {
         if (tenant.TenantId is null)
         {
@@ -537,9 +528,17 @@ public sealed class PasswordResetHandler(
         var row = new PasswordResetToken(user.Id, PasswordResets.Hash(token), now, null);
         db.PasswordResetTokens.Add(row);
         log.Record(SecurityEventKinds.PasswordResetRequested, user.Id, email);
+        // Sensitive: the link is erased from the notification once sent and never shown in the ops log.
+        db.Publish(new NotificationRequestedV1(TemplateKey, user.Id, email, user.DisplayName, user.PreferredLocale,
+            new Dictionary<string, string>
+            {
+                ["recipientName"] = user.DisplayName,
+                // The module prefixes the center's own site URL (from its host), so a forged Host header cannot redirect the link.
+                ["resetPath"] = $"/login/reset?token={Uri.EscapeDataString(token)}",
+                ["expiresInMinutes"] = ((int)PasswordResetToken.Lifetime.TotalMinutes).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            },
+            $"{TemplateKey}:{row.Id}", NotificationChannels.Email, Sensitive: true));
         await db.SaveChangesAsync(ct);
-        await mailer.SendAsync(new PasswordResetMail(row.Id, user.Id, email, user.DisplayName, user.PreferredLocale,
-            $"{resetPageUrl}?token={Uri.EscapeDataString(token)}", (int)PasswordResetToken.Lifetime.TotalMinutes), ct);
     }
 
     public async Task<Result<bool>> ResetAsync(ResetPasswordCommand command, CancellationToken ct)

@@ -1,0 +1,7 @@
+Hi {{studentName}},
+
+Your learning account at {{tenantName}} is ready.
+{{#username}}Username: {{username}}. The center gives you a temporary password; you will be asked to change it the first time you sign in.{{/username}}
+On the student page you can see your schedule and remaining lessons, and join online classes.
+
+Sign in: {{siteUrl}}/login

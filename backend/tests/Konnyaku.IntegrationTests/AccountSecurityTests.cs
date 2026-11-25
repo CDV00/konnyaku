@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using Konnyaku.Application.Security;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Konnyaku.Notification.Application;
+using Konnyaku.Notification.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Konnyaku.IntegrationTests;
@@ -130,19 +132,33 @@ public sealed class AccountSecurityTests(PostgresFixture db) : IAsyncDisposable
     [Fact]
     public async Task Forgot_password_sends_a_single_use_link_without_revealing_accounts()
     {
-        var c = await EditCenter.CreateAsync(_api, "forgot");
+        var mail = new FakeEmailSender();
+        await using var api = new KonnyakuApiFactory(db) { TestServices = services => services.AddSingleton<IEmailSender>(mail) };
+        var c = await EditCenter.CreateAsync(api, "forgot");
         var (email, teacherId) = await AddStaffAsync(c, "Teacher");
-        var before = _api.ClientFor(c.Slug, (await _api.StaffLoginAsync(c.Slug, email, Password)).AccessToken);
-        var mailbox = _api.Services.GetRequiredService<TestMailbox>();
-        var anonymous = _api.ClientFor(c.Slug);
+        var before = api.ClientFor(c.Slug, (await api.StaffLoginAsync(c.Slug, email, Password)).AccessToken);
+        var anonymous = api.ClientFor(c.Slug);
+
+        // The email goes through the Notification module: Identity's outbox, then the dispatcher (as the Worker does).
+        async Task<List<EmailMessage>> ResetMailsAsync()
+        {
+            await api.DrainOutboxAsync();
+            var dispatcher = api.Services.GetRequiredService<NotificationDispatcher>();
+            for (var round = 0; round < 10 && await dispatcher.ProcessDueAsync(200, Ct) > 0; round++)
+            {
+            }
+
+            return mail.To(email).Where(m => m.Text.Contains("/login/reset?token=", StringComparison.Ordinal)).ToList();
+        }
 
         (await anonymous.PostAsJsonAsync("/api/identity/password/forgot", new { email = $"nobody-{Guid.NewGuid():N}@example.com" }, Ct))
             .StatusCode.ShouldBe(HttpStatusCode.Accepted);
         (await anonymous.PostAsJsonAsync("/api/identity/password/forgot", new { email = email.ToUpperInvariant() }, Ct))
             .StatusCode.ShouldBe(HttpStatusCode.Accepted);
-        var mail = mailbox.Sent.Single(m => m.UserId == teacherId);
-        mail.ResetUrl.ShouldStartWith($"https://{c.Slug}.{KonnyakuApiFactory.BaseDomain}/login/reset?token=");
-        var token = Uri.UnescapeDataString(mail.ResetUrl.Split("token=")[1]);
+        var sent = (await ResetMailsAsync()).ShouldHaveSingleItem();
+        sent.Html.ShouldContain($"{c.Slug}.{KonnyakuApiFactory.BaseDomain}");
+        var link = sent.Text.Split('\n').Single(line => line.Contains("/login/reset?token=", StringComparison.Ordinal));
+        var token = Uri.UnescapeDataString(link[(link.IndexOf("token=", StringComparison.Ordinal) + "token=".Length)..].Trim());
 
         await (await anonymous.PostAsJsonAsync("/api/identity/password/reset", new { token, newPassword = "short" }, Ct))
             .ShouldFailWith(HttpStatusCode.BadRequest, "identity.password_too_short");
@@ -151,7 +167,7 @@ public sealed class AccountSecurityTests(PostgresFixture db) : IAsyncDisposable
         await (await anonymous.PostAsJsonAsync("/api/identity/password/reset", new { token, newPassword = "Again-Pass-321" }, Ct))
             .ShouldFailWith(HttpStatusCode.BadRequest, "identity.reset_link_invalid");
         (await before.GetAsync("/api/identity/me", Ct)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
-        await _api.StaffLoginAsync(c.Slug, email, "Reset-Pass-321");
+        await api.StaffLoginAsync(c.Slug, email, "Reset-Pass-321");
 
         // At most three links per account and hour (the answer stays 202).
         for (var i = 0; i < 4; i++)
@@ -159,10 +175,15 @@ public sealed class AccountSecurityTests(PostgresFixture db) : IAsyncDisposable
             (await anonymous.PostAsJsonAsync("/api/identity/password/forgot", new { email }, Ct)).StatusCode.ShouldBe(HttpStatusCode.Accepted);
         }
 
-        mailbox.Sent.Count(m => m.UserId == teacherId).ShouldBe(3);
+        (await ResetMailsAsync()).Count.ShouldBe(3);
         var events = (await c.Admin.GetFromJsonAsync<SecurityEventView[]>($"/api/identity/security-events?userId={teacherId}", Ct))!;
         events.ShouldContain(e => e.Kind == "PasswordResetCompleted");
         events.ShouldContain(e => e.Kind == "PasswordResetRequested" && e.Detail == "throttled");
+
+        // The notification log never shows the link (sensitive data is erased once sent).
+        var log = await (await c.Admin.GetAsync("/api/notification/messages", Ct)).Content.ReadAsStringAsync(Ct);
+        log.ShouldContain("identity.password_reset");
+        log.ShouldNotContain("token=");
     }
 
     [Fact]

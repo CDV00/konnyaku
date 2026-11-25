@@ -30,6 +30,7 @@ const writes: Record<"POST" | "PUT" | "DELETE", RegExp[]> = {
     route("billing/orders/{id}/payments"),
     route("billing/orders/{id}/cancel"),
     route("billing/payments/{id}/void"),
+    route("notification/messages/{id}/resend"),
   ],
   PUT: [
     route("organization/branches/{id}"),

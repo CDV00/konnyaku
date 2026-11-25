@@ -100,10 +100,9 @@ public sealed class IdentityModule : IModule
             ApiResults.From(await handler.HandleAsync(command, ct), s => Results.Ok(Issue(tokens, s, Audiences.Learn))));
 
         // Forgot password (staff, by email). Always 202: the answer never tells whether the email has an account.
-        group.MapPost("/password/forgot", async (ForgotPasswordCommand command, HttpContext http, IConfiguration configuration,
-                PasswordResetHandler handler, CancellationToken ct) =>
+        group.MapPost("/password/forgot", async (ForgotPasswordCommand command, PasswordResetHandler handler, CancellationToken ct) =>
             {
-                await handler.RequestAsync(command, ResetPageUrl(http, configuration), ct);
+                await handler.RequestAsync(command, ct);
                 return Results.Accepted();
             })
             .RequireRateLimiting(RateLimitPolicies.PasswordReset);
@@ -222,17 +221,5 @@ public sealed class IdentityModule : IModule
         var expiresAt = DateTimeOffset.UtcNow.Add(TokenLifetimes.Challenge);
         var challenge = tokens.IssueChallenge(new SignInChallenge(pending.UserId, pending.TenantId, pending.Purpose, pending.Stamp), expiresAt);
         return new SignInResponse(null, Audiences.Staff, expiresAt, string.Empty, [], false, challenge, pending.Purpose);
-    }
-
-    /// <summary>
-    /// The reset page on the center's own host (the host was resolved to this tenant, so a forged Host header cannot point
-    /// the link elsewhere). Scheme and port come from <c>Site:PublicScheme</c> (default https) and <c>Site:PublicPort</c>.
-    /// </summary>
-    private static string ResetPageUrl(HttpContext http, IConfiguration configuration)
-    {
-        var host = http.Request.Headers["X-Tenant-Host"].ToString() is { Length: > 0 } forwarded ? forwarded : http.Request.Host.Host;
-        var scheme = configuration["Site:PublicScheme"] is { Length: > 0 } s ? s : "https";
-        var port = configuration["Site:PublicPort"] is { Length: > 0 } p ? $":{p}" : string.Empty;
-        return $"{scheme}://{host}{port}/login/reset";
     }
 }

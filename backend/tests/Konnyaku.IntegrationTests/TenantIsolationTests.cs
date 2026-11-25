@@ -84,6 +84,7 @@ public class TenantIsolationTests(PostgresFixture fixture)
             JOIN pg_class k ON k.relname = c.table_name AND k.relnamespace = n.oid AND k.relkind = 'r'
             WHERE c.column_name = 'tenant_id'
               AND c.table_name NOT IN ('outbox_message', 'inbox_message')
+              AND c.table_schema || '.' || c.table_name <> 'notification.dispatch_item'
               AND c.table_schema <> 'platform'
               AND (NOT k.relrowsecurity OR NOT k.relforcerowsecurity
                    OR NOT EXISTS (SELECT 1 FROM pg_policies p

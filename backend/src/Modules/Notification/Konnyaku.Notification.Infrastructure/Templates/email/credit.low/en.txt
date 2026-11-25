@@ -1,0 +1,6 @@
+Hi {{studentName}},
+
+Your package has only {{remaining}} lessons left.
+Contact {{tenantName}} to renew so your learning is not interrupted.
+
+See your lessons: {{siteUrl}}/learn

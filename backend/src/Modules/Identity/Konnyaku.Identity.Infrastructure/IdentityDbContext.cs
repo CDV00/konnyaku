@@ -128,6 +128,7 @@ public static class IdentityInfrastructure
         services.AddModuleDbContext<IdentityDbContext>(configuration, connectionName, IdentityDbContext.SchemaName);
         services.AddScoped<IIdentityDbContext>(sp => sp.GetRequiredService<IdentityDbContext>());
         services.AddScoped<IIdentityApi, IdentityQueries>();
+        services.AddScoped<IIdentityPlatformApi, IdentityPlatformApi>();
         services.AddHttpContextAccessor();
         services.AddScoped<IAccessControl, AccessControl>();
         services.AddMemoryCache();
@@ -138,7 +139,6 @@ public static class IdentityInfrastructure
         services.AddScoped<ISessionValidator, SessionValidator>();
         services.AddScoped<IRequestContext, HttpRequestContext>();
         services.AddSingleton(_ => TwoFactorConfiguration.Policy(configuration));
-        services.AddSingleton<IPasswordResetMailer, LoggingPasswordResetMailer>();
         services.AddScoped<SecurityLog>();
         services.AddScoped<SessionManager>();
         services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();

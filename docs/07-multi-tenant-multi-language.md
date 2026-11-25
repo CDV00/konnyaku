@@ -114,6 +114,9 @@ CREATE POLICY tenant_isolation ON academic.class
 | Integration event / Outbox | `tenant_id` trong metadata envelope; consumer thiết lập context từ đó |
 | Webhook bên ngoài (thanh toán, Zalo) | URL `/hooks/{provider}/{tenantKey}` (ngoại lệ có chủ đích của quy tắc `/api/{module}`, vì nhà cung cấp gọi từ ngoài, không qua host của tenant) + xác minh chữ ký bằng secret **của tenant đó** |
 | Google Workspace Events | Subscription/Pub/Sub message → tra `MeetingSpace` → tenant |
+| Bảng điều khiển nền tảng (`/platform`) | **Không có tenant**: chỉ phục vụ trên host quản trị `admin.{base domain}` (`Platform:AdminHost`), token realm `platform` không mang `tid`. Thao tác trên một trung tâm (đếm học viên, tạo quản trị viên) chạy trong scope riêng đặt tenant đó (`ITenantScope`), nên vẫn qua RLS; mọi thao tác ghi `platform.audit_entry` |
+
+Tenant bị nền tảng **tạm khóa** (`platform.tenant.status = Suspended`): middleware của API trả 403 `platform.tenant_suspended` cho mọi request của tenant đó (theo host hoặc theo `tid` của token), trừ `GET /api/platform/tenant` để trang công khai hiện thông báo; dữ liệu giữ nguyên.
 
 Không có "tenant mặc định". Code chạy mà không có tenant context (ngoài phạm vi platform) phải **ném lỗi**, không âm thầm chạy.
 

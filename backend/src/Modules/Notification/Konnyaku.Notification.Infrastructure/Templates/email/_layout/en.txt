@@ -1,0 +1,6 @@
+{{tenantName}}
+
+{{{content}}}
+
+--
+Automatic email from {{tenantName}}{{#siteUrl}} · {{siteUrl}}{{/siteUrl}}. Please do not reply to this email.
