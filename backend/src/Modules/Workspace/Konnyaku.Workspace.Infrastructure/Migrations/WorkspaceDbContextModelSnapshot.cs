@@ -146,7 +146,7 @@ namespace Konnyaku.Workspace.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("ends_at");
 
-                    b.Property<Guid>("HostAccountId")
+                    b.Property<Guid?>("HostAccountId")
                         .HasColumnType("uuid")
                         .HasColumnName("host_account_id");
 
@@ -233,6 +233,62 @@ namespace Konnyaku.Workspace.Infrastructure.Migrations
                         .HasDatabaseName("ix_recording_tenant_id_session_id");
 
                     b.ToTable("recording", "workspace");
+                });
+
+            modelBuilder.Entity("Konnyaku.Workspace.Domain.RoomPresence", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ConnectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("connection_id");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("display_name");
+
+                    b.Property<DateTimeOffset>("JoinedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("joined_at");
+
+                    b.Property<DateTimeOffset?>("LeftAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("left_at");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("role");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("session_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_room_presence");
+
+                    b.HasIndex("TenantId", "ConnectionId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_room_presence_tenant_id_connection_id");
+
+                    b.HasIndex("TenantId", "SessionId")
+                        .HasDatabaseName("ix_room_presence_tenant_id_session_id");
+
+                    b.ToTable("room_presence", "workspace");
                 });
 
             modelBuilder.Entity("Konnyaku.Workspace.Domain.WorkspaceConnection", b =>

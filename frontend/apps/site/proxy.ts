@@ -5,7 +5,7 @@ import { routing } from "./i18n/routing";
 const intl = createMiddleware(routing);
 
 // Signed-in areas (learn, teach, ops), sign-in and route handlers take the locale from the cookie / user, not the URL.
-const ownSegments = new Set(["learn", "teach", "ops", "login", "api", "dev-meeting"]);
+const ownSegments = new Set(["learn", "teach", "ops", "login", "api", "dev-meeting", "room"]);
 
 export default function proxy(request: NextRequest) {
   const segment = request.nextUrl.pathname.split("/")[1] ?? "";

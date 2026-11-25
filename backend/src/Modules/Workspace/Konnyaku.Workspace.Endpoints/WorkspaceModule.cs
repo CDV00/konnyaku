@@ -4,6 +4,7 @@ using Konnyaku.Infrastructure.Auth;
 using Konnyaku.Infrastructure.Http;
 using Konnyaku.Infrastructure.Messaging;
 using Konnyaku.Infrastructure.Modules;
+using Konnyaku.Infrastructure.Tenancy;
 using Konnyaku.Scheduling.Contracts;
 using Konnyaku.Workspace.Application;
 using Konnyaku.Workspace.Infrastructure;
@@ -17,6 +18,8 @@ namespace Konnyaku.Workspace.Endpoints;
 
 public sealed class WorkspaceModule : IModule
 {
+    public const string RoomServiceTokenHeader = "X-Rtc-Token";
+
     public string Name => "workspace";
 
     public IReadOnlyList<Type> DbContextTypes => [typeof(WorkspaceDbContext)];
@@ -29,6 +32,8 @@ public sealed class WorkspaceModule : IModule
         services.AddScoped<JoinHandler>();
         services.AddScoped<PoolHandlers>();
         services.AddScoped<SimulateMeetingHandler>();
+        services.AddScoped<RoomTicketHandler>();
+        services.AddScoped<RoomEventsHandler>();
         services.AddScoped<IIntegrationEventHandler<SessionScheduledV1>, SessionScheduledConsumer>();
         services.AddScoped<IIntegrationEventHandler<SessionRescheduledV1>, SessionRescheduledConsumer>();
         services.AddScoped<IIntegrationEventHandler<SessionCancelledV1>, SessionCancelledConsumer>();
@@ -56,6 +61,37 @@ public sealed class WorkspaceModule : IModule
                 return ApiResults.From(await handler.HandleAsync(id, user.UserId()!.Value, isLearner, roles, ct), Results.Ok);
             })
             .RequireAuthorization();
+
+        // Built-in classroom: a fresh short-lived ticket for the signaling service, on every (re)connect of the room page.
+        group.MapPost("/rooms/{code}/ticket", async (string code, ClaimsPrincipal user, RoomTicketHandler handler, CancellationToken ct) =>
+            {
+                var isLearner = user.HasClaim(KonnyakuClaims.Audience, Audiences.Learn);
+                var roles = user.FindAll(KonnyakuClaims.Role).Select(c => c.Value).ToList();
+                var name = user.FindFirstValue(KonnyakuClaims.Name) ?? string.Empty;
+                return ApiResults.From(await handler.HandleAsync(code, user.UserId()!.Value, name, isLearner, roles, ct), Results.Ok);
+            })
+            .RequireAuthorization();
+
+        // Reports of the signaling service (joined / left / ended). Not reachable from the internet (the edge only
+        // routes to the web app); signed with the secret shared with the signaling service. The tenant comes from the
+        // report, which carries the tenant of the ticket the signaling service verified.
+        group.MapPost("/internal/rooms/events", async (RoomEventCommand command, HttpContext http, TenantContext tenant,
+                IRoomTickets tickets, RoomEventsHandler handler, CancellationToken ct) =>
+            {
+                if (!await tickets.IsValidServiceTokenAsync(http.Request.Headers[RoomServiceTokenHeader].ToString()))
+                {
+                    return Results.Unauthorized();
+                }
+
+                if (tenant.TenantId is { } current && current != command.TenantId)
+                {
+                    return Results.Forbid();
+                }
+
+                tenant.Set(command.TenantId);
+                return ApiResults.From(await handler.HandleAsync(command, ct), _ => Results.NoContent());
+            })
+            .AllowAnonymous();
 
         group.MapPost("/dev/sessions/{id:guid}/simulate", async (Guid id, SimulateMeetingCommand command, SimulateMeetingHandler handler, CancellationToken ct) =>
                 ApiResults.From(await handler.HandleAsync(id, command, ct), _ => Results.Accepted()))
