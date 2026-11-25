@@ -131,7 +131,7 @@ public sealed class ReplanScheduleHandler(
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
         }
-        catch (DbUpdateException ex) when (errors.IsExclusionViolation(ex) || errors.IsDeadlock(ex))
+        catch (Exception ex) when (errors.IsExclusionViolation(ex) || errors.IsDeadlock(ex))
         {
             return Error.Conflict("scheduling.resource_conflict");
         }

@@ -10,7 +10,9 @@ public interface IDbErrorClassifier
 
     /// <summary>
     /// The database aborted this transaction to break a deadlock. Two concurrent writes checking the same exclusion
-    /// constraint can end this way instead of with <see cref="IsExclusionViolation"/>: the other one won.
+    /// constraint can end this way instead of with <see cref="IsExclusionViolation"/>: the other one won. EF reports it
+    /// wrapped in an <see cref="InvalidOperationException"/> ("likely due to a transient failure"), so callers catch
+    /// <see cref="Exception"/> and test with this method (it looks through inner exceptions).
     /// </summary>
     bool IsDeadlock(Exception exception) => false;
 }
