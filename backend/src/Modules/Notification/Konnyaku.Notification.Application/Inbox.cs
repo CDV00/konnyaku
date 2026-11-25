@@ -88,6 +88,12 @@ public interface IPushSender
     /// <summary>Base64url application server key for <c>pushManager.subscribe</c>; null when push is not configured.</summary>
     string? PublicKey { get; }
 
+    /// <summary>
+    /// The Worker POSTs to subscription endpoints sent by browsers: only HTTPS hosts of known push services are accepted,
+    /// so an endpoint can never point the Worker at an internal address.
+    /// </summary>
+    bool AcceptsEndpoint(Uri endpoint);
+
     Task<PushOutcome> SendAsync(PushTarget target, CancellationToken cancellationToken);
 }
 
@@ -462,6 +468,11 @@ public sealed class InboxHandlers(
         }
 
         if (command?.Keys is null || string.IsNullOrWhiteSpace(command.Endpoint))
+        {
+            return Error.Validation("notification.push_subscription_invalid");
+        }
+
+        if (!Uri.TryCreate(command.Endpoint, UriKind.Absolute, out var endpoint) || !push.AcceptsEndpoint(endpoint))
         {
             return Error.Validation("notification.push_subscription_invalid");
         }

@@ -23,6 +23,13 @@ public sealed class PushOptions
     public int TtlSeconds { get; set; } = 86400;
 
     public int TimeoutSeconds { get; set; } = 10;
+
+    /// <summary>
+    /// Push service hosts subscriptions may point to (exact host, or a suffix starting with a dot): Chrome / Edge (FCM),
+    /// Firefox (Mozilla autopush), Safari (Apple), Windows (WNS).
+    /// </summary>
+    public List<string> AllowedHosts { get; set; } =
+        ["fcm.googleapis.com", "updates.push.services.mozilla.com", ".push.services.mozilla.com", ".push.apple.com", ".notify.windows.com"];
 }
 
 /// <summary>
@@ -52,9 +59,14 @@ public sealed class VapidPushSender : IPushSender, IDisposable
 
     public string? PublicKey => IsConfigured ? _options.PublicKey : null;
 
+    public bool AcceptsEndpoint(Uri endpoint) =>
+        endpoint.Scheme == Uri.UriSchemeHttps && endpoint.IsDefaultPort && _options.AllowedHosts.Any(allowed => allowed.StartsWith('.')
+            ? endpoint.Host.EndsWith(allowed, StringComparison.OrdinalIgnoreCase)
+            : string.Equals(endpoint.Host, allowed, StringComparison.OrdinalIgnoreCase));
+
     public async Task<PushOutcome> SendAsync(PushTarget target, CancellationToken cancellationToken)
     {
-        if (_key is null || !Uri.TryCreate(target.Endpoint, UriKind.Absolute, out var endpoint))
+        if (_key is null || !Uri.TryCreate(target.Endpoint, UriKind.Absolute, out var endpoint) || !AcceptsEndpoint(endpoint))
         {
             return PushOutcome.Rejected;
         }

@@ -179,9 +179,12 @@ public sealed class InboxTests : IAsyncDisposable
                 new { endpoint, keys = new { p256dh = "BPub", auth = "secret" } }, Ct)).ShouldSucceed();
         }
 
-        await (await c.Learner.PostAsJsonAsync("/api/notification/push/subscriptions",
-            new { endpoint = "http://insecure.example.com/x", keys = new { p256dh = "BPub", auth = "secret" } }, Ct))
-            .ShouldFailWith(HttpStatusCode.BadRequest, "notification.push_subscription_invalid");
+        foreach (var bad in new[] { "http://insecure.example.com/x", "https://internal.example.com/x" })
+        {
+            await (await c.Learner.PostAsJsonAsync("/api/notification/push/subscriptions",
+                new { endpoint = bad, keys = new { p256dh = "BPub", auth = "secret" } }, Ct))
+                .ShouldFailWith(HttpStatusCode.BadRequest, "notification.push_subscription_invalid");
+        }
         _push.Gone.Add(Laptop);
 
         await c.RescheduleFirstAsync(_api);
@@ -265,6 +268,13 @@ public sealed class InboxTests : IAsyncDisposable
         VapidPushSender.Classify(HttpStatusCode.Gone).ShouldBe(PushOutcome.Gone);
         VapidPushSender.Classify(HttpStatusCode.Created).ShouldBe(PushOutcome.Delivered);
         VapidPushSender.Classify(HttpStatusCode.TooManyRequests).ShouldBe(PushOutcome.Transient);
+
+        // Only known push services: a browser-supplied endpoint never points the Worker at an internal address.
+        sender.AcceptsEndpoint(new Uri("https://fcm.googleapis.com/fcm/send/abc")).ShouldBeTrue();
+        sender.AcceptsEndpoint(new Uri("https://web.push.apple.com/QGx")).ShouldBeTrue();
+        sender.AcceptsEndpoint(new Uri("https://api:8080/api/health")).ShouldBeFalse();
+        sender.AcceptsEndpoint(new Uri("http://fcm.googleapis.com/fcm/send/abc")).ShouldBeFalse();
+        sender.AcceptsEndpoint(new Uri("https://evil-push.apple.com.example.com/x")).ShouldBeFalse();
 
         using var broken = new VapidPushSender(new PushOptions { PublicKey = "BNBl", PrivateKey = "x" }, NullLogger<VapidPushSender>.Instance);
         broken.IsConfigured.ShouldBeFalse();
@@ -418,6 +428,8 @@ public sealed class FakePush : IPushSender
     public bool IsConfigured => true;
 
     public string? PublicKey => Key;
+
+    public bool AcceptsEndpoint(Uri endpoint) => endpoint.Scheme == Uri.UriSchemeHttps && endpoint.Host == "push.example.com";
 
     public Task<PushOutcome> SendAsync(PushTarget target, CancellationToken cancellationToken)
     {

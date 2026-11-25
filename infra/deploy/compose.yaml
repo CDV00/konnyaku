@@ -233,9 +233,9 @@ services:
       # People per room. Mesh: everyone sends video to everyone; above ~6 upload bandwidth and CPU of each device suffer.
       ROOM_CAPACITY: ${ROOM_CAPACITY:-6}
       REDIS_URL: redis://:${REDIS_PASSWORD:?}@redis:6379
-    # ~1 MiB idle, ~210 KiB per person in a room, ~40 KiB per open tab on /rt (docs/toi-uu-tai-nguyen.md). Rooms live
+    # ~1 MiB idle, ~210 KiB per person in a room, ~16 KiB per open tab on /rt (docs/toi-uu-tai-nguyen.md). Rooms live
     # in memory: if this limit is hit every room drops, so size it for the busiest hour (256m: ~1 100 people in rooms,
-    # or ~5 000 open tabs).
+    # or ~15 000 open tabs).
     deploy:
       resources:
         limits:
