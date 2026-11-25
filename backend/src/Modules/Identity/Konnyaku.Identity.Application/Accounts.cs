@@ -269,7 +269,8 @@ public sealed class CreateLearnerAccountHandler(IIdentityDbContext db, IPassword
     }
 }
 
-public sealed record BootstrapTenantAdminCommand(Guid TenantId, string Email, string DisplayName, string Password);
+/// <param name="Temporary">The password was generated for the person (platform console): changed at first sign-in.</param>
+public sealed record BootstrapTenantAdminCommand(Guid TenantId, string Email, string DisplayName, string Password, bool Temporary = false);
 
 /// <summary>Platform operation: first administrator of a new tenant. Must run in a scope whose tenant is the target tenant.</summary>
 public sealed class BootstrapTenantAdminHandler(IIdentityDbContext db, IPasswordHasher<User> hasher)
@@ -291,7 +292,7 @@ public sealed class BootstrapTenantAdminHandler(IIdentityDbContext db, IPassword
 
         if (!await db.PasswordCredentials.AnyAsync(c => c.UserId == user.Id, cancellationToken))
         {
-            db.PasswordCredentials.Add(new PasswordCredential(user.Id, hasher.HashPassword(user, command.Password!)));
+            db.PasswordCredentials.Add(new PasswordCredential(user.Id, hasher.HashPassword(user, command.Password!), command.Temporary));
         }
 
         var membership = await db.Memberships.Include(m => m.Roles).FirstOrDefaultAsync(m => m.UserId == user.Id, cancellationToken);
