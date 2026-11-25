@@ -15,7 +15,7 @@ Cách bật/tắt, cổng, biến môi trường: [docs/chay-local.md](../../doc
 | `support/ui.ts` | Thao tác giao diện dùng chung: `signIn`, `fillLogin`, `signOut`, `openSheet`, `hydrated`, `statValue`, `fetchStatus` |
 | `support/i18n.ts` | `t("admin.billing.refund")`: chữ lấy từ catalog `packages/i18n/messages`, không gõ cứng |
 | `support/env.ts` | URL, tài khoản của seed, `uniqueTag()` |
-| `support/mailpit.ts` | `latestEmailTo(address)`, `linkIn(email, "/login/reset")` |
+| `support/mailpit.ts` | `mailbox(address)` rồi `.next({ link })`: chờ email **mới** đúng loại cho một địa chỉ; `linkIn(email, "/login/reset")` |
 | `support/totp.ts` | Mã TOTP (2 bước) từ secret |
 | `run.mjs`, `compose.yaml` | Dựng stack, seed, chạy Playwright, dọn dẹp |
 
@@ -62,7 +62,23 @@ Cách bật/tắt, cổng, biến môi trường: [docs/chay-local.md](../../doc
 - Thiếu hàm tạo dữ liệu thì thêm vào `support/api.ts`, gọi đúng endpoint mà `seed_review.py` hoặc giao diện gọi. Cần dữ liệu nền mới cho mọi test (chương trình, gói học…) thì thêm vào `seed_review.py`.
 - Lớp: `createClass(admin, { mode: "Online" | "Offline" | "Hybrid", startedDaysAgo, capacity, schedule, roomCapacity, bookingMode })` — giáo viên riêng, lớp online/kết hợp thêm một host vào pool, `roomCapacity` tạo phòng riêng (chỗ tại lớp không vượt sức chứa phòng), `startedDaysAgo` âm là lớp khai giảng sau vài ngày, `bookingMode: "Flexible"` là lớp tự đặt buổi. Buổi đã diễn ra trên provider Fake: `holdLesson(admin, cls, session, learners)`.
 - Ghi danh tay (không qua đơn): `enroll(admin, cls, learner, "Online" | "Offline")`; chờ Worker tạo chỗ ngồi trong các buổi: `waitForBookings(learner, cls)`; gọi API của học viên: `Api.learner(username)`.
-- Email (`*@example.com` theo quy tắc dự án): đọc bằng `latestEmailTo(address)`.
+- Email (`*@example.com` theo quy tắc dự án): xem "Đọc email" dưới đây.
+
+## Đọc email
+
+Mọi test dùng chung một Mailpit, chạy song song, và Worker còn gửi những email test không yêu cầu (ví dụ một Tư vấn viên vừa tạo có thể được giao lead của `public-lead.spec.ts` và nhận "Lead mới" đúng lúc đang chờ link đặt lại mật khẩu). Vì vậy **không lấy "email mới nhất" của một địa chỉ**: đó là chạy đua, test lỗi lúc có lúc không.
+
+```ts
+const staff = await createStaff(admin, ["Consultant"], "reset");  // 1. người nhận riêng của test (uniqueTag)
+const inbox = await mailbox(staff.email);                         // 2. TRƯỚC thao tác: ghi nhớ hộp thư hiện có
+await send.click();                                               // 3. thao tác gửi email
+const email = await inbox.next({ link: "/login/reset" });         // 4. chờ email MỚI và ĐÚNG LOẠI
+const link = linkIn(email, "/login/reset");
+```
+
+- Người nhận phải là tài khoản test tự tạo (`createStaff`, `createLearner`), không dùng địa chỉ của seed: nhiều test cùng gửi tới đó.
+- `next(match)` chỉ nhận email chưa có lúc gọi `mailbox(...)` và khớp `match` (`link` là một đoạn URL trong email, `subject` là chuỗi hoặc regex); email mới khác bị bỏ qua và được liệt kê trong thông báo lỗi khi hết giờ. Không dựa vào giờ: đồng hồ của máy chạy test và Mailpit có thể lệch.
+- Mỗi lần `next` trả một email khác. Chờ hai email thì gọi `next` hai lần; dùng lại một link thì giữ link đó trong biến.
 
 ## Chờ cho đúng
 
