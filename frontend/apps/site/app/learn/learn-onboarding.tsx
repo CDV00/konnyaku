@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { requireMe } from "@konnyaku/session";
 import { Onboarding } from "@konnyaku/ui/kk/onboarding";
+import { guideUrl } from "../../guide-url";
 
 const steps = ["credits", "schedule", "join", "replay", "password"] as const;
 const links: Partial<Record<(typeof steps)[number], string>> = { password: "/learn/change-password" };
@@ -21,6 +22,7 @@ export async function LearnOnboarding() {
         href: links[step],
       }))}
       labels={{ show: t("show"), hide: t("hide") }}
+      guide={{ href: guideUrl("hoc-vien"), label: t("guide") }}
     />
   );
 }

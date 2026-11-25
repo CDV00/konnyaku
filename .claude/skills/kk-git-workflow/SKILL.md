@@ -23,7 +23,7 @@ description: Quy ước nhánh, commit, cập nhật README/docs và merge của
 1. Chạy kiểm tra theo skill `kk-verify` cho phần đã đổi.
 2. Phase/tính năng lớn: cập nhật bảng **Trạng thái triển khai** trong `README.md` (cột "còn để sau" ghi rõ phần chưa làm).
 3. Đổi phạm vi, module hoặc event: cập nhật `docs/04-roadmap.md`, `docs/06-evolution-strategy.md` (đây là nguồn duy nhất).
-4. Đổi màn hình người dùng thấy: cập nhật `docs/huong-dan-su-dung.md`.
+4. Đổi màn hình người dùng thấy: cập nhật trang tương ứng trong `docs/huong-dan/` (theo vai trò; chụp lại ảnh cùng tên trong `docs/huong-dan/images/` nếu giao diện đổi).
 5. Đổi cách chạy local (cổng, lệnh, biến môi trường): cập nhật `docs/chay-local.md` và `.claude/launch.json`.
 
 ## Push và merge
