@@ -1,5 +1,6 @@
 namespace Konnyaku.Infrastructure.Http;
 
+/// <summary>Policy names; limits and the shared Redis counters are set up by <see cref="KonnyakuRateLimiting"/>.</summary>
 public static class RateLimitPolicies
 {
     /// <summary>Anonymous public forms (registration): limited per client IP by the API host.</summary>

@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Net.Sockets;
+using Konnyaku.Infrastructure.Observability;
 using Konnyaku.Notification.Application;
 using MailKit;
 using MailKit.Net.Smtp;
@@ -15,6 +17,24 @@ namespace Konnyaku.Notification.Infrastructure;
 public sealed class SmtpEmailSender(SmtpOptions options, ILogger<SmtpEmailSender> logger) : IEmailSender
 {
     public async Task<DeliveryResult> SendAsync(EmailMessage message, CancellationToken cancellationToken)
+    {
+        // The SMTP server only: recipients and content never go into spans or metrics.
+        using var activity = KonnyakuTelemetry.Source.StartActivity("smtp send", ActivityKind.Client);
+        activity?.SetTag("server.address", options.Host);
+        activity?.SetTag("server.port", options.Port);
+        var result = await DeliverAsync(message, cancellationToken);
+        var outcome = result.Status.ToString().ToLowerInvariant();
+        activity?.SetTag("konnyaku.email.result", outcome);
+        if (result.Status != DeliveryStatus.Sent)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, outcome);
+        }
+
+        KonnyakuTelemetry.EmailsSent.Add(1, new KeyValuePair<string, object?>("result", outcome));
+        return result;
+    }
+
+    private async Task<DeliveryResult> DeliverAsync(EmailMessage message, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(options.Host) || string.IsNullOrWhiteSpace(options.FromAddress))
         {
