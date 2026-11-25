@@ -114,7 +114,19 @@ Thanh bên trái có 9 mục: Tổng quan, Lead, Học viên, Thu phí, Lớp h�
 
 **Tổng quan** hiện 4 số: Lead đang mở, Học viên, Lớp đang chạy, Đơn chờ thanh toán, kèm lối tắt tới từng mục.
 
-Hiện chưa sửa hay xoá được bản ghi trên giao diện; nhập sai thì liên hệ quản trị kỹ thuật.
+Mọi bản ghi đều sửa được bằng nút **Sửa** (biểu tượng bút) ngay trên dòng hoặc thẻ của nó. Bản ghi đã được dùng ở nơi khác (lớp, phòng, gói học, học viên, nhân sự…) không bị xoá mà **Ngừng dùng**: giữ nguyên lịch sử, chỉ không chọn được cho việc mới; bấm **Dùng lại** để mở lại. Riêng ngày nghỉ và đơn giá nhập nhầm thì xoá được.
+
+Ngăn kéo sửa có mục **Lịch sử thay đổi**: ai sửa, lúc nào, trường nào, giá trị cũ → mới. Trang chi tiết lớp và chi tiết cơ sở hiện lịch sử ở cuối trang.
+
+**Ai sửa được gì.** Bạn chỉ thấy nút cho việc mình được làm; hệ thống cũng kiểm tra lại mỗi lần lưu (thiếu quyền sẽ báo "Bạn không có quyền…" hoặc "Bạn không phụ trách cơ sở này").
+
+| Vai trò | Được sửa |
+| --- | --- |
+| Quản trị | Mọi thứ, kể cả nhân sự, cơ sở, chương trình |
+| Quản lý cơ sở, Điều phối | Lớp, lịch học, phòng, ngày nghỉ của các cơ sở mình phụ trách (không chọn cơ sở nào = toàn trung tâm) |
+| Kế toán | Gói học, đơn hàng, thanh toán, đơn giá giáo viên |
+| Tư vấn | Lead, hồ sơ học viên |
+| Giáo viên | Chỉ xem |
 
 ### Lead
 
@@ -124,11 +136,15 @@ Danh sách khách đăng ký từ trang công khai, kèm liên hệ, ngôn ngữ
 - **Nhập học** → Đã nhập học (sau đó tạo hồ sơ ở mục Học viên).
 - **Bỏ** → Không theo. Lead đã đóng không đổi trạng thái được nữa.
 
+**Sửa** lead đang mở để chỉnh họ tên, liên hệ, ngôn ngữ, mục tiêu, cơ sở và lịch mong muốn, hoặc giao cho tư vấn viên khác. Lead đã đóng không sửa được.
+
 ### Học viên
 
 Bấm **Thêm học viên**, nhập Họ tên, Năm sinh, Điện thoại, Phụ huynh, Email, Cơ sở.
 
 Muốn học viên đăng nhập được thì đánh dấu **Cấp tài khoản đăng nhập**. Sau khi lưu, ngăn kéo giữ nguyên và hiện **Tên đăng nhập** cùng **Mật khẩu tạm**. Mật khẩu tạm chỉ hiện một lần: bấm **Sao chép** và gửi cho học viên trước khi đóng.
+
+**Sửa** hồ sơ để chỉnh họ tên, năm sinh, liên hệ, cơ sở, ngôn ngữ liên lạc. Học viên nghỉ hẳn thì **Ngừng dùng**: không tạo được đơn hay ghi danh mới, các lớp và đơn cũ giữ nguyên.
 
 ### Thu phí
 
@@ -138,6 +154,12 @@ Muốn học viên đăng nhập được thì đánh dấu **Cấp tài khoản
 
 Khi đơn được trả đủ, học viên được cộng buổi và, nếu đơn gắn lớp, tự vào lớp sau vài giây. Lớp đã đầy thì đơn chuyển sang **Cần hoàn tiền**.
 
+Sửa và điều chỉnh (Kế toán, Quản trị):
+
+- **Sửa** gói học: giá và số buổi mới chỉ áp cho đơn tạo sau; đơn đã có giữ giá cũ. **Ngừng dùng** để thôi bán gói.
+- **Chi tiết** đơn hàng: khi đơn còn Chờ thanh toán, sửa số tiền (giảm giá; phải lớn hơn số đã thu) hoặc lớp; **Huỷ đơn** khi chưa thu đồng nào. Các lần thanh toán sửa được số tiền, hình thức, mã giao dịch; khoản nhập nhầm thì **Huỷ thanh toán** (vẫn giữ dấu vết).
+- Đơn đã trả đủ thì số buổi đã vào sổ buổi học: không sửa đơn nữa, chỉ sửa được hình thức và mã giao dịch của thanh toán.
+
 ### Lớp học
 
 1. Bấm **Mở lớp**: Mã, Cấp độ, Cơ sở, Hình thức (Online / Tại lớp / Kết hợp), Sĩ số tối đa, Khai giảng.
@@ -146,19 +168,33 @@ Khi đơn được trả đủ, học viên được cộng buổi và, nếu đ
 
 Trang chi tiết còn có danh sách buổi học và **Danh sách lớp**. Học viên không được thêm tay vào lớp: họ vào lớp khi đơn hàng gắn lớp được thanh toán.
 
+Sửa lớp trên trang chi tiết:
+
+- **Sửa**: mã, hình thức và sĩ số đổi lúc nào cũng được (sĩ số không nhỏ hơn số học viên đang giữ chỗ). Cấp độ, cơ sở và ngày khai giảng chỉ đổi được trước khi xếp lịch; cấp độ còn cần lớp chưa có học viên. Đổi hình thức (ví dụ Online → Tại lớp) áp cho mọi buổi chưa diễn ra.
+- **Sửa lịch tuần**: chọn lại ngày, giờ, giáo viên, phòng và ngày áp dụng (để trống = hôm nay). Các buổi chưa diễn ra từ ngày đó được xếp lại theo đúng thứ tự bài học, bỏ ngày nghỉ; buổi đã học hoặc đã huỷ giữ nguyên. Nếu giáo viên hoặc phòng bị trùng với lớp khác, không buổi nào bị đổi và hệ thống báo trùng lịch.
+- **Kết thúc lớp** hoặc **Huỷ lớp**: các buổi còn lại bị huỷ, giáo viên và phòng được trả. **Mở lại lớp** cho phép ghi danh và sửa tiếp (buổi đã huỷ không tự khôi phục: dùng Sửa lịch tuần).
+
 ### Chương trình
 
 - **Thêm chương trình**: Mã, Tên (Việt / Anh), Ngôn ngữ, Khung trình độ (CEFR, JLPT…). Đánh dấu **Hiện trên trang công khai** để khách thấy khoá này.
 - **Thêm cấp độ** trong từng chương trình: Mã, Tên, Trình độ đầu ra, Số buổi, Phút/buổi.
+- **Sửa** chương trình: ngôn ngữ và khung trình độ cố định khi đã có cấp độ. **Ngừng dùng** để ẩn khỏi trang công khai và không mở lớp mới; lớp đang có vẫn chạy.
+- **Sửa** cấp độ: số buổi không đổi được khi đã có lớp dùng cấp độ; phút/buổi mới áp cho lịch xếp sau.
 
 ### Nhân sự
 
 - **Thêm nhân sự**: Họ tên, Email, Mật khẩu ban đầu (bỏ trống nếu người này đã có tài khoản), và một hoặc nhiều vai trò: Quản trị, Quản lý cơ sở, Điều phối, Tư vấn, Kế toán, Giáo viên.
-- **Đặt đơn giá** cho giáo viên: Đơn giá mỗi giờ, Tiền tệ, Áp dụng từ. Đơn giá mới chỉ áp cho công còn nháp; công đã duyệt hoặc đã chốt không đổi.
+- **Đặt đơn giá** cho giáo viên: Đơn giá mỗi giờ, Tiền tệ, Áp dụng từ. Đơn giá mới chỉ áp cho công còn nháp; công đã duyệt hoặc đã chốt không đổi. Trong cùng ngăn kéo, đơn giá nhập nhầm sửa hoặc xoá được khi chưa có công đã duyệt/chốt dùng nó.
+- **Sửa** nhân sự: họ tên và vai trò. Với Quản lý cơ sở và Điều phối, đánh dấu các cơ sở người đó phụ trách (không chọn = toàn trung tâm). Trung tâm luôn phải còn ít nhất một Quản trị.
+- **Ngừng dùng** khoá tài khoản ngay (kể cả phiên đang mở không lưu được gì); **Dùng lại** để mở. Không tự khoá tài khoản của mình.
 
 ### Cơ sở
 
 **Thêm cơ sở**: Mã, Tên (Việt / Anh), Múi giờ theo chuẩn IANA (ví dụ `Asia/Ho_Chi_Minh`). Đánh dấu **Cơ sở online** cho cơ sở ảo dành cho lớp trực tuyến. Lịch học hiển thị theo múi giờ của cơ sở.
+
+- **Sửa** cơ sở (Quản trị): múi giờ mới chỉ áp cho lớp mở sau. **Ngừng dùng**: lớp đang có vẫn chạy, không mở được lớp hay phòng mới.
+- **Phòng & ngày nghỉ** mở trang chi tiết cơ sở: thêm, sửa, ngừng dùng phòng (phòng ngừng dùng không chọn được khi xếp lịch); thêm, sửa, xoá ngày nghỉ của cơ sở.
+- **Ngày nghỉ toàn trung tâm** ở cuối trang Cơ sở (cần quyền toàn trung tâm). Ngày nghỉ được dùng khi xếp hoặc xếp lại lịch; buổi đã xếp không tự dời.
 
 ### Kỳ lương
 

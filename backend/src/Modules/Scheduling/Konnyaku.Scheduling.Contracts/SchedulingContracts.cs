@@ -9,6 +9,9 @@ public sealed record SessionDto(
 public interface ISchedulingApi
 {
     Task<SessionDto?> GetSessionAsync(Guid sessionId, CancellationToken cancellationToken);
+
+    /// <summary>Sessions of a class that are not cancelled (0 = the class is not scheduled).</summary>
+    Task<int> CountClassSessionsAsync(Guid classId, CancellationToken cancellationToken);
 }
 
 public sealed record SessionScheduledV1(

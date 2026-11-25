@@ -1,4 +1,6 @@
+using System.Globalization;
 using Konnyaku.Academic.Contracts;
+using Konnyaku.Application.Authorization;
 using Konnyaku.Application.Persistence;
 using Konnyaku.Crm.Contracts;
 using Konnyaku.Identity.Contracts;
@@ -7,6 +9,7 @@ using Konnyaku.Scheduling.Contracts;
 using Konnyaku.Scheduling.Domain;
 using Konnyaku.SharedKernel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace Konnyaku.Scheduling.Application;
 
@@ -15,8 +18,11 @@ public interface ISchedulingDbContext
     DbSet<SchedulePattern> Patterns { get; }
     DbSet<Session> Sessions { get; }
     DbSet<ResourceBooking> Bookings { get; }
+    DatabaseFacade Database { get; }
 
     void Publish(IIntegrationEvent integrationEvent, string? correlationId = null);
+
+    void LogChange(string entityType, Guid entityId, Guid subjectId, string action, IReadOnlyList<(string Field, string? Old, string? New)> changes);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
@@ -40,7 +46,7 @@ public sealed class ResourceValidator(IIdentityApi identity, IOrganizationApi or
             return SchedulingErrors.TeacherInvalid;
         }
 
-        if (roomId is { } r && (await organization.GetRoomAsync(r, ct))?.BranchId != branchId)
+        if (roomId is { } r && await organization.GetRoomAsync(r, ct) is var room && (room is null || room.BranchId != branchId || !room.IsActive))
         {
             return Error.Validation("scheduling.room_invalid");
         }
@@ -54,7 +60,7 @@ public sealed record ScheduleClassCommand(int[] DaysOfWeek, TimeOnly StartTime, 
 /// <summary>Materializes every lesson of a class into sessions, skipping days off, and books teacher and room.</summary>
 public sealed class ScheduleClassHandler(
     ISchedulingDbContext db, IAcademicApi academic, IOrganizationApi organization, ResourceValidator validator,
-    IDbErrorClassifier errors, TimeProvider clock)
+    IDbErrorClassifier errors, TimeProvider clock, IAccessControl access)
 {
     public async Task<Result<IReadOnlyList<SessionDto>>> HandleAsync(Guid classId, ScheduleClassCommand command, CancellationToken ct)
     {
@@ -62,6 +68,11 @@ public sealed class ScheduleClassHandler(
         if (cls is null)
         {
             return Error.NotFound("scheduling.class_not_found");
+        }
+
+        if (await access.EnsureAsync(Permissions.Schedules, ct, cls.BranchId) is { } forbidden)
+        {
+            return forbidden;
         }
 
         if (command.DaysOfWeek is not { Length: > 0 } || command.DaysOfWeek.Any(d => d is < 1 or > 7))
@@ -132,15 +143,21 @@ public sealed record AssignTeacherCommand(Guid TeacherId);
 
 public sealed record CancelSessionCommand(string Reason);
 
-public sealed class SessionChangeHandler(ISchedulingDbContext db, ResourceValidator validator, IDbErrorClassifier errors)
+/// <summary>
+/// Changes one session (move, teacher, cancel) — branch managers and coordinators for sessions of their branches. Each
+/// change is written to the class's change log.
+/// </summary>
+public sealed class SessionChangeHandler(ISchedulingDbContext db, ResourceValidator validator, IDbErrorClassifier errors, IAccessControl access)
 {
     public async Task<Result<SessionDto>> RescheduleAsync(Guid sessionId, RescheduleCommand command, CancellationToken ct)
     {
-        var session = await db.Sessions.FirstOrDefaultAsync(s => s.Id == sessionId, ct);
+        var (session, denied) = await LoadAsync(sessionId, ct);
         if (session is null)
         {
-            return SchedulingErrors.SessionNotFound;
+            return denied!;
         }
+
+        var before = session.StartsAt;
 
         var duration = (int)(session.EndsAt - session.StartsAt).TotalMinutes;
         var moved = session.MoveTo(SchedulePlanner.Slot(command.Date, command.StartTime, duration, session.TimeZone));
@@ -155,16 +172,19 @@ public sealed class SessionChangeHandler(ISchedulingDbContext db, ResourceValida
         }
 
         db.Publish(new SessionRescheduledV1(session.Id, session.StartsAt, session.EndsAt));
+        Log(session, ("startsAt", Text(before), Text(session.StartsAt)));
         return await SaveAsync(session, ct);
     }
 
     public async Task<Result<SessionDto>> AssignTeacherAsync(Guid sessionId, AssignTeacherCommand command, CancellationToken ct)
     {
-        var session = await db.Sessions.FirstOrDefaultAsync(s => s.Id == sessionId, ct);
+        var (session, denied) = await LoadAsync(sessionId, ct);
         if (session is null)
         {
-            return SchedulingErrors.SessionNotFound;
+            return denied!;
         }
+
+        var before = session.ActualTeacherId;
 
         if (await validator.ValidateAsync(command.TeacherId, null, session.BranchId, ct) is { } invalid)
         {
@@ -183,15 +203,16 @@ public sealed class SessionChangeHandler(ISchedulingDbContext db, ResourceValida
         }
 
         db.Bookings.Add(new ResourceBooking(session.Id, ResourceTypes.Teacher, command.TeacherId, session.StartsAt, session.EndsAt));
+        Log(session, ("teacherId", before?.ToString(), command.TeacherId.ToString()));
         return await SaveAsync(session, ct);
     }
 
     public async Task<Result<SessionDto>> CancelAsync(Guid sessionId, CancelSessionCommand command, CancellationToken ct)
     {
-        var session = await db.Sessions.FirstOrDefaultAsync(s => s.Id == sessionId, ct);
+        var (session, denied) = await LoadAsync(sessionId, ct);
         if (session is null)
         {
-            return SchedulingErrors.SessionNotFound;
+            return denied!;
         }
 
         var cancelled = session.Cancel(string.IsNullOrWhiteSpace(command.Reason) ? "unspecified" : command.Reason.Trim());
@@ -206,8 +227,26 @@ public sealed class SessionChangeHandler(ISchedulingDbContext db, ResourceValida
         }
 
         db.Publish(new SessionCancelledV1(session.Id, session.CancelReason!));
+        Log(session, ("status", nameof(SessionStatus.Scheduled), nameof(SessionStatus.Cancelled)), ("cancelReason", null, session.CancelReason));
         return await SaveAsync(session, ct);
     }
+
+    private async Task<(Session? Session, Error? Denied)> LoadAsync(Guid sessionId, CancellationToken ct)
+    {
+        var session = await db.Sessions.FirstOrDefaultAsync(s => s.Id == sessionId, ct);
+        if (session is null)
+        {
+            return (null, SchedulingErrors.SessionNotFound);
+        }
+
+        return await access.EnsureAsync(Permissions.Schedules, ct, session.BranchId) is { } forbidden ? (null, forbidden) : (session, null);
+    }
+
+    private void Log(Session session, params (string Field, string? Old, string? New)[] changes) =>
+        db.LogChange(nameof(Session), session.Id, session.ClassId, "Updated",
+            [("sequenceNo", null, session.SequenceNo.ToString(CultureInfo.InvariantCulture)), .. changes]);
+
+    internal static string Text(DateTimeOffset value) => value.ToString("O", CultureInfo.InvariantCulture);
 
     private Task<List<ResourceBooking>> ActiveBookingsAsync(Guid sessionId, CancellationToken ct) =>
         db.Bookings.Where(b => b.SessionId == sessionId && b.IsActive).ToListAsync(ct);
@@ -235,6 +274,15 @@ public sealed class SchedulingQueries(ISchedulingDbContext db, ICrmApi crm, IAca
     public async Task<SessionDto?> GetSessionAsync(Guid sessionId, CancellationToken cancellationToken) =>
         (await db.Sessions.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken))?.ToDto();
 
+    /// <summary>The weekly rule currently used by a class (for the edit form).</summary>
+    public async Task<PatternView?> GetPatternAsync(Guid classId, CancellationToken ct) =>
+        await db.Patterns.AsNoTracking().Where(p => p.ClassId == classId).OrderByDescending(p => p.CreatedAt)
+            .Select(p => new PatternView(p.Id, p.ClassId, p.IsoDays, p.StartTime, p.DurationMinutes, p.TimeZone, p.EffectiveFrom, p.TeacherId, p.RoomId))
+            .FirstOrDefaultAsync(ct);
+
+    public Task<int> CountClassSessionsAsync(Guid classId, CancellationToken cancellationToken) =>
+        db.Sessions.CountAsync(s => s.ClassId == classId && s.Status != SessionStatus.Cancelled, cancellationToken);
+
     public async Task<IReadOnlyList<SessionDto>> ListClassSessionsAsync(Guid classId, CancellationToken ct) =>
         (await db.Sessions.AsNoTracking().Where(s => s.ClassId == classId).OrderBy(s => s.StartsAt).ToListAsync(ct))
         .Select(s => s.ToDto()).ToList();
@@ -261,6 +309,10 @@ public sealed class SchedulingQueries(ISchedulingDbContext db, ICrmApi crm, IAca
             .Select(s => s.ToDto()).ToList();
     }
 }
+
+public sealed record PatternView(
+    Guid Id, Guid ClassId, IReadOnlyList<int> DaysOfWeek, TimeOnly StartTime, int DurationMinutes, string TimeZone, DateOnly EffectiveFrom,
+    Guid? TeacherId, Guid? RoomId);
 
 public static class SessionMapping
 {

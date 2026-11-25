@@ -103,7 +103,8 @@ public sealed class SubmitLeadHandler(ICrmDbContext db, ITenantContext tenant, I
 
 public sealed record LeadView(
     Guid Id, string StudentName, int? BirthYear, string? GuardianName, string? Phone, string? Email, string LanguageCode,
-    string? Goal, string Status, Guid? AssignedConsultantId, DateTimeOffset? FollowUpDueAt, DateTimeOffset CreatedAt);
+    string? Goal, string Status, Guid? AssignedConsultantId, DateTimeOffset? FollowUpDueAt, DateTimeOffset CreatedAt,
+    Guid? PreferredBranchId, string? PreferredSchedule);
 
 public sealed class LeadQueries(ICrmDbContext db)
 {
@@ -117,7 +118,7 @@ public sealed class LeadQueries(ICrmDbContext db)
 
         return await query.OrderBy(l => l.FollowUpDueAt ?? l.CreatedAt)
             .Select(l => new LeadView(l.Id, l.StudentName, l.BirthYear, l.GuardianName, l.Phone, l.Email, l.LanguageCode,
-                l.Goal, l.Status.ToString(), l.AssignedConsultantId, l.FollowUpDueAt, l.CreatedAt))
+                l.Goal, l.Status.ToString(), l.AssignedConsultantId, l.FollowUpDueAt, l.CreatedAt, l.PreferredBranchId, l.PreferredSchedule))
             .Take(500)
             .ToListAsync(cancellationToken);
     }
@@ -180,8 +181,88 @@ public sealed class RegisterStudentHandler(ICrmDbContext db, TimeProvider clock)
     }
 }
 
+public sealed record EditLeadCommand(
+    string StudentName, int? BirthYear, string? GuardianName, string? Phone, string? Email, string LanguageCode, string? Goal,
+    Guid? PreferredBranchId, string? PreferredSchedule, Guid? AssignedConsultantId);
+
+public sealed record UpdateStudentCommand(
+    string FullName, int? BirthYear, string? GuardianName, string? Phone, string? Email, Guid? HomeBranchId, string? CommunicationLocale);
+
+/// <summary>Consultants (and the tenant admin) correct leads and student records; a student who left is deactivated, never deleted.</summary>
+public sealed class CrmEditHandlers(ICrmDbContext db, IIdentityApi identity, TimeProvider clock)
+{
+    public async Task<Result<bool>> EditLeadAsync(Guid leadId, EditLeadCommand command, CancellationToken ct)
+    {
+        var lead = await db.Leads.FirstOrDefaultAsync(l => l.Id == leadId, ct);
+        if (lead is null)
+        {
+            return Error.NotFound("crm.lead_not_found");
+        }
+
+        if (command.AssignedConsultantId is { } consultantId &&
+            (await identity.GetMemberAsync(consultantId, ct))?.Roles.Contains(SubmitLeadHandler.ConsultantRole) != true)
+        {
+            return Error.Validation("crm.consultant_unknown");
+        }
+
+        var details = new LeadDetails(command.StudentName ?? string.Empty, command.BirthYear, command.GuardianName, command.Phone,
+            command.Email, command.LanguageCode ?? string.Empty, command.Goal, command.PreferredBranchId, command.PreferredSchedule, null, null);
+        var edited = lead.Edit(details, command.AssignedConsultantId, clock.GetUtcNow());
+        if (!edited.IsSuccess)
+        {
+            return edited.Error!;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<Result<StudentDto>> UpdateStudentAsync(Guid studentId, UpdateStudentCommand command, CancellationToken ct)
+    {
+        var student = await db.Students.FirstOrDefaultAsync(s => s.Id == studentId, ct);
+        if (student is null)
+        {
+            return Error.NotFound("crm.student_not_found");
+        }
+
+        var updated = student.Update(command.FullName ?? string.Empty, command.BirthYear, command.GuardianName, command.Phone, command.Email,
+            command.HomeBranchId, command.CommunicationLocale ?? string.Empty, clock.GetUtcNow());
+        if (!updated.IsSuccess)
+        {
+            return updated.Error!;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return student.ToDto();
+    }
+
+    public async Task<Result<StudentDto>> SetStudentActiveAsync(Guid studentId, bool active, CancellationToken ct)
+    {
+        var student = await db.Students.FirstOrDefaultAsync(s => s.Id == studentId, ct);
+        if (student is null)
+        {
+            return Error.NotFound("crm.student_not_found");
+        }
+
+        student.SetActive(active);
+        await db.SaveChangesAsync(ct);
+        return student.ToDto();
+    }
+}
+
+/// <summary>A student record with contact details, for the people who keep student records (personal data: not for every staff member).</summary>
+public sealed record StudentDetailView(
+    Guid Id, string FullName, int? BirthYear, string? GuardianName, string? Phone, string? Email, Guid? HomeBranchId, Guid? UserId,
+    string CommunicationLocale, bool IsActive);
+
 public sealed class CrmQueries(ICrmDbContext db) : ICrmApi
 {
+    public async Task<IReadOnlyList<StudentDetailView>> ListStudentDetailsAsync(CancellationToken cancellationToken) =>
+        await db.Students.AsNoTracking().OrderBy(s => s.FullName).Take(500)
+            .Select(s => new StudentDetailView(s.Id, s.FullName, s.BirthYear, s.GuardianName, s.Phone, s.Email, s.HomeBranchId, s.UserId,
+                s.CommunicationLocale, s.IsActive))
+            .ToListAsync(cancellationToken);
+
     public async Task<StudentDto?> GetStudentAsync(Guid studentId, CancellationToken cancellationToken)
     {
         var student = await db.Students.AsNoTracking().FirstOrDefaultAsync(s => s.Id == studentId, cancellationToken);
@@ -200,5 +281,5 @@ public sealed class CrmQueries(ICrmDbContext db) : ICrmApi
 public static class StudentMapping
 {
     public static StudentDto ToDto(this StudentProfile s) =>
-        new(s.Id, s.FullName, s.BirthYear, s.HomeBranchId, s.UserId, s.CommunicationLocale);
+        new(s.Id, s.FullName, s.BirthYear, s.HomeBranchId, s.UserId, s.CommunicationLocale, s.IsActive);
 }

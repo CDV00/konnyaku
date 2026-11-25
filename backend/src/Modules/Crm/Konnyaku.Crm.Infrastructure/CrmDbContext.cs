@@ -2,6 +2,7 @@ using Konnyaku.Application.Tenancy;
 using Konnyaku.Crm.Application;
 using Konnyaku.Crm.Contracts;
 using Konnyaku.Crm.Domain;
+using Konnyaku.Infrastructure.Auditing;
 using Konnyaku.Infrastructure.Persistence;
 using Konnyaku.Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -56,6 +57,7 @@ public sealed class CrmDbContext(DbContextOptions<CrmDbContext> options, ITenant
             b.Property(x => x.CommunicationLocale).HasMaxLength(20);
             b.HasIndex(x => new { x.TenantId, x.UserId }).IsUnique().HasFilter("user_id IS NOT NULL");
         });
+        modelBuilder.AddChangeLog();
     }
 }
 

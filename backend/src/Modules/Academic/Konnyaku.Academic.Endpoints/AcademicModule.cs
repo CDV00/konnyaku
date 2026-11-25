@@ -1,5 +1,7 @@
 using Konnyaku.Academic.Application;
 using Konnyaku.Academic.Infrastructure;
+using Konnyaku.Application.Authorization;
+using Konnyaku.Infrastructure.Auditing;
 using Konnyaku.Infrastructure.Auth;
 using Konnyaku.Infrastructure.Http;
 using Konnyaku.Infrastructure.Messaging;
@@ -26,6 +28,8 @@ public sealed class AcademicModule : IModule
         services.AddScoped<CreateClassHandler>();
         services.AddScoped<EnrollHandler>();
         services.AddScoped<EnrollmentLifecycleHandler>();
+        services.AddScoped<ProgramAdminHandler>();
+        services.AddScoped<ClassAdminHandler>();
         services.AddScoped<Konnyaku.Application.Messaging.IIntegrationEventHandler<Konnyaku.Billing.Contracts.OrderPaidV1>, OrderPaidConsumer>();
     }
 
@@ -45,20 +49,47 @@ public sealed class AcademicModule : IModule
         staff.MapGet("/classes/{id:guid}/roster", async (Guid id, AcademicQueries queries, CancellationToken ct) =>
             Results.Ok(await queries.GetRosterAsync(id, ct)));
         staff.MapPost("/classes/{id:guid}/enrollments", async (Guid id, EnrollCommand command, EnrollHandler handler, CancellationToken ct) =>
-            ApiResults.From(await handler.HandleAsync(id, command, ct), e => Results.Created($"enrollments/{e.EnrollmentId}", e)));
+            ApiResults.From(await handler.HandleAsync(id, command, ct), e => Results.Created($"enrollments/{e.EnrollmentId}", e)))
+            .RequirePermission(Permissions.Classes);
         staff.MapPost("/enrollments/{id:guid}/freeze", async (Guid id, FreezeCommand command, EnrollmentLifecycleHandler handler, CancellationToken ct) =>
-            ApiResults.From(await handler.FreezeAsync(id, command, ct), Results.Ok));
+            ApiResults.From(await handler.FreezeAsync(id, command, ct), Results.Ok))
+            .RequirePermission(Permissions.Classes);
         staff.MapPost("/enrollments/{id:guid}/unfreeze", async (Guid id, EnrollmentLifecycleHandler handler, CancellationToken ct) =>
-            ApiResults.From(await handler.UnfreezeAsync(id, ct), Results.Ok));
+            ApiResults.From(await handler.UnfreezeAsync(id, ct), Results.Ok))
+            .RequirePermission(Permissions.Classes);
         staff.MapPost("/enrollments/{id:guid}/drop", async (Guid id, EnrollmentLifecycleHandler handler, CancellationToken ct) =>
-            ApiResults.From(await handler.DropAsync(id, ct), Results.Ok));
+            ApiResults.From(await handler.DropAsync(id, ct), Results.Ok))
+            .RequirePermission(Permissions.Classes);
 
-        var admin = group.MapGroup("").RequireAuthorization(Policies.TenantAdmin);
-        admin.MapPost("/programs", async (CreateProgramCommand command, CreateProgramHandler handler, CancellationToken ct) =>
+        var programs = group.MapGroup("").RequirePermission(Permissions.Programs);
+        programs.MapPost("/programs", async (CreateProgramCommand command, CreateProgramHandler handler, CancellationToken ct) =>
             ApiResults.From(await handler.HandleAsync(command, ct), p => Results.Created($"programs/{p.Id}", p)));
-        admin.MapPost("/programs/{id:guid}/levels", async (Guid id, AddCourseLevelCommand command, AddCourseLevelHandler handler, CancellationToken ct) =>
+        programs.MapPut("/programs/{id:guid}", async (Guid id, UpdateProgramCommand command, ProgramAdminHandler handler, CancellationToken ct) =>
+            ApiResults.From(await handler.UpdateAsync(id, command, ct), Results.Ok));
+        programs.MapPost("/programs/{id:guid}/deactivate", async (Guid id, ProgramAdminHandler handler, CancellationToken ct) =>
+            ApiResults.From(await handler.SetActiveAsync(id, false, ct), Results.Ok));
+        programs.MapPost("/programs/{id:guid}/activate", async (Guid id, ProgramAdminHandler handler, CancellationToken ct) =>
+            ApiResults.From(await handler.SetActiveAsync(id, true, ct), Results.Ok));
+        programs.MapPost("/programs/{id:guid}/levels", async (Guid id, AddCourseLevelCommand command, AddCourseLevelHandler handler, CancellationToken ct) =>
             ApiResults.From(await handler.HandleAsync(id, command, ct), l => Results.Created($"levels/{l.Id}", l)));
-        admin.MapPost("/classes", async (CreateClassCommand command, CreateClassHandler handler, CancellationToken ct) =>
+        programs.MapPut("/levels/{id:guid}", async (Guid id, UpdateCourseLevelCommand command, ProgramAdminHandler handler, CancellationToken ct) =>
+            ApiResults.From(await handler.UpdateLevelAsync(id, command, ct), Results.Ok));
+        programs.MapPost("/levels/{id:guid}/deactivate", async (Guid id, ProgramAdminHandler handler, CancellationToken ct) =>
+            ApiResults.From(await handler.SetLevelActiveAsync(id, false, ct), Results.Ok));
+        programs.MapPost("/levels/{id:guid}/activate", async (Guid id, ProgramAdminHandler handler, CancellationToken ct) =>
+            ApiResults.From(await handler.SetLevelActiveAsync(id, true, ct), Results.Ok));
+
+        // Classes: branch managers and coordinators too, for their branches (checked in the handlers).
+        var classes = group.MapGroup("").RequirePermission(Permissions.Classes);
+        classes.MapPost("/classes", async (CreateClassCommand command, CreateClassHandler handler, CancellationToken ct) =>
             ApiResults.From(await handler.HandleAsync(command, ct), c => Results.Created($"classes/{c.Id}", c)));
+        classes.MapPut("/classes/{id:guid}", async (Guid id, UpdateClassCommand command, ClassAdminHandler handler, CancellationToken ct) =>
+            ApiResults.From(await handler.UpdateAsync(id, command, ct), Results.Ok));
+        classes.MapPost("/classes/{id:guid}/close", async (Guid id, CloseClassCommand command, ClassAdminHandler handler, CancellationToken ct) =>
+            ApiResults.From(await handler.CloseAsync(id, command, ct), Results.Ok));
+        classes.MapPost("/classes/{id:guid}/reopen", async (Guid id, ClassAdminHandler handler, CancellationToken ct) =>
+            ApiResults.From(await handler.ReopenAsync(id, ct), Results.Ok));
+
+        group.MapChangeHistory<AcademicDbContext>();
     }
 }
