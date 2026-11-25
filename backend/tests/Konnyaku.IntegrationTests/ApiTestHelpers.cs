@@ -15,6 +15,7 @@ public sealed class KonnyakuApiFactory(PostgresFixture db, bool captcha = false)
 {
     public const string PlatformKey = "test-platform-key";
     public const string BaseDomain = "test.local";
+    public const string AdminHost = "admin.test.local";
     public const string CaptchaKey = "test-captcha-key-0123456789abcdef-0123456789";
     public const string RtcSecret = "test-rtc-secret-0123456789abcdef-0123456789";
 

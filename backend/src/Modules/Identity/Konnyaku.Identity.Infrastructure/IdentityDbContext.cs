@@ -82,6 +82,7 @@ public static class IdentityInfrastructure
         services.AddModuleDbContext<IdentityDbContext>(configuration, connectionName, IdentityDbContext.SchemaName);
         services.AddScoped<IIdentityDbContext>(sp => sp.GetRequiredService<IdentityDbContext>());
         services.AddScoped<IIdentityApi, IdentityQueries>();
+        services.AddScoped<IIdentityPlatformApi, IdentityPlatformApi>();
         services.AddHttpContextAccessor();
         services.AddScoped<IAccessControl, AccessControl>();
         services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();

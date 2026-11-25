@@ -94,6 +94,7 @@ public static class AcademicInfrastructure
         services.AddScoped<IAcademicDbContext>(sp => sp.GetRequiredService<AcademicDbContext>());
         services.AddScoped<AcademicQueries>();
         services.AddScoped<IAcademicApi>(sp => sp.GetRequiredService<AcademicQueries>());
+        services.AddScoped<IAcademicUsageApi, AcademicUsageQueries>();
         services.AddSingleton(TimeProvider.System);
         return services;
     }

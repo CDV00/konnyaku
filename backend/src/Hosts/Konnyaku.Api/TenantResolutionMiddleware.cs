@@ -1,4 +1,5 @@
 using Konnyaku.Infrastructure.Auth;
+using Konnyaku.Infrastructure.Http;
 using Konnyaku.Infrastructure.Tenancy;
 using Konnyaku.Platform.Contracts;
 
@@ -10,6 +11,8 @@ namespace Konnyaku.Api;
 /// 2. otherwise the <c>tid</c> claim of the token (API clients without a tenant host);
 /// 3. in Development only, the <c>X-Tenant-Id</c> header.
 /// A token issued for another tenant than the host's is rejected (401) — it never overrides the host.
+/// A suspended tenant gets 403 <c>platform.tenant_suspended</c> on every call (sign-in included), except the public
+/// tenant info the site uses to show the suspension notice.
 /// </summary>
 public sealed class TenantResolutionMiddleware(RequestDelegate next, IHostEnvironment environment)
 {
@@ -32,6 +35,15 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next, IHostEnviro
 
         if ((hostTenant?.Id ?? tokenTenant) is { } tenantId)
         {
+            var info = hostTenant ?? await platform.GetTenantAsync(tenantId, context.RequestAborted);
+            if (info?.Status == TenantStatuses.Suspended && !IsPublicTenantInfo(context.Request))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                await context.Response.WriteAsJsonAsync(
+                    new ErrorBody("platform.tenant_suspended", new Dictionary<string, object?>()), context.RequestAborted);
+                return;
+            }
+
             tenant.Set(tenantId);
         }
         else if (environment.IsDevelopment()
@@ -43,4 +55,7 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next, IHostEnviro
 
         await next(context);
     }
+
+    private static bool IsPublicTenantInfo(HttpRequest request) =>
+        HttpMethods.IsGet(request.Method) && request.Path.Equals("/api/platform/tenant", StringComparison.OrdinalIgnoreCase);
 }

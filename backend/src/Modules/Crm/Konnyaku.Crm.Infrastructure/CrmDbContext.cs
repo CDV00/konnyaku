@@ -79,6 +79,7 @@ public static class CrmInfrastructure
         services.AddScoped<ICrmDbContext>(sp => sp.GetRequiredService<CrmDbContext>());
         services.AddScoped<CrmQueries>();
         services.AddScoped<ICrmApi>(sp => sp.GetRequiredService<CrmQueries>());
+        services.AddScoped<ICrmUsageApi, CrmUsageQueries>();
         services.AddScoped<ICrmContactsApi, CrmContacts>();
         services.AddSingleton(TimeProvider.System);
         return services;

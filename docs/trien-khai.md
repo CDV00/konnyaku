@@ -5,7 +5,7 @@ Pilot chạy trên **một VPS** bằng Docker Compose. Toàn bộ định nghĩ
 ## Kiến trúc
 
 ```
-Internet ─80/443─► Caddy ──► web ×2 (Next.js: trang công khai, /learn, /teach, /ops, /room)
+Internet ─80/443─► Caddy ──► web ×2 (Next.js: trang công khai, /learn, /teach, /ops, /room; /platform trên admin.BASE_DOMAIN)
                     │   │       │  (mạng app)
                     │   │       ▼
                     │   │    api ×2 (ASP.NET Core) ──┐
@@ -21,7 +21,7 @@ Trình duyệt ◄────── hình/tiếng trực tiếp giữa các má
 
 | Thành phần | Bản sao | Ghi chú |
 | --- | --- | --- |
-| `caddy` | 1 | Cổng duy nhất mở ra Internet. HTTPS tự động (on-demand) cho `{slug}.BASE_DOMAIN`; chia tải round-robin giữa các bản sao `web`, bỏ qua bản sao đang khởi động lại |
+| `caddy` | 1 | Cổng duy nhất mở ra Internet. HTTPS tự động (on-demand) cho `{slug}.BASE_DOMAIN`, tên miền riêng và `admin.BASE_DOMAIN`; chia tải round-robin giữa các bản sao `web`, bỏ qua bản sao đang khởi động lại |
 | `web` | `WEB_REPLICAS` (2) | Không lưu trạng thái. Gọi API qua mạng nội bộ, chuyển IP khách trong `X-Forwarded-For` |
 | `api` | `API_REPLICAS` (2) | Không mở ra Internet. Chỉ tin `X-Forwarded-For` từ mạng `app` (`APP_SUBNET`). Cache tenant trong bộ nhớ 1 phút |
 | `worker` | `WORKER_REPLICAS` (1) | Chạy nhiều bản an toàn: outbox lấy việc bằng `FOR UPDATE SKIP LOCKED` |
@@ -106,18 +106,38 @@ Form đăng ký tư vấn dùng captcha **proof-of-work tự host** (cơ chế g
 
 Ở dev (`appsettings.Development.json`) captcha bật với khóa dev; test tích hợp tắt captcha trừ `CaptchaTests`; `infra/scripts/seed_review.py` tự giải thử thách như trình duyệt.
 
-## Tạo trung tâm (tenant)
+## Bảng điều khiển nền tảng và tạo trung tâm
 
-API không mở ra Internet, nên gọi từ trong mạng nội bộ của stack:
+Người vận hành Konnyaku quản lý các trung tâm tại **`https://admin.BASE_DOMAIN/platform`** (host quản trị; DNS `*.BASE_DOMAIN` đã trỏ về server, Caddy tự cấp chứng chỉ vì `tls-ask` nhận host này). Khu vực `/platform` chỉ phục vụ trên host quản trị: trên host trung tâm nó trả 404, và API từ chối mọi lệnh của bảng điều khiển gửi từ host khác. `admin` là mã được nền tảng giữ lại, không trung tâm nào dùng được.
+
+Tài khoản nền tảng tách hẳn khỏi tài khoản trung tâm: bảng `platform.operator`, token riêng (audience `platform`, không mang `tid`), cookie riêng `kk_platform`. Đăng nhập bằng email + mật khẩu (tối thiểu 12 ký tự) + **mã TOTP bắt buộc** từ ứng dụng xác thực; 10 mã khôi phục dùng một lần được cấp khi bật TOTP; sai 5 lần (mật khẩu hoặc mã) thì khóa 15 phút. Secret TOTP được mã hoá trong DB bằng khóa suy ra từ `Platform__SecretKey` (nếu không đặt thì từ `AUTH_SIGNING_KEY`): đổi khóa này thì mọi người vận hành phải bật lại TOTP.
+
+### Tạo người vận hành đầu tiên (một lần)
+
+Endpoint bootstrap chỉ chạy được khi **chưa có người vận hành nào**, và cần `X-Platform-Key`. API không mở ra Internet, nên gọi từ trong mạng nội bộ của stack:
 
 ```bash
 cd /opt/konnyaku && set -a && . ./.env && set +a
-docker run --rm --network konnyaku_app curlimages/curl -s -X POST http://api:8080/api/platform/tenants \
+docker run --rm --network konnyaku_app curlimages/curl -s -X POST http://api:8080/api/platform/operators/bootstrap \
   -H "X-Platform-Key: $PLATFORM_ADMIN_KEY" -H "Content-Type: application/json" \
-  -d '{"slug":"abc","name":"Trung tâm ABC","defaultLocale":"vi","enabledLocales":["vi","en"],"timeZone":"Asia/Ho_Chi_Minh"}'
+  -d '{"email":"ten.ban@congty.vn","displayName":"Tên bạn","password":"<mật khẩu dài, ít nhất 12 ký tự>"}'
 ```
 
-Sau đó tạo quản trị viên đầu tiên bằng `POST /api/identity/bootstrap/tenant-admin` theo cùng cách (xem `infra/scripts/seed_demo.py`). Lần đầu mở `https://abc.BASE_DOMAIN`, Caddy hỏi web app host này có phải tenant không rồi mới xin chứng chỉ, nên lần tải đầu chậm vài giây.
+Rồi mở `https://admin.BASE_DOMAIN/platform`, đăng nhập bằng email + mật khẩu đó: lần đầu trang hiện mã QR để thêm vào ứng dụng xác thực, nhập mã 6 số để xác nhận, rồi **lưu 10 mã khôi phục** (chỉ hiện một lần). Sau đó mời những người vận hành khác ở mục **Người vận hành** (mật khẩu tạm hiện một lần; họ bật TOTP và đặt mật khẩu mới ở lần đăng nhập đầu). Không gửi mật khẩu trong lệnh lên lịch sử shell dùng chung: chạy lệnh trên trong một phiên riêng hoặc xoá dòng khỏi `~/.bash_history`.
+
+### Tạo trung tâm
+
+Trong bảng điều khiển: **Trung tâm → Tạo trung tâm**, nhập tên, mã (tên miền con), ngôn ngữ, múi giờ và quản trị viên đầu tiên. Màn hình hiện địa chỉ `https://<mã>.BASE_DOMAIN` và mật khẩu tạm của quản trị viên (một lần). Lần đầu mở địa chỉ đó, Caddy hỏi web app host này có thuộc trung tâm nào không rồi mới xin chứng chỉ, nên lần tải đầu chậm vài giây.
+
+Cũng trong trang của từng trung tâm: **tạm khóa / mở lại** (khi khóa, mọi đăng nhập và lệnh API của trung tâm bị từ chối với mã `platform.tenant_suspended`, trang công khai hiện thông báo tạm ngừng; mỗi bản sao API thấy thay đổi trong tối đa 1 phút vì cache tenant), **thêm tên miền riêng** (khách trỏ DNS về server trước; không nhận tên miền thuộc `BASE_DOMAIN`), **thêm quản trị viên** (khi quản trị viên cũ nghỉ). Mọi thao tác — kể cả đăng nhập, khóa tài khoản do sai nhiều lần — nằm ở **Nhật ký** (bảng `platform.audit_entry`, role `kk_platform` chỉ được thêm và đọc).
+
+### `X-Platform-Key` chỉ cho tự động hoá
+
+`PLATFORM_ADMIN_KEY` vẫn mở `POST /api/platform/tenants`, `POST /api/identity/bootstrap/tenant-admin` và bootstrap người vận hành, cho script, seed và CI. Khóa này không gắn với người nào (nhật ký ghi "tự động hoá"), nên không dùng cho việc vận hành hằng ngày; giữ trong `.env`, đổi định kỳ, không đưa cho người vận hành.
+
+### Đổi host quản trị
+
+Mặc định `admin.BASE_DOMAIN`. Muốn dùng host khác: đặt cùng một giá trị cho `Platform__AdminHost` (api, worker) và `KONNYAKU_ADMIN_HOST` (web) trong `compose.yaml`, và trỏ DNS host đó về server. Muốn hạn chế thêm theo IP (VPN văn phòng), thêm khối `@admin host admin.<domain>` + `remote_ip` trong `Caddyfile`.
 
 ## Backup
 

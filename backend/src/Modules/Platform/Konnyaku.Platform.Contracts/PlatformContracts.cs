@@ -2,9 +2,16 @@ using Konnyaku.SharedKernel;
 
 namespace Konnyaku.Platform.Contracts;
 
+/// <param name="Status"><c>Active</c> or <c>Suspended</c> (sign-in and API refused, public site shows a notice).</param>
 public sealed record TenantInfo(
     Guid Id, string Slug, string Name, string DefaultLocale, IReadOnlyList<string> EnabledLocales, string TimeZone,
-    IReadOnlyList<string> Hosts);
+    IReadOnlyList<string> Hosts, string Status);
+
+public static class TenantStatuses
+{
+    public const string Active = "Active";
+    public const string Suspended = "Suspended";
+}
 
 public interface IPlatformApi
 {

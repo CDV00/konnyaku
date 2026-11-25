@@ -290,6 +290,34 @@ flowchart LR
 
 Bước tô đậm là bước không hoàn tác được: sau khi giáo viên xác nhận điểm danh, buổi của học viên bị trừ và công được ghi ngay.
 
+## Người vận hành nền tảng (`platform`)
+
+Phần này dành cho nhân viên Konnyaku quản lý các trung tâm, không dành cho trung tâm.
+
+### Đăng nhập
+
+1. Mở `https://admin.<tên miền Konnyaku>/platform` (trang này không mở được từ địa chỉ của trung tâm).
+2. Nhập email và mật khẩu, bấm **Tiếp tục**.
+3. Nhập mã 6 số trong ứng dụng xác thực (Google Authenticator, Microsoft Authenticator, 1Password…), bấm **Xác minh**.
+
+Lần đăng nhập đầu tiên, trang hiện **mã QR**: mở ứng dụng xác thực, thêm tài khoản bằng cách quét mã (hoặc nhập khoá thủ công), rồi nhập mã 6 số ứng dụng hiển thị. Sau đó trang hiện **10 mã khôi phục**: lưu vào trình quản lý mật khẩu; mỗi mã dùng được một lần khi mất điện thoại (bấm **Dùng mã khôi phục** ở bước nhập mã). Người được mời đăng nhập bằng mật khẩu tạm phải đặt mật khẩu mới (ít nhất 12 ký tự) trước khi dùng các mục khác.
+
+Mỗi mã chỉ dùng một lần; nhập sai mật khẩu hoặc mã 5 lần liên tiếp thì tài khoản bị khóa 15 phút.
+
+### Trung tâm
+
+- **Danh sách**: tên, mã, địa chỉ, trạng thái, số học viên, lớp đang mở, nhân sự, ngày tạo. Bấm tên trung tâm để mở trang chi tiết.
+- **Tạo trung tâm**: nhập tên, mã (thành địa chỉ `<mã>.<tên miền Konnyaku>`, chỉ chữ thường, số, dấu gạch ngang), ngôn ngữ mặc định, ngôn ngữ giao diện được bật, múi giờ, rồi họ tên và email của quản trị viên đầu tiên. Màn hình hiện **mật khẩu tạm** của quản trị viên một lần: sao chép và gửi qua kênh an toàn. Nếu email đã là nhân viên ở trung tâm khác, người đó dùng mật khẩu hiện có.
+- **Tạm khóa trung tâm** (trang chi tiết): nhập lý do (không bắt buộc) rồi xác nhận. Trong lúc khóa, không ai của trung tâm đăng nhập được, người đang đăng nhập bị đưa ra ngoài trong vòng một phút, trang công khai hiện "Trung tâm tạm ngừng hoạt động". Dữ liệu được giữ nguyên. Bấm **Mở lại trung tâm** để hoạt động lại ngay.
+- **Thêm tên miền riêng**: trung tâm trỏ bản ghi DNS (A hoặc CNAME) của tên miền về máy chủ Konnyaku trước, rồi thêm tên miền ở đây. Chứng chỉ HTTPS được cấp tự động ở lần truy cập đầu. Gỡ được tên miền riêng, không gỡ được địa chỉ mặc định.
+- **Thêm quản trị viên**: khi quản trị viên cũ nghỉ hoặc mất quyền truy cập, cấp quyền quản trị cho người khác (nhận mật khẩu tạm nếu chưa có tài khoản nhân viên).
+
+### Nhật ký và người vận hành
+
+- **Nhật ký**: mọi thao tác (đăng nhập, tạo, khóa, mở lại trung tâm, thêm tên miền, mời người vận hành…) kèm người thực hiện, thời điểm, trung tâm và địa chỉ IP. Không sửa hay xoá được. Dòng "Tự động hoá (khoá nền tảng)" là thao tác của script dùng khoá hệ thống.
+- **Người vận hành**: mời người mới (mật khẩu tạm hiện một lần), xem ai đã bật xác minh hai bước và lần đăng nhập gần nhất, **Vô hiệu** tài khoản của người nghỉ việc (mất quyền ngay, kể cả phiên đang mở).
+- **Tài khoản**: đổi mật khẩu, xem số mã khôi phục còn lại.
+
 ## Câu hỏi thường gặp
 
 | Tình huống | Cách xử lý |
@@ -307,5 +335,7 @@ Bước tô đậm là bước không hoàn tác được: sau khi giáo viên x
 | Xác nhận điểm danh nhầm | Không sửa được trên giao diện; liên hệ quản trị để điều chỉnh số buổi. |
 | “Bạn không có quyền thực hiện thao tác này” | Vai trò của bạn không được làm việc đó; nhờ người có vai trò Quản trị. |
 | “Phiên đăng nhập đã hết” | Đăng nhập lại rồi làm lại thao tác. |
+| Trang trung tâm báo “Trung tâm tạm ngừng hoạt động” | Trung tâm đang bị tạm khóa trên Konnyaku; quản trị viên trung tâm liên hệ Konnyaku. |
+| Người vận hành mất điện thoại và hết mã khôi phục | Chưa tự đặt lại được trên giao diện; liên hệ quản trị kỹ thuật để đặt lại. |
 
 Chưa có trên giao diện ở bản này: sửa/xoá bản ghi, đổi lịch từng buổi, bảo lưu, học bù, thanh toán online, đăng nhập bằng Google.

@@ -6,7 +6,7 @@ Hệ thống local gồm 3 phần: hạ tầng trong Docker, backend .NET (API +
 
 | Thành phần | Cổng | Ghi chú |
 | --- | --- | --- |
-| Web (`frontend/apps/site`: trang công khai, đăng nhập, `/learn`, `/teach`, `/ops`) | **4000** | Mở trình duyệt ở đây |
+| Web (`frontend/apps/site`: trang công khai, đăng nhập, `/learn`, `/teach`, `/ops`) | **4000** | Mở trình duyệt ở đây. Bảng điều khiển nền tảng: `http://admin.localhost:4000/platform` |
 | API | 5080 | Tài liệu API: `http://localhost:5080/scalar` |
 | Worker | 5090 | Xử lý outbox (ghi danh sau thanh toán, tạo phòng học, trừ buổi, công) |
 | PostgreSQL | 5433 | User `konnyaku` / `konnyaku_dev`, DB `konnyaku` |
@@ -93,6 +93,18 @@ Mở `http://review.localhost:4000/login`. Mật khẩu chung: nhân viên `Revi
 | Học viên | `hv-review01` … `hv-review12` | `/learn` | `hv-review01`–`05`: lớp tiếng Nhật, số buổi đã trừ, video xem lại; `06`–`09`: lớp tiếng Anh offline; `10`: lớp tiếng Trung; `11`: đơn mới trả một nửa; `12`: đơn chưa trả |
 | Phụ huynh | `ph-review01` | `/learn` | Chưa gắn với học viên nào (tính năng liên kết phụ huynh chưa có) |
 
+### Người vận hành nền tảng (super-admin)
+
+`seed_review.py` cũng tạo người vận hành nền tảng đầu tiên (nếu database chưa có ai). Bảng điều khiển chỉ mở trên host quản trị `http://admin.localhost:4000/platform` (trên host trung tâm `/platform` trả 404):
+
+| Mục | Giá trị (chỉ dùng cho dev) |
+| --- | --- |
+| Email | `superadmin@platform.example.com` |
+| Mật khẩu | `Platform-Pass-123` |
+| Secret TOTP (base32) | `KONNYAKUDEVPLATFORMTOTP234567ABC` — thêm vào ứng dụng xác thực (nhập khoá thủ công), hoặc in mã hiện tại: `python infra/scripts/seed_review.py --totp` |
+
+Mỗi mã TOTP chỉ dùng được một lần (chờ 30 giây để có mã mới khi đăng nhập lại). Sai 5 lần thì khóa 15 phút; reset nhanh trên database dev: `UPDATE platform.operator SET failed_attempts = 0, locked_until = NULL;`. Host quản trị đổi được bằng `Platform:AdminHost` (API) và `KONNYAKU_ADMIN_HOST` (web), mặc định `admin.<BaseDomain>` và `admin.localhost`.
+
 Biến môi trường `KONNYAKU_API` và `KONNYAKU_PLATFORM_KEY` cho phép chạy script vào API khác (ví dụ stack staging); tham số `--base-domain` khớp với `Platform:BaseDomain` của API đó.
 
 ### Xem email gửi đi (Mailpit)
@@ -150,3 +162,5 @@ for p in 4000 5080 5090; do lsof -ti tcp:$p | xargs -r kill; done
 | Trang báo không xác định được trung tâm | Đang mở `localhost:4000` thay vì `demo.localhost:4000`, hoặc chưa chạy seed |
 | Build frontend lỗi `require() of ES Module` | Tailwind bị nâng khỏi 4.1.18; trả về đúng bản đó |
 | Seed báo tenant đã tồn tại | Database đã có dữ liệu demo; dùng tài khoản cũ hoặc `down -v` để làm lại |
+| Bảng điều khiển nền tảng báo mã không đúng | Mã vừa dùng rồi (chờ mã mới sau 30 giây) hoặc đồng hồ máy lệch quá 30 giây |
+| Trang trung tâm báo "tạm ngừng hoạt động" | Trung tâm bị tạm khóa trong bảng điều khiển nền tảng; mở lại ở `/platform` |

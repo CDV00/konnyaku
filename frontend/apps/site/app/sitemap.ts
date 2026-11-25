@@ -7,7 +7,8 @@ import { alternates, publicLocales, siteOrigin } from "./seo";
 /** Public pages of the center on this host, one entry per published language with hreflang alternates. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const tenant = await tenantInfo();
-  if (!tenant) return [];
+  // Unknown host, platform console host (no tenant) or suspended center: nothing to list.
+  if (!tenant || tenant.status === "Suspended") return [];
   const origin = await siteOrigin();
   return publicLocales(tenant).flatMap((locale) =>
     publicPages.map((page) => ({
