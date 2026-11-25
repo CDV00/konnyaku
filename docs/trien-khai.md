@@ -17,6 +17,8 @@ Internet ─80/443─► Caddy ──► web ×2 (Next.js: trang công khai, /le
                     │        worker ×1 ──────────────┘
                     │        migrator (chạy mỗi lần up, xong thì thoát)
                     │        backup (pgBackRest) ── WAL + backup, mã hóa ──► object storage S3 ở nhà cung cấp khác
+                    │        files-backup (rclone) ── bản sao bucket, mã hóa ──► cùng object storage đó
+                    ├─files.BASE_DOMAIN─► garage (S3, kho file) ◄── api / worker (http://garage:3900)
                     └─ chứng chỉ HTTPS cấp tự động cho từng host tenant
 Internet ─3478 + dải UDP─► coturn (TURN, mạng host)
 Trình duyệt ◄────── hình/tiếng trực tiếp giữa các máy (WebRTC), qua coturn khi mạng chặn ──────► Trình duyệt
@@ -33,6 +35,8 @@ Trình duyệt ◄────── hình/tiếng trực tiếp giữa các má
 | `backup` | 1 | pgBackRest: full hằng tuần, diff hằng ngày, WAL liên tục, diễn tập khôi phục hằng tháng, ghi file trạng thái cho giám sát ([Backup](#backup)) |
 | `signaling` | **1** | Cổng thời gian thực (`services/signaling`, Rust, image `konnyaku-signaling`), qua Caddy, chỉ nhận vé ngắn hạn do API ký (`SIGNALING_SECRET`). **Phòng học** `/rtc/ws`: giữ ai đang ở phòng nào **trong bộ nhớ** nên chỉ chạy một bản, báo vào/ra/kết thúc về API qua mạng nội bộ. **Realtime** `/rt`: một WebSocket mỗi tab đã đăng nhập, nhận tín hiệu từ Redis (`user:{id}`) và đẩy xuống tab của người đó ([Thông báo trong app](#thông-báo-trong-app-và-thời-gian-thực)) |
 | `redis` | 1 | Bộ đếm giới hạn tần suất dùng chung cho mọi bản sao API, và pub/sub tín hiệu realtime (API, worker `PUBLISH`; signaling `PSUBSCRIBE user:*`). Mạng `data`, cổng 6379 chỉ trong mạng nội bộ, mật khẩu `REDIS_PASSWORD`, không lưu xuống đĩa. Redis dừng thì mỗi bản sao tạm đếm riêng trong RAM, chuông thông báo chuyển sang hỏi lại mỗi 30 giây; không lỗi request, không mất thông báo |
+| `garage` | 1 (`GARAGE_REPLICAS`) | Kho file của module Content (Garage, S3, Rust). Trình duyệt tải lên/xuống thẳng qua Caddy ở `files.BASE_DOMAIN` bằng URL ký hạn ngắn; file không đi qua `web` hay `api` ([Kho file](#kho-file-garage)) |
+| `files-backup` | 1 | Bản sao bucket hằng ngày lên object storage backup, mã hoá phía client (rclone) |
 | `coturn` | 1 | TURN cho người dùng sau NAT/tường lửa chặt. Dùng mạng host (`network_mode: host`). Mật khẩu tạm theo TURN REST API (`TURN_SECRET`, hạn 6 giờ); không chuyển tiếp tới địa chỉ nội bộ/loopback |
 
 Giới hạn tần suất (form công khai `RateLimits:PublicFormsPerMinute`, quên/đặt lại mật khẩu `RateLimits:PasswordResetPerMinute`, theo IP mỗi phút) đếm trong **Redis**, nên đúng với mọi số bản sao API; khoá trong Redis chỉ chứa mã băm của IP. Không cấu hình `Redis:ConnectionString` (dev, test) thì mỗi process đếm trong RAM như trước.
@@ -47,7 +51,7 @@ Thay cho Google Meet khi trung tâm chưa có Google Workspace. Trung tâm chọ
 - **Vào phòng**: link **Vào lớp** → API kiểm quyền → `/room/{mã}`. Trang phòng xin **vé** (`POST /api/workspace/rooms/{mã}/ticket`, JWT HS256 hạn 2 phút: tenant, buổi, người, vai trò, giờ kết thúc buổi) mỗi lần kết nối và kết nối lại; signaling chỉ nhận vé này.
 - **Điểm danh, bảng công**: signaling gửi vào/ra/kết thúc tới `POST /api/workspace/internal/rooms/events` (mạng nội bộ, header `X-Rtc-Token` ký bằng `SIGNALING_SECRET`, thử lại khi API lỗi). Khi phòng kết thúc, Workspace phát `ParticipantsCollectedV1` như mọi provider → Learning tạo điểm danh nháp, Hr tạo bảng công. Phòng tự đóng khi trống sau giờ kết thúc, hoặc sau `ROOM_GRACE_MINUTES` (30) phút.
 - **Khởi động lại signaling** (deploy) ngắt mọi phòng vài giây; trình duyệt tự kết nối lại, thời gian có mặt không bị tính trùng.
-- **Chưa có**: ghi hình (repo chưa có object storage), TURN qua TLS cổng 443 (mạng chỉ cho phép HTTPS sẽ không kết nối được), SFU cho lớp đông, nhiều bản signaling.
+- **Chưa có**: ghi hình (kho file đã có, phần ghi hình chưa làm), TURN qua TLS cổng 443 (mạng chỉ cho phép HTTPS sẽ không kết nối được), SFU cho lớp đông, nhiều bản signaling.
 
 ### Thông báo trong app và thời gian thực
 
@@ -92,6 +96,8 @@ Thiết kế ở [doc 10.9](10-hoc-tap-va-danh-gia.md#109-nhắn-tin-và-thông-
    ```bash
    cp .env.example .env && ./scripts/gen-secrets.sh >> .env && chmod 600 .env
    ```
+
+   Server đã chạy từ trước bản có kho file: thêm `DB_PASSWORD_CONTENT`, `GARAGE_RPC_SECRET`, `GARAGE_ADMIN_TOKEN`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` (chạy lại `gen-secrets.sh` rồi chỉ chép năm dòng đó) và tạo role `kk_content` bằng tay (mục [Kho file](#kho-file-garage)).
 
    Server đã chạy từ trước bản có Redis và giám sát: thêm `REDIS_PASSWORD`, `GRAFANA_ADMIN_PASSWORD`, `DB_PASSWORD_MONITOR` (chạy lại `gen-secrets.sh` rồi chỉ chép ba dòng đó), nếu không `docker compose up` báo thiếu biến. Server đã chạy từ trước bản có hộp thông báo: chép thêm `VAPID_PUBLIC_KEY` và `VAPID_PRIVATE_KEY` (không bắt buộc: thiếu thì Web Push tắt).
 
@@ -215,14 +221,73 @@ Bảo mật tài khoản ở production (mặc định, không cần đặt bi�
 - Email quên mật khẩu gửi qua module Notification (cần SMTP như các email khác); link là `Notification:SiteUrlTemplate` của trung tâm + `/login/reset`. Link không được lưu lại sau khi gửi và không hiện trong nhật ký thông báo.
 - Endpoint mô phỏng buổi học (`/api/workspace/dev/...`) tắt; chỉ bật cho staging bằng `Workspace__DevTools=true`.
 
+## Kho file (Garage)
+
+File của người dùng (tài liệu giảng dạy, media câu hỏi, bài nộp, tệp đính kèm, ảnh đại diện) do module **Content** quản lý (schema `content`, role `kk_content`). Nguyên tắc: **file không đi qua API**. Trình duyệt xin API một URL ký sẵn, `PUT` thẳng lên kho, rồi báo API kiểm tra; tải xuống cũng bằng URL `GET` ký sẵn hạn 5 phút. Không có URL công khai cố định nào. Module khác chỉ lưu `file_id` (`IContentApi`).
+
+| Bước | Ai làm | Kiểm tra |
+| --- | --- | --- |
+| `POST /api/content/uploads` | API | Loại file trong danh sách cho phép (ảnh, âm thanh, PDF, Office, video ngắn; không HTML/SVG/script), giới hạn theo mục đích và vai trò, quota của trung tâm (cả phần đang tải dở). Trả URL `PUT` hạn **10 phút** + `file_id` (Pending) |
+| `PUT` lên `files.BASE_DOMAIN` | Trình duyệt | Chữ ký S3 gồm cả `Content-Type`; Caddy chặn body > 110 MB |
+| `POST /api/content/uploads/{id}/complete` | API | Kích thước thật, loại thật theo magic bytes, **xoá EXIF/XMP** của ảnh (giữ hướng ảnh), SHA-256, quét virus nếu bật, cộng quota → Ready. Sai thì xoá object |
+| `GET /api/content/files/{id}/download` | API | Quyền đọc (chủ file, quản trị file, mục đích), trả URL `GET` hạn **5 phút** |
+| Dọn dẹp | Worker | Mỗi giờ xoá các upload Pending quá 24 giờ (`Content:PendingTtlHours`) |
+
+Giới hạn: tài liệu 100 MB, media câu hỏi và bài nộp của nhân sự 50 MB, bài nộp của học viên 25 MB, tệp đính kèm tin nhắn 10 MB, ảnh đại diện 2 MB, mọi ảnh tối đa 20 MB. Quota mặc định mỗi trung tâm `CONTENT_DEFAULT_QUOTA_BYTES` (5 GiB). Object key chỉ gồm id (`{tenant}/{mục đích}/{năm}/{tháng}/{file}`), không chứa tên file.
+
+### Vì sao Garage
+
+MinIO không còn image trên Docker Hub (09/2026). **Garage** (Rust, AGPL, image chỉ có một binary) có API S3 đủ cho URL ký sẵn, CORS và đọc theo khoảng byte; chạy một node với metadata SQLite tốn **~20–60 MiB** RAM, cộng tối đa 32 MiB khối đang ghi (`block_ram_buffer_max` trong `garage/garage.toml`). Trần mặc định `GARAGE_MEM_LIMIT=192m` (máy 2 GB: `128m`). Một node chỉ có một bản dữ liệu: độ bền là bản sao ngoài server ([Backup](#backup)), không phải nhân bản.
+
+### Cài đặt
+
+1. DNS: `files.BASE_DOMAIN` đã nằm trong bản ghi `*.BASE_DOMAIN`. Caddy cấp chứng chỉ thường (không on-demand) cho tên này.
+2. `.env`: `gen-secrets.sh` sinh `GARAGE_RPC_SECRET`, `GARAGE_ADMIN_TOKEN`, `S3_ACCESS_KEY` (dạng `GK` + 24 hex), `S3_SECRET_KEY`. `GARAGE_CAPACITY` (100G) là phần đĩa Garage được dùng.
+3. `./scripts/deploy.sh` chạy `scripts/garage-init.sh` sau khi bật hạ tầng: gán vai trò lưu trữ cho node (một lần), tạo bucket `S3_BUCKET`, nhập khoá ứng dụng với quyền đọc/ghi/owner trên bucket. Chạy lại bao nhiêu lần cũng được. API tự đặt luật CORS của bucket khi khởi động (`S3_CORS_ORIGIN`, mặc định `*`: mọi host tenant và tên miền riêng; chữ ký URL mới là quyền. Garage không hiểu mẫu `https://*.domain`).
+4. Server có sẵn DB: tạo role `kk_content` bằng tay (script init chỉ chạy trên volume rỗng):
+
+   ```bash
+   docker compose exec -T postgres psql -U konnyaku -d konnyaku -v ON_ERROR_STOP=1 \
+     -v pw="$(grep ^DB_PASSWORD_CONTENT= .env | cut -d= -f2-)" <<'SQL'
+   SELECT format('CREATE ROLE kk_content LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD %L', :'pw') \gexec
+   CREATE SCHEMA IF NOT EXISTS content AUTHORIZATION konnyaku;
+   GRANT USAGE ON SCHEMA content TO kk_content;
+   ALTER DEFAULT PRIVILEGES FOR ROLE konnyaku IN SCHEMA content GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO kk_content;
+   ALTER DEFAULT PRIVILEGES FOR ROLE konnyaku IN SCHEMA content GRANT USAGE, SELECT ON SEQUENCES TO kk_content;
+   SQL
+   ```
+
+Kiểm tra: `docker compose exec garage /garage status`, `docker compose exec garage /garage bucket info konnyaku` (số object, dung lượng).
+
+### Quét virus (tuỳ chọn)
+
+Profile `clamav` (`COMPOSE_PROFILES=clamav` và `CLAMAV_HOST=clamav` trong `.env`): ClamAV giữ cơ sở dữ liệu chữ ký trong RAM (**~1–1,5 GiB**, `CLAMAV_MEM_LIMIT=1536m`), nên chỉ bật trên máy 8 GB. API gửi file cho `clamd` (INSTREAM, đọc dần, không giữ cả file) ở bước complete; file bị phát hiện chuyển sang **Quarantined**: vẫn tính vào quota, hiện trong trang **Tệp** của quản trị trung tâm, không ai mở được. ClamAV không trả lời thì complete báo `content.scan_unavailable`, file vẫn Pending để thử lại. **Không bật** (máy 2 GB): học viên chỉ tải được ảnh, PDF và âm thanh; Office và video chỉ nhân sự tải lên.
+
+### Chuyển sang object storage của nhà cung cấp
+
+Khi dữ liệu lớn hơn đĩa VPS (Viettel IDC, BizFly, FPT, VNG Cloud…): chỉ đổi biến môi trường, không đổi code.
+
+1. Tạo bucket riêng (không public) và khoá chỉ có quyền trên bucket đó, có quyền đặt CORS (hoặc đặt CORS bằng tay: `GET`, `PUT`, `HEAD`, mọi header, origin `*`).
+2. Chép dữ liệu khi site còn chạy, rồi chép lần cuối trong giờ nghỉ (remote `dst` khai báo bằng biến `RCLONE_CONFIG_DST_*`: `TYPE=s3`, `PROVIDER=Other`, `ENDPOINT`, `REGION`, `ACCESS_KEY_ID`, `SECRET_ACCESS_KEY`):
+
+   ```bash
+   docker compose exec -e RCLONE_CONFIG_DST_TYPE=s3 -e RCLONE_CONFIG_DST_PROVIDER=Other -e RCLONE_CONFIG_DST_ENDPOINT=https://s3.<nhà-cung-cấp> \
+     -e RCLONE_CONFIG_DST_ACCESS_KEY_ID=<khoá> -e RCLONE_CONFIG_DST_SECRET_ACCESS_KEY=<bí mật> \
+     files-backup /bin/sh /opt/konnyaku/files-backup.sh sync src:konnyaku dst:<bucket-mới>
+   ```
+
+3. `.env`: `S3_ENDPOINT`, `S3_PUBLIC_URL` (thường cùng URL), `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` của nhà cung cấp, `S3_FORCE_PATH_STYLE` theo hướng dẫn của họ, `GARAGE_REPLICAS=0`, rồi `./scripts/deploy.sh`. Object key giữ nguyên nên mọi `file_id` vẫn dùng được; `files-backup` tự chép từ bucket mới.
+4. Giữ volume `garage-data` vài tuần rồi mới xoá.
+
 ## Backup
 
-Hai lớp, cả hai chạy tự động:
+Hai lớp cho cơ sở dữ liệu và một lớp cho kho file, đều chạy tự động:
 
 | Lớp | Công cụ | Điểm khôi phục | Ở đâu |
 | --- | --- | --- | --- |
 | Chính | **pgBackRest** (service `backup` + `archive_command` của PostgreSQL) | **Bất kỳ thời điểm nào** trong `BACKUP_RETENTION_DAYS` (30) ngày gần nhất; mất server thì mất tối đa `PG_ARCHIVE_TIMEOUT` (60) giây dữ liệu | Object storage S3 ở nhà cung cấp khác, mã hoá phía client |
 | Phụ | `scripts/backup.sh` (`pg_dump` hằng đêm qua cron) | Theo ngày, `BACKUP_KEEP_DAYS` (7) ngày | Trên server (+ `rclone` nếu đặt `RCLONE_REMOTE`) |
+| Kho file | Service `files-backup` (rclone sync bucket, hằng ngày lúc `BACKUP_TIME_UTC`) | Bucket như lần chạy gần nhất; file bị xoá hoặc thay được giữ `BACKUP_RETENTION_DAYS` ngày trong `history/<ngày>/` | Cùng object storage với pgBackRest, thư mục `BACKUP_S3_PATH/files`, mã hoá tên và nội dung phía client (rclone crypt, khoá từ `BACKUP_CIPHER_PASS`) |
 
 **Vì sao pgBackRest (không phải WAL-G)**: cùng làm được full + WAL liên tục lên S3 và PITR; pgBackRest có sẵn trong repo PGDG mà image `postgres:17` đã cấu hình (một dòng `apt-get`, cùng nguồn với PostgreSQL), có **chính sách giữ theo thời gian** (`repo1-retention-full-type=time`: giữ đủ full để khôi phục mọi thời điểm trong N ngày, WAL cũ hơn tự xoá), **mã hoá AES-256 phía client** chỉ bằng một mật khẩu (WAL-G cần quản lý khoá libsodium/PGP riêng), backup **diff/incr theo khối** (`repo1-block`) ít tải lên hơn, `info --output=json` cho file trạng thái, và `check` xác minh cả đường đẩy WAL. Đổi lại pgBackRest lớn hơn một chút và cần chạy cạnh PostgreSQL (cùng volume, cùng socket) — ở đây là sidecar `backup` dùng chung image.
 
@@ -239,6 +304,8 @@ Hai lớp, cả hai chạy tự động:
    ```
    15 2 * * * cd /opt/konnyaku && ./scripts/backup.sh >> backups/backup.log 2>&1
    ```
+
+Kho file dùng cùng cấu hình `BACKUP_S3_*`, không cần làm gì thêm. Chạy tay `./scripts/kk-backup.sh files backup`, xem `./scripts/kk-backup.sh files status`. DB và bucket được backup ở hai thời điểm khác nhau: một file tải lên giữa hai lần chép có trong DB khôi phục nhưng chưa có trong bucket (trang **Tệp** vẫn liệt kê, mở thì báo không tìm thấy). RAM của `files-backup`: vài MiB lúc chờ, vài chục MiB khi chép (`FILES_BACKUP_MEM_LIMIT=128m`, máy 2 GB `96m`).
 
 Server đã chạy từ trước bản này: lần deploy đầu tạo lại `postgres` (image mới, bật `archive_mode`) — **một lần khởi động lại DB, vài giây lỗi**, làm ngoài giờ học.
 
@@ -267,8 +334,9 @@ Ghi vào `BACKUP_DIR/status/` trên host (mặc định `/opt/konnyaku/backups/s
 | `pgbackrest.prom`, `backup.json` | Service `backup`, mỗi phút và sau mỗi backup/diễn tập | `konnyaku_backup_configured` (0/1), `konnyaku_backup_heartbeat_timestamp_seconds`, `konnyaku_backup_last_success_timestamp_seconds{type="full\|diff\|incr"}`, `konnyaku_backup_last_run_timestamp_seconds`, `konnyaku_backup_last_run_success`, `konnyaku_backup_count`, `konnyaku_backup_oldest_timestamp_seconds`, `konnyaku_backup_repo_size_bytes`, `konnyaku_backup_wal_last_archived_timestamp_seconds`, `konnyaku_backup_wal_last_failed_timestamp_seconds`, `konnyaku_backup_wal_failed_total`, `konnyaku_backup_wal_pending_segments`, `konnyaku_backup_drill_last_run_timestamp_seconds`, `konnyaku_backup_drill_last_success`, `konnyaku_backup_drill_last_success_timestamp_seconds` |
 | `drill.json` | Sau mỗi lần diễn tập | thời điểm, đạt/không, mốc khôi phục, thời gian, số dòng từng bảng (khôi phục / live), ghi chú |
 | `dump.prom`, `dump.json` | `scripts/backup.sh`, khi dump thành công | `konnyaku_dump_last_success_timestamp_seconds`, `konnyaku_dump_last_size_bytes` |
+| `files.prom`, `files.json` | Service `files-backup`, mỗi phút và sau mỗi lần chép | `konnyaku_files_backup_configured`, `konnyaku_files_backup_heartbeat_timestamp_seconds`, `konnyaku_files_backup_last_success_timestamp_seconds`, `konnyaku_files_backup_last_run_timestamp_seconds`, `konnyaku_files_backup_last_run_success`, `konnyaku_files_backup_objects`, `konnyaku_files_backup_bytes` |
 
-Timestamp là giây Unix UTC, `0` = chưa từng. Khi bật giám sát, node-exporter đọc thư mục này và các cảnh báo `BackupOverdue`, `DumpOverdue`, `BackupSidecarStalled`, `WalArchivingFailing`, `BackupNotConfigured`, `RestoreDrillOverdue`, `BackupStatusMissing` dùng các chỉ số trên ([Cảnh báo](#cảnh-báo)).
+Timestamp là giây Unix UTC, `0` = chưa từng. Khi bật giám sát, node-exporter đọc thư mục này và các cảnh báo `BackupOverdue`, `DumpOverdue`, `FilesBackupOverdue`, `BackupSidecarStalled`, `WalArchivingFailing`, `BackupNotConfigured`, `RestoreDrillOverdue`, `BackupStatusMissing` dùng các chỉ số trên ([Cảnh báo](#cảnh-báo)).
 
 `konnyaku_backup_wal_last_archived_timestamp_seconds` cũ **không** có nghĩa là lỗi: DB không có ghi thì không đóng đoạn WAL mới.
 
@@ -279,6 +347,7 @@ Timestamp là giây Unix UTC, `0` = chưa từng. Khi bật giám sát, node-exp
 | Lỡ tay xoá/sửa dữ liệu, cả hệ thống cần quay lại | `./scripts/restore.sh --time "<thời điểm ngay trước sự cố>"` |
 | Lỡ tay xoá dữ liệu **một trung tâm**, các trung tâm khác vẫn đang làm việc | Không quay cả DB: dựng bản tạm ở thời điểm trước sự cố rồi chép riêng dữ liệu cần lấy (bên dưới) |
 | Mất server, đĩa hỏng | Server mới + `./scripts/restore.sh latest` |
+| Mất file trong kho (mất server, xoá nhầm bucket) | `./scripts/kk-backup.sh files restore` ([Kho file](#kho-file)) |
 | Khôi phục nhầm | `restore.sh` đã đánh dấu trạng thái trước đó: `./scripts/restore.sh --name before-restore-<thời gian> --timeline <số timeline cũ>` (script in ra cả hai khi chạy) |
 
 Mọi lệnh chạy trong `/opt/konnyaku`. Xem trước khoảng có thể khôi phục: `./scripts/restore.sh --list` (bản full/diff, WAL từ … đến …).
@@ -296,6 +365,15 @@ Script: đánh dấu trạng thái hiện tại (restore point `before-restore-�
 1. Cài Docker, mở firewall, trỏ DNS như [Chuẩn bị](#chuẩn-bị-một-lần); chép `infra/deploy/` vào `/opt/konnyaku`.
 2. Lấy **`.env` cũ** từ trình quản lý mật khẩu (cần đúng `BACKUP_*`, `BACKUP_CIPHER_PASS`, `POSTGRES_PASSWORD` và `DB_PASSWORD_*` — mật khẩu các role nằm trong DB được khôi phục — cùng `AUTH_SIGNING_KEY`, `CAPTCHA_KEY`…). Đăng nhập GHCR.
 3. `./scripts/restore.sh latest` (volume trống: khôi phục đầy đủ) rồi `./scripts/deploy.sh <sha đang chạy>`.
+
+### Kho file
+
+```bash
+./scripts/kk-backup.sh files restore               # chép bản sao mới nhất về bucket; file mới hơn trên bucket được giữ
+./scripts/kk-backup.sh files restore 2026-11-24    # thêm các phiên bản mà lần chạy ngày đó đã xoá hoặc thay
+```
+
+Server mới: sau `restore.sh latest` và `deploy.sh` (Garage đã có bucket và khoá), chạy `files restore`. Lệnh không xoá gì trên bucket, chạy lại được. Tên và nội dung trên object storage đã mã hoá, chỉ đọc được bằng `BACKUP_CIPHER_PASS`. Đã kiểm thử: chép, xoá file khỏi bucket, khôi phục theo ngày lấy lại đủ file.
 
 ### Lấy lại một phần dữ liệu
 
@@ -382,6 +460,7 @@ Rule trong `monitoring/prometheus/rules.yml.tmpl` (số bản sao và ngưỡng 
 | `ClassroomPresenceDropped` | warning | Signaling bỏ sự kiện vào/ra phòng sau khi thử lại (điểm danh có thể thiếu) |
 | `DiskAlmostFull` / `DiskFillsWithin24h` | critical / warning | Ổ `/` còn < 10 % / sẽ đầy trong 24 giờ |
 | `BackupOverdue`, `DumpOverdue` | critical / warning | Backup đầy đủ/khác biệt (pgBackRest) / pg_dump thành công gần nhất cũ hơn `BACKUP_MAX_AGE_HOURS` (26) |
+| `FilesBackupOverdue` | critical | Bản sao kho file (service `files-backup`) thành công gần nhất cũ hơn `BACKUP_MAX_AGE_HOURS` (chỉ khi đã cấu hình `BACKUP_S3_BUCKET`) |
 | `BackupSidecarStalled`, `WalArchivingFailing` | critical | Container backup không cập nhật trạng thái 5 phút / WAL không được đẩy lên kho backup 10 phút |
 | `BackupNotConfigured`, `RestoreDrillOverdue`, `BackupStatusMissing` | warning | Chưa có kho backup / diễn tập khôi phục thành công cũ hơn 35 ngày / không có file trạng thái backup nào trong 26 giờ |
 | `CertificateExpiresSoon` / `VerySoon` | warning / critical | Chứng chỉ của `PROBE_PUBLIC_URL` hết hạn sau < 14 / < 3 ngày (Caddy tự gia hạn trước 30 ngày) |

@@ -166,6 +166,24 @@ Konnyaku.Catalog.Contracts.LevelDto
 Konnyaku.Catalog.Contracts.SkillDto
   IReadOnlyDictionary`2 Name
   String Code
+Konnyaku.Content.Contracts.ContentDownloadDto
+  DateTimeOffset ExpiresAt
+  Uri Url
+Konnyaku.Content.Contracts.ContentFileDto
+  ContentFilePurpose Purpose
+  DateTimeOffset CreatedAt
+  Guid Id
+  Guid OwnerUserId
+  Int64 Size
+  String ContentType
+  String FileName
+  String Status
+Konnyaku.Content.Contracts.ContentFilePurpose
+Konnyaku.Content.Contracts.IContentApi
+  Task DeleteAsync(Guid, CancellationToken)
+  Task`1 GetDownloadUrlAsync(Guid, CancellationToken)
+  Task`1 GetFileAsync(Guid, CancellationToken)
+  Task`1 ValidateAsync(Guid, ContentFilePurpose, Nullable`1, CancellationToken)
 Konnyaku.Crm.Contracts.ICrmApi
   Task`1 GetStudentAsync(Guid, CancellationToken)
   Task`1 ListStudentsOfUserAsync(Guid, CancellationToken)

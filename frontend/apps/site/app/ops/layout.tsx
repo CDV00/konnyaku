@@ -45,6 +45,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       ? [{ href: "/ops/notifications", label: t("nav.notifications"), icon: "notifications" as const }]
       : []),
     ...(access.any("assessment.manage") ? [{ href: "/ops/assessments", label: assessment("ops.nav"), icon: "tests" as const }] : []),
+    // Every file of the center, storage used and quota: center-wide administrators.
+    ...(access.can("content.files") ? [{ href: "/ops/files", label: t("nav.files"), icon: "files" as const }] : []),
   ];
   return (
     <html lang={locale} suppressHydrationWarning className={appFont.variable}>

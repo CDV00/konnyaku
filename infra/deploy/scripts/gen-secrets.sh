@@ -7,7 +7,7 @@ secret() { openssl rand -base64 48 | tr -d '\n/+=' | cut -c1-"${1:-40}"; }
 
 echo "# --- generated $(date -u +%Y-%m-%dT%H:%M:%SZ) ---"
 echo "POSTGRES_PASSWORD=$(secret)"
-for module in PLATFORM CATALOG IDENTITY ORGANIZATION ACADEMIC CRM SCHEDULING BILLING WORKSPACE LEARNING HR NOTIFICATION ASSESSMENT; do
+for module in PLATFORM CATALOG IDENTITY ORGANIZATION ACADEMIC CRM SCHEDULING BILLING WORKSPACE LEARNING HR NOTIFICATION ASSESSMENT CONTENT; do
   echo "DB_PASSWORD_${module}=$(secret)"
 done
 # JWT signing key shared by every API replica (>= 32 bytes). Rotating it signs everybody out.
@@ -35,3 +35,9 @@ rm -f "$vapid"
 # Monitoring profile: Grafana "admin" password and the read-only statistics role of postgres-exporter.
 echo "GRAFANA_ADMIN_PASSWORD=$(secret 24)"
 echo "DB_PASSWORD_MONITOR=$(secret)"
+# Garage (object storage of the files): cluster RPC secret (32 bytes hex), admin API token, and the S3 key of the
+# application (Garage format: GK + 24 hex characters, secret 64 hex), imported by scripts/garage-init.sh.
+echo "GARAGE_RPC_SECRET=$(openssl rand -hex 32)"
+echo "GARAGE_ADMIN_TOKEN=$(secret 48)"
+echo "S3_ACCESS_KEY=GK$(openssl rand -hex 12)"
+echo "S3_SECRET_KEY=$(openssl rand -hex 32)"

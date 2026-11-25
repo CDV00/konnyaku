@@ -156,7 +156,8 @@ export type Permission =
   | "crm.export"
   | "crm.privacy"
   | "notification.messages"
-  | "assessment.manage";
+  | "assessment.manage"
+  | "content.files";
 
 type PermissionScope = { permission: Permission; tenantWide: boolean; branchIds: string[] };
 
@@ -223,4 +224,8 @@ export const statusTone: Record<string, Tone> = {
   // notifications
   Sent: "success",
   Failed: "destructive",
+  // files
+  Ready: "success",
+  Quarantined: "destructive",
+  Deleted: "muted",
 };

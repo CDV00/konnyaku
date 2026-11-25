@@ -40,6 +40,7 @@ Bảng dưới là **danh sách module chuẩn** của Konnyaku; các chương k
 | `Hr` | `hr` | Hồ sơ GV, năng lực, availability, đơn giá, timesheet, kỳ lương | `IHrApi` (năng lực, availability) |
 | `Notification` | `notification` | Hàng đợi thông báo (chống trùng, retry), template theo kênh + locale, gửi email (SMTP), nhắc lịch, nhật ký; hộp thông báo trong app (`inbox_item`), bộ định tuyến kênh theo cài đặt từng người, gom email, Web Push (VAPID), tín hiệu realtime qua Redis tới `services/signaling` (`/rt`) | `INotificationApi` (yêu cầu gửi) + event `NotificationRequestedV1` |
 | `Assessment` | `assessment` | Một bộ máy đánh giá cho bài tập, kiểm tra, thi thử, xếp lớp: ngân hàng câu hỏi (phiên bản, rich text có ruby), đề theo phần có giờ riêng, câu cố định / rút ngẫu nhiên, giao bài, lượt làm (giờ theo server, tự nộp), tự chấm, hàng chờ chấm theo thang tiêu chí, công bố điểm | `IAssessmentApi` (người được giao một bài, ai đã nộp) |
+| `Content` | `content` | Kho file: `IObjectStorage` (ổ đĩa ở dev/test, S3 — Garage hoặc của nhà cung cấp — ở production), URL ký để tải lên/xuống thẳng, kiểm tra loại thật, xoá EXIF, quota theo trung tâm, cách ly khi quét virus | `IContentApi` (kiểm tra và cấp link cho `file_id` mà module khác lưu) |
 | `Reporting` | `reporting` | Read model báo cáo, đọc replica | — |
 | `Ai` *(V3)* | `ai` | Pipeline tóm tắt, chấm điểm | — (chỉ qua event) |
 
@@ -65,6 +66,7 @@ flowchart TD
   Notification
   Assessment --> Academic
   Assessment --> Scheduling
+  Content
   Reporting -.->|đọc read model| Academic
 ```
 
@@ -152,7 +154,7 @@ builder.AddModules(
     new IdentityModule(), new CrmModule(), new AcademicModule(),
     new SchedulingModule(), new BillingModule(), new LearningModule(),
     new HrModule(), new WorkspaceModule(), new NotificationModule(),
-    new AssessmentModule(), new ReportingModule());
+    new AssessmentModule(), new ContentModule(), new ReportingModule());
 
 // Sau khi tách: Konnyaku.Workspace.Host/Program.cs
 builder.AddModules(new WorkspaceModule());

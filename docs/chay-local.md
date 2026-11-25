@@ -13,6 +13,7 @@ Hệ thống local gồm 3 phần: hạ tầng trong Docker, backend .NET (API +
 | Realtime (`services/signaling`) | 5100 | Phòng học `ws://localhost:5100/rtc/ws`, chuông thông báo `ws://localhost:5100/rt`, sức khoẻ `/rtc/health`; container `signaling` trong docker compose |
 | Redis | 6380 | Tín hiệu realtime của chuông (API và Worker dev đã trỏ tới `localhost:6380`) và bộ đếm giới hạn tần suất. Không chạy Redis: chuông hỏi lại mỗi 30 giây, giới hạn tần suất đếm trong RAM ([Thông báo trong app](#thông-báo-trong-app-chuông-web-push)) |
 | Mailpit (xem email gửi đi) | 8025 (web), 1025 (SMTP) | `http://localhost:8025` |
+| Garage (kho file S3, tuỳ chọn) | 3900 | Chỉ khi bật profile `s3` để thử đường production; mặc định file nằm trên đĩa ([Kho file](#kho-file)) |
 
 Frontend dùng 4000 để tránh trùng các dự án khác hay chạy ở 3000/3001. Cần đổi thì sửa đồng thời: `frontend/apps/site/package.json` (script `dev`, `start`), `.claude/launch.json` và tài liệu này.
 
@@ -168,6 +169,7 @@ Dùng Claude Code: các dịch vụ trên đã khai báo trong `.claude/launch.j
 | `student-search` | Tìm "ngoc an" ra "Lê Ngọc Ân"; quản trị xem được liên hệ (có ghi nhật ký), kế toán chỉ thấy bản che |
 | `platform` | Super-admin đăng nhập bằng mã TOTP trên `admin.localhost`, tạo trung tâm; quản trị viên mới phải đổi mật khẩu tạm |
 | `inbox` | Đổi giờ buổi học → chuông của học viên đang mở trang tăng số **không cần tải lại** (Worker → Redis → realtime → trình duyệt); mở thông báo thì đánh dấu đã đọc; tắt email cho loại "buổi bị hủy" → buổi bị hủy vẫn vào hộp thông báo, không có email cho học viên |
+| `files` | Quản trị tải tài liệu lên trang **Tệp** (file đi thẳng tới kho), mở qua link ký 5 phút, sửa link thì bị từ chối, xoá; học viên khác, giáo viên và trung tâm khác không mở được file không phải của mình |
 
 Lần đầu cài trình duyệt: `npx -y pnpm@10.34.9 --dir frontend/e2e exec playwright install chromium`. Sau đó một lệnh (cần Docker, .NET 10, Python 3; từ thư mục gốc repo):
 
@@ -183,11 +185,26 @@ Script `frontend/e2e/run.mjs` dựng PostgreSQL + Mailpit + Redis + service real
 | `node frontend/e2e/run.mjs -- --grep refund` | Sau `--` là tham số của `playwright test` (chỉ chạy một luồng, `--headed`, `--repeat-each 3`…) |
 | `node frontend/e2e/run.mjs --serve` | Dựng và seed rồi giữ nguyên để viết test: ở terminal khác `cd frontend/e2e && npx playwright test` (hoặc `--ui`); Ctrl+C để tắt |
 
-Cổng riêng, không trùng hệ thống dev: PostgreSQL 5450, Mailpit 1030/8030, API 5190, web 4950 (`http://review.localhost:4950`), Redis 6390, realtime 5195; đổi bằng biến `E2E_PG_PORT`, `E2E_SMTP_PORT`, `E2E_MAILPIT_PORT`, `E2E_API_PORT`, `E2E_WEB_PORT`, `E2E_REDIS_PORT`, `E2E_RT_PORT`. Hai bộ e2e chạy song song trên một máy: đổi các cổng và đặt `COMPOSE_PROJECT_NAME` khác `konnyaku-e2e`, nếu không bộ này dọn mất container của bộ kia. CI (`--infra=external`) chạy Redis như service và tự build service realtime (`E2E_REALTIME_BIN`). Python khác `python`/`python3`: đặt `PYTHON`. Môi trường test tắt captcha (`Captcha__Enabled=false`) và nới giới hạn tần suất form công khai / quên mật khẩu.
+Cổng riêng, không trùng hệ thống dev: PostgreSQL 5450, Mailpit 1030/8030, API 5190, web 4950 (`http://review.localhost:4950`), Redis 6390, realtime 5195; đổi bằng biến `E2E_PG_PORT`, `E2E_SMTP_PORT`, `E2E_MAILPIT_PORT`, `E2E_API_PORT`, `E2E_WEB_PORT`, `E2E_REDIS_PORT`, `E2E_RT_PORT`. Hai bộ e2e chạy song song trên một máy: đổi các cổng và đặt `COMPOSE_PROJECT_NAME` khác `konnyaku-e2e`, nếu không bộ này dọn mất container của bộ kia. CI (`--infra=external`) chạy Redis như service và tự build service realtime (`E2E_REALTIME_BIN`). Python khác `python`/`python3`: đặt `PYTHON`. Môi trường test tắt captcha (`Captcha__Enabled=false`) và nới giới hạn tần suất form công khai / quên mật khẩu; file lưu trên đĩa ở `frontend/e2e/.storage` (LocalDisk, URL ký trỏ về API của e2e).
 
 Khi test lỗi: `frontend/e2e/playwright-report` (mở bằng `npx playwright show-report` trong `frontend/e2e`) có trace, video, ảnh chụp; log server ở `frontend/e2e/logs/{api,worker,web}.log`. Trên CI các thư mục này là artifact `e2e-results` của job.
 
 Thêm hoặc sửa luồng (bắt buộc với PR đổi điều người dùng thấy): đọc [frontend/e2e/README.md](../frontend/e2e/README.md) — chỗ đặt spec và fixture, đăng nhập theo vai trò, tạo dữ liệu, chạy một spec.
+
+## Kho file
+
+Module `Content` lưu file qua `IObjectStorage`. **Dev và test dùng `LocalDiskStorage`** (mặc định, không cần container nào): file nằm trong thư mục tạm của máy (`%TEMP%\konnyaku-files`, đổi bằng `Storage:LocalDisk:Root`; API và Worker phải dùng chung thư mục), API tự phục vụ URL ký ở `http://localhost:5080/api/content/storage/...` với cùng luật như S3 (hết hạn, chữ ký gồm phương thức và `Content-Type`, CORS cho `*.localhost:4000`). Chọn đĩa thay vì Garage cho dev vì không tốn thêm RAM, không cần tạo bucket/khoá, và test tích hợp chạy nhanh; đường S3 thật được kiểm bằng `GarageStorageTests` (Testcontainers, image Garage của production).
+
+Thử đường production (S3) trên máy dev:
+
+```bash
+docker compose -f infra/docker/docker-compose.yml --profile s3 up -d garage
+GARAGE="docker compose -f infra/docker/docker-compose.yml exec -T garage /garage" GARAGE_CAPACITY=5G \
+  S3_ACCESS_KEY=GK000000000000000000000001 S3_SECRET_KEY=$(printf '0%.0s' {1..63})1 \
+  bash infra/deploy/scripts/garage-init.sh
+```
+
+rồi chạy API với `Storage__Provider=S3`, `Storage__S3__ServiceUrl=http://localhost:3900`, `Storage__S3__Bucket=konnyaku`, `Storage__S3__AccessKey` / `Storage__S3__SecretKey` như trên và `Storage__S3__CorsOrigins__0=*` (Worker cũng vậy). Trang quản lý: `/ops/files` (quản trị trung tâm). Giới hạn, quota và quét virus: [trien-khai.md](trien-khai.md#kho-file-garage).
 
 ## Phòng học có sẵn (WebRTC)
 

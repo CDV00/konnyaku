@@ -30,7 +30,8 @@ BEGIN
         ('learning', 'learning'),
         ('hr', 'hr'),
         ('notification', 'notification'),
-        ('assessment', 'assessment')
+        ('assessment', 'assessment'),
+        ('content', 'content')
     ) AS v(module, schema_name)
     LOOP
         role_name := 'kk_' || m.module;

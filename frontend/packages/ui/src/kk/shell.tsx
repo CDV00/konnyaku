@@ -12,6 +12,7 @@ import {
   CalendarClock,
   CalendarDays,
   EyeOff,
+  FolderOpen,
   ClipboardList,
   GraduationCap,
   Building2,
@@ -68,6 +69,7 @@ const icons = {
   grading: PenLine,
   schedule: CalendarCheck,
   makeups: CalendarClock,
+  files: FolderOpen,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof icons;
