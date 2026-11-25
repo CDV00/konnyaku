@@ -21,6 +21,10 @@ x-backend-env: &backend-env
   Auth__SigningKey: ${AUTH_SIGNING_KEY:?}
   Platform__AdminKey: ${PLATFORM_ADMIN_KEY:?}
   Platform__BaseDomain: ${BASE_DOMAIN:?}
+  # Memory profile (.env.example, docs/toi-uu-tai-nguyen.md). One connection pool per module role (11 per process):
+  # cap each pool so every replica together stays under PG_MAX_CONNECTIONS, and close idle connections after 60 s.
+  Database__MaxPoolSize: ${DB_POOL_MAX:-6}
+  Database__ConnectionIdleLifetime: ${DB_POOL_IDLE_SECONDS:-60}
 
 x-logging: &logging
   driver: json-file
@@ -52,8 +56,17 @@ services:
     restart: unless-stopped
     environment:
       KONNYAKU_API_URL: http://api:8080
+      # V8 heap cap: without it the heap keeps growing (~2x RAM at the same load); below ~256 MB Next.js runs out
+      # of heap under load (docs/toi-uu-tai-nguyen.md).
+      NODE_OPTIONS: --max-old-space-size=${WEB_HEAP_MB:-512}
+      # Keep idle sockets open longer than Caddy reuses them (2 min); with Node's 5 s default Caddy sometimes sends a
+      # request on a socket Node is closing and answers 502 (it cannot retry a POST).
+      KEEP_ALIVE_TIMEOUT: "130000"
     deploy:
       replicas: ${WEB_REPLICAS:-2}
+      resources:
+        limits:
+          memory: ${WEB_MEM_LIMIT:-768m}
     networks: [edge, app]
     depends_on: [api]
     healthcheck:
@@ -71,8 +84,13 @@ services:
       <<: *backend-env
       # Trust X-Forwarded-For only from the web containers (the only caller), for per-visitor rate limits.
       ForwardedHeaders__KnownNetworks__0: ${APP_SUBNET:-172.30.1.0/24}
+      # 2 GB profile: dispatch the outbox here and run WORKER_REPLICAS=0.
+      Worker__InProcess: ${API_RUNS_WORKER:-false}
     deploy:
       replicas: ${API_REPLICAS:-2}
+      resources:
+        limits:
+          memory: ${API_MEM_LIMIT:-512m}
     networks: [app, data]
     depends_on:
       migrator:
@@ -90,9 +108,14 @@ services:
     restart: unless-stopped
     environment:
       <<: *backend-env
+      # One outbox loop per module: a few connections per pool are enough.
+      Database__MaxPoolSize: ${WORKER_DB_POOL_MAX:-3}
     # Several workers are safe: outbox rows are claimed with FOR UPDATE SKIP LOCKED.
     deploy:
       replicas: ${WORKER_REPLICAS:-1}
+      resources:
+        limits:
+          memory: ${WORKER_MEM_LIMIT:-256m}
     # app: outbound internet for providers (Google Meet, email); data: PostgreSQL.
     networks: [app, data]
     depends_on:
@@ -116,6 +139,23 @@ services:
     image: postgres:17
     restart: unless-stopped
     shm_size: 256mb
+    # Sized per machine in .env (docs/toi-uu-tai-nguyen.md). Each connection costs a few MB, so keep the pools small.
+    command:
+      - postgres
+      - -c
+      - max_connections=${PG_MAX_CONNECTIONS:-200}
+      - -c
+      - shared_buffers=${PG_SHARED_BUFFERS:-512MB}
+      - -c
+      - effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-3GB}
+      - -c
+      - work_mem=${PG_WORK_MEM:-8MB}
+      - -c
+      - maintenance_work_mem=${PG_MAINTENANCE_WORK_MEM:-128MB}
+    deploy:
+      resources:
+        limits:
+          memory: ${PG_MEM_LIMIT:-2g}
     environment:
       POSTGRES_USER: konnyaku
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}

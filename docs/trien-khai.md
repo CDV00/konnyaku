@@ -28,7 +28,7 @@ Giới hạn khi chạy nhiều bản sao: giới hạn tần suất form đăng
 
 ## Chuẩn bị (một lần)
 
-1. **VPS**: Ubuntu 24.04, 4 vCPU / 8 GB RAM / 100 GB SSD, x86 hoặc ARM (ví dụ Oracle Cloud Always Free, Ampere A1). Máy test 2 GB RAM chạy được nếu đặt `WEB_REPLICAS=1` và `API_REPLICAS=1`. Cài Docker Engine và plugin compose theo hướng dẫn chính thức của Docker. Mở firewall cổng 22, 80, 443 (TCP) và 443 (UDP).
+1. **VPS**: Ubuntu 24.04, 4 vCPU / 8 GB RAM / 100 GB SSD, x86 hoặc ARM (ví dụ Oracle Cloud Always Free, Ampere A1). Máy test 2 GB RAM (1–2 vCPU) chạy được với hồ sơ **máy nhỏ** trong `.env.example` (1 web, 1 api chạy luôn outbox, không có container worker); số đo và cách chọn tham số ở [toi-uu-tai-nguyen.md](toi-uu-tai-nguyen.md). Cài Docker Engine và plugin compose theo hướng dẫn chính thức của Docker. Mở firewall cổng 22, 80, 443 (TCP) và 443 (UDP).
 2. **DNS**: bản ghi `A` cho `BASE_DOMAIN` và `*.BASE_DOMAIN` trỏ về IP VPS. Nếu dùng Cloudflare, để **DNS only** (đám mây xám): Caddy tự cấp chứng chỉ qua HTTP-01.
 3. **Đăng nhập GHCR trên server** (image private): tạo GitHub token chỉ có quyền `read:packages`, rồi:
 
@@ -108,5 +108,7 @@ docker compose up -d
 | Trạng thái | `docker compose ps` |
 | Log một thành phần | `docker compose logs -f --tail 200 api` |
 | Tăng bản sao web | `WEB_REPLICAS=3` trong `.env`, rồi `docker compose up -d` |
+| Đổi hồ sơ RAM (2 GB / 8 GB) | Sửa khối *Machine profile* trong `.env` theo `.env.example`, rồi `docker compose up -d` ([toi-uu-tai-nguyen.md](toi-uu-tai-nguyen.md)) |
+| RAM/CPU từng container | `docker stats --no-stream` |
 | Vào psql | `docker compose exec postgres psql -U konnyaku` |
 | Dung lượng | `docker system df` |

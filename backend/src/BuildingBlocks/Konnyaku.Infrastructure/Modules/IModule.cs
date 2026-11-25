@@ -56,10 +56,15 @@ public static class ModuleHostExtensions
         builder.Services.AddSingleton<IDbErrorClassifier, NpgsqlErrorClassifier>();
         builder.Services.AddSingleton(TimeProvider.System);
 
+        // Small servers (2 GB) can skip the Worker container: Worker:InProcess=true runs the outbox inside the API.
+        // Several processes dispatching the same outbox is safe (rows are claimed with FOR UPDATE SKIP LOCKED).
+        var runsWorker = role == HostRole.Worker
+            || (role == HostRole.Api && builder.Configuration.GetValue<bool>("Worker:InProcess"));
+
         foreach (var module in modules)
         {
             module.AddServices(builder.Services, builder.Configuration);
-            if (role == HostRole.Worker)
+            if (runsWorker)
             {
                 module.AddWorkerServices(builder.Services);
             }

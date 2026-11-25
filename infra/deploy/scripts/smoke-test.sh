@@ -36,6 +36,10 @@ if ! wait_for http://localhost:18080/health || ! wait_for http://localhost:13000
   exit 1
 fi
 
+# Idle memory right after start-up on this architecture (docs/toi-uu-tai-nguyen.md compares amd64 and arm64).
+sleep 5
+docker stats --no-stream --format 'memory {{.Name}} {{.MemUsage}}' kk-smoke-api kk-smoke-web
+
 # Worker and migrator need PostgreSQL to do anything; check the runtime starts and the app loads.
 for image in worker migrator; do
   docker run --rm --entrypoint dotnet "$prefix-$image:$tag" --list-runtimes | grep -q Microsoft.NETCore.App
